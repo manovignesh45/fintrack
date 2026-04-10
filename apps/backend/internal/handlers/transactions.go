@@ -67,6 +67,21 @@ func (h *TransactionHandler) List(w http.ResponseWriter, r *http.Request) {
 		args = append(args, v)
 		argIdx++
 	}
+	if v := q.Get("sub_category_id"); v != "" {
+		query += fmt.Sprintf(" AND sub_category_id = $%d", argIdx)
+		args = append(args, v)
+		argIdx++
+	}
+	if v := q.Get("category_id"); v != "" {
+		query += fmt.Sprintf(" AND sub_category_id IN (SELECT id FROM sub_categories WHERE category_id = $%d)", argIdx)
+		args = append(args, v)
+		argIdx++
+	}
+	if v := q.Get("search"); v != "" {
+		query += fmt.Sprintf(" AND (LOWER(title) LIKE LOWER('%%' || $%d || '%%') OR LOWER(COALESCE(notes, '')) LIKE LOWER('%%' || $%d || '%%'))", argIdx, argIdx)
+		args = append(args, v)
+		argIdx++
+	}
 
 	query += " ORDER BY transaction_date DESC, created_at DESC"
 
