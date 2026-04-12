@@ -213,12 +213,30 @@ func (h *TransactionHandler) Export(w http.ResponseWriter, r *http.Request) {
 		data = append(data, er)
 	}
 
+	totalIncome := 0.0
+	totalExpense := 0.0
+	for _, d := range data {
+		if d.Nature == "INCOME" || d.Nature == "LOAN_DISBURSEMENT" {
+			totalIncome += d.Amount
+		} else if d.Nature == "EXPENSE" || d.Nature == "EMI_PAYMENT" {
+			totalExpense += d.Amount
+		}
+	}
+
 	headers := []string{"Date", "Title", "Amount", "Nature", "Entity", "Loan Account", "Category", "Sub Category", "Payment Method", "Notes"}
 
 	if format == "csv" {
 		w.Header().Set("Content-Type", "text/csv")
 		w.Header().Set("Content-Disposition", "attachment;filename=transactions.csv")
 		writer := csv.NewWriter(w)
+
+		// Top summary for CSV
+		writer.Write([]string{"SUMMARY"})
+		writer.Write([]string{"Total Income", fmt.Sprintf("%.2f", totalIncome)})
+		writer.Write([]string{"Total Expense", fmt.Sprintf("%.2f", totalExpense)})
+		writer.Write([]string{"Difference", fmt.Sprintf("%.2f", totalIncome-totalExpense)})
+		writer.Write([]string{}) // Empty row separator
+
 		writer.Write(headers)
 		for _, d := range data {
 			loanAccount := ""
@@ -246,6 +264,7 @@ func (h *TransactionHandler) Export(w http.ResponseWriter, r *http.Request) {
 				d.Notes,
 			})
 		}
+
 		writer.Flush()
 		return
 	} else if format == "excel" {
@@ -253,15 +272,25 @@ func (h *TransactionHandler) Export(w http.ResponseWriter, r *http.Request) {
 		sheet := "Transactions"
 		f.SetSheetName("Sheet1", sheet)
 
+		// Top summary for Excel
+		f.SetCellValue(sheet, "A1", "SUMMARY")
+		f.SetCellValue(sheet, "A2", "Total Income")
+		f.SetCellValue(sheet, "B2", totalIncome)
+		f.SetCellValue(sheet, "A3", "Total Expense")
+		f.SetCellValue(sheet, "B3", totalExpense)
+		f.SetCellValue(sheet, "A4", "Difference")
+		f.SetCellValue(sheet, "B4", totalIncome-totalExpense)
+
 		// Set headers
+		headerRowIdx := 6
 		for i, h := range headers {
-			cell, _ := excelize.CoordinatesToCellName(i+1, 1)
+			cell, _ := excelize.CoordinatesToCellName(i+1, headerRowIdx)
 			f.SetCellValue(sheet, cell, h)
 		}
 
 		// Set data
 		for i, d := range data {
-			rowIdx := i + 2
+			rowIdx := i + headerRowIdx + 1
 			loanAccount := ""
 			if d.TargetAccountName != nil {
 				loanAccount = *d.TargetAccountName

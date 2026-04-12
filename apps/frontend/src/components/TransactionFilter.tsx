@@ -20,9 +20,9 @@ export const DEFAULT_FILTERS: FilterState = {
   nature: '',
   category_id: '',
   sub_category_id: '',
-  date_from: '',
-  date_to: '',
-  datePreset: '',
+  date_from: getPresetDates('thismonth').date_from,
+  date_to: getPresetDates('thismonth').date_to,
+  datePreset: 'thismonth',
 };
 
 export function countActiveFilters(f: FilterState): number {
@@ -42,7 +42,9 @@ export const DATE_PRESET_LABELS: Record<string, string> = {
 };
 
 function fmt(d: Date): string {
-  return d.toISOString().slice(0, 10);
+  const z = d.getTimezoneOffset() * 60 * 1000;
+  const localDate = new Date(d.getTime() - z);
+  return localDate.toISOString().slice(0, 10);
 }
 
 function getPresetDates(preset: string): { date_from: string; date_to: string } {

@@ -54,6 +54,18 @@ export default function TransactionsPage() {
 
   useEffect(() => { load(); }, [filters]);
 
+  const summary = transactions.reduce(
+    (acc, t) => {
+      if (t.nature === 'INCOME' || t.nature === 'LOAN_DISBURSEMENT') {
+        acc.income += t.amount;
+      } else if (t.nature === 'EXPENSE' || t.nature === 'EMI_PAYMENT') {
+        acc.expense += t.amount;
+      }
+      return acc;
+    },
+    { income: 0, expense: 0 }
+  );
+
   const handleDelete = async (id: number) => {
     if (!confirm('Delete this transaction?')) return;
     try {
@@ -182,6 +194,26 @@ export default function TransactionsPage() {
               onRemove={() => setFilters((f) => ({ ...f, datePreset: '', date_from: '', date_to: '' }))}
             />
           )}
+        </div>
+      )}
+
+      {/* Summary Stats */}
+      {!loading && transactions.length > 0 && (
+        <div className="grid grid-cols-3 gap-2 bg-white p-3 rounded-lg border border-gray-200">
+          <div className="text-center">
+            <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">Income</p>
+            <p className="text-sm font-bold text-green-600">₹{summary.income.toLocaleString('en-IN')}</p>
+          </div>
+          <div className="text-center border-x border-gray-100">
+            <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">Expense</p>
+            <p className="text-sm font-bold text-red-600">₹{summary.expense.toLocaleString('en-IN')}</p>
+          </div>
+          <div className="text-center">
+            <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">Diff</p>
+            <p className={`text-sm font-bold ${summary.income - summary.expense >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              ₹{(summary.income - summary.expense).toLocaleString('en-IN')}
+            </p>
+          </div>
         </div>
       )}
 
