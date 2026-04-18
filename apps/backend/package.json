@@ -2,7 +2,7 @@
   "name": "backend",
   "private": true,
   "scripts": {
-    "dev": "go run ./cmd/api",
+    "dev": "GOPROXY=direct go run ./cmd/api",
     "build": "go build -o bin/api ./cmd/api",
     "migrate": "migrate -path ./internal/db/migrations -database \"$DATABASE_URL\""
   }
