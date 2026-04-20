@@ -1,0 +1,137 @@
+import { useEffect, useState } from 'react';
+import { View, Text, FlatList, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { templatesApi } from '@/src/api/client';
+import { useAuth } from '@/src/context/AuthContext';
+import type { TransactionTemplate } from '@fintrack/shared';
+
+const natureLabels: Record<string, string> = {
+  INCOME: 'Income',
+  EXPENSE: 'Expense',
+  EMI_PAYMENT: 'EMI',
+  LOAN_DISBURSEMENT: 'Loan',
+};
+
+export default function TemplatesScreen() {
+  const [templates, setTemplates] = useState<TransactionTemplate[]>([]);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const { editMode } = useAuth();
+
+  const load = () => {
+    setLoading(true);
+    templatesApi.list()
+      .then((data) => setTemplates(data || []))
+      .catch(() => setTemplates([]))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const handleUse = (t: TransactionTemplate) => {
+    router.push({
+      pathname: '/add',
+      params: {
+        template: JSON.stringify({
+          title: t.title,
+          amount: t.amount.toString(),
+          nature: t.nature,
+          source_account_id: t.source_account_id.toString(),
+          target_account_id: t.target_account_id?.toString() || '',
+          sub_category_id: t.sub_category_id?.toString() || '',
+          entity: t.entity,
+          payment_method: t.payment_method || '',
+          principal_amount: t.principal_amount.toString(),
+          interest_amount: t.interest_amount.toString(),
+          transaction_date: new Date().toISOString().split('T')[0],
+        }),
+      },
+    });
+  };
+
+  const handleDelete = (id: number) => {
+    Alert.alert('Delete', 'Delete this template?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await templatesApi.delete(id);
+            load();
+          } catch {
+            Alert.alert('Error', 'Failed to delete');
+          }
+        },
+      },
+    ]);
+  };
+
+  const renderItem = ({ item: t }: { item: TransactionTemplate }) => (
+    <View className="bg-white rounded-lg border border-gray-200 p-3 mb-2 mx-4">
+      <View className="flex-row justify-between items-start">
+        <View className="flex-1 mr-3">
+          <Text className="font-medium text-gray-800 text-sm">{t.title}</Text>
+          <Text className="text-xs text-gray-500">
+            {natureLabels[t.nature] ?? t.nature} · {t.entity} · ₹{t.amount.toLocaleString('en-IN')}
+            {t.payment_method ? ` · ${t.payment_method}` : ''}
+          </Text>
+        </View>
+        <View className="flex-row gap-2 ml-3">
+          <TouchableOpacity
+            onPress={() => handleUse(t)}
+            className="px-3 py-1.5 bg-blue-600 rounded"
+          >
+            <Text className="text-white text-xs font-medium">Use</Text>
+          </TouchableOpacity>
+          {editMode && (
+            <TouchableOpacity
+              onPress={() => handleDelete(t.id)}
+              className="px-3 py-1.5 bg-red-100 rounded"
+            >
+              <Text className="text-red-600 text-xs font-medium">Del</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+    </View>
+  );
+
+  return (
+    <View className="flex-1 bg-gray-50">
+      {loading ? (
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color="#2563eb" />
+        </View>
+      ) : (
+        <FlatList
+          data={templates}
+          keyExtractor={(t) => t.id.toString()}
+          renderItem={renderItem}
+          ListHeaderComponent={
+            <View className="px-4 pb-2 pt-2">
+              <Text className="text-lg font-semibold text-gray-800">Templates</Text>
+            </View>
+          }
+          ListEmptyComponent={
+            <Text className="text-gray-400 text-center py-8">
+              No templates yet. Create one or save from the transaction form.
+            </Text>
+          }
+          contentContainerStyle={{ paddingBottom: 100 }}
+        />
+      )}
+
+      {editMode && (
+        <TouchableOpacity
+          onPress={() => router.push('/templates/new')}
+          className="absolute bottom-6 right-6 w-14 h-14 bg-blue-600 rounded-full shadow-lg items-center justify-center"
+          activeOpacity={0.8}
+        >
+          <Ionicons name="add" size={28} color="white" />
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+}
