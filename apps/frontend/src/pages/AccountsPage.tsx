@@ -69,30 +69,30 @@ export default function AccountsPage() {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-lg font-semibold text-gray-800">Loan Accounts</h2>
+        <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Loan Accounts</h2>
       </div>
 
       {showAdd && editMode && (
-        <form onSubmit={handleAdd} className="bg-white border border-gray-200 rounded-lg p-3 space-y-2">
+        <form onSubmit={handleAdd} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 space-y-2">
           <input
             type="text" placeholder="Loan name (e.g. SBI Home Loan)" value={newName}
             onChange={(e) => setNewName(e.target.value)} required
-            className="w-full px-3 py-2 border border-gray-300 rounded text-sm outline-none"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm outline-none"
           />
           <div>
-            <label className="text-xs text-gray-500 mb-1 block">Total Loan Amount (₹)</label>
+            <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Total Loan Amount (₹)</label>
             <input
               type="number" step="0.01" placeholder="e.g. 200000" value={newBalance}
               onChange={(e) => setNewBalance(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded text-sm outline-none"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm outline-none"
             />
           </div>
           <div>
-            <label className="text-xs text-gray-500 mb-1 block">Interest Rate (% per year)</label>
+            <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Interest Rate (% per year)</label>
             <input
               type="number" step="0.01" min="0" max="100" placeholder="e.g. 12.5" value={newInterestRate}
               onChange={(e) => setNewInterestRate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded text-sm outline-none"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm outline-none"
             />
           </div>
           <button
@@ -104,7 +104,7 @@ export default function AccountsPage() {
           <button
             type="button"
             onClick={() => setShowAdd(false)}
-            className="w-full py-2 border border-gray-300 text-gray-600 rounded text-sm font-medium"
+            className="w-full py-2 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 rounded text-sm font-medium"
           >
             Cancel
           </button>
@@ -151,7 +151,7 @@ function AccountCard({
   onToggle,
   onDelete,
   onClick,
-  colorClass = 'text-green-600',
+  colorClass = 'text-green-600 dark:text-green-400',
   editMode = false,
 }: {
   account: Account;
@@ -163,12 +163,12 @@ function AccountCard({
 }) {
   return (
     <div 
-      className={`bg-white rounded-lg border border-gray-200 p-3 cursor-pointer hover:border-blue-300 transition-colors ${!account.is_active ? 'opacity-50' : ''}`}
+      className={`bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 cursor-pointer hover:border-blue-300 transition-colors ${!account.is_active ? 'opacity-50' : ''}`}
       onClick={() => onClick(account)}
     >
       <div className="flex justify-between items-center">
         <div className="flex items-center gap-2">
-          <p className="font-medium text-gray-800 text-sm">{account.name}</p>
+          <p className="font-medium text-gray-800 dark:text-gray-200 text-sm">{account.name}</p>
           {editMode && (
             <button
               onClick={(e) => {
@@ -203,7 +203,7 @@ function AccountCard({
           className="flex items-center gap-2 cursor-pointer"
           onClick={(e) => e.stopPropagation()}
         >
-          <span className="text-xs text-gray-500">
+          <span className="text-xs text-gray-500 dark:text-gray-400">
             {account.is_active ? 'Active' : 'Inactive'}
           </span>
           <button
@@ -216,7 +216,7 @@ function AccountCard({
             }`}
           >
             <span
-              className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+              className={`inline-block h-3 w-3 transform rounded-full bg-white dark:bg-gray-800 transition-transform ${
                 account.is_active ? 'translate-x-5' : 'translate-x-1'
               }`}
             />

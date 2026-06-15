@@ -57,8 +57,8 @@ export default function AccountDetailsPage() {
       <div className="space-y-4">
         {/* Header placeholder */}
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/accounts')} className="text-gray-600 text-xl">←</button>
-          <div className="h-6 w-32 bg-gray-200 rounded animate-pulse"></div>
+          <button onClick={() => navigate('/accounts')} className="text-gray-600 dark:text-gray-400 text-xl">←</button>
+          <div className="h-6 w-32 bg-gray-200 dark:bg-gray-600 rounded animate-pulse"></div>
         </div>
         <p className="text-gray-400 text-center py-8">Loading...</p>
       </div>
@@ -79,13 +79,13 @@ export default function AccountDetailsPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate('/accounts')}
-            className="text-gray-600 text-xl"
+            className="text-gray-600 dark:text-gray-400 text-xl"
           >
             ←
           </button>
           <div>
-            <h2 className="text-lg font-semibold text-gray-800">{account.name}</h2>
-            <p className="text-sm text-gray-500">{account.type}</p>
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">{account.name}</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{account.type}</p>
           </div>
         </div>
         
@@ -93,7 +93,7 @@ export default function AccountDetailsPage() {
           type="month"
           value={month}
           onChange={(e) => setMonth(e.target.value)}
-          className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 outline-none"
+          className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:ring-1 focus:ring-blue-500 outline-none dark:bg-gray-800 dark:text-white"
         />
       </div>
 
@@ -114,9 +114,9 @@ export default function AccountDetailsPage() {
       </div>
 
       {/* Statement */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-          <h3 className="text-sm font-semibold text-gray-700">Account Statement</h3>
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="bg-gray-50 dark:bg-gray-900 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Account Statement</h3>
         </div>
 
         {statementRows.length === 0 ? (
@@ -124,21 +124,21 @@ export default function AccountDetailsPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
                 <tr>
-                  <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">Date</th>
-                  <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600">Description</th>
-                  <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600">Debit</th>
-                  <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600">Interest</th>
-                  <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600">Credit</th>
-                  <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600">Balance</th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">Date</th>
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-400">Description</th>
+                  <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600 dark:text-gray-400">Debit</th>
+                  <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600 dark:text-gray-400">Interest</th>
+                  <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600 dark:text-gray-400">Credit</th>
+                  <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600 dark:text-gray-400">Balance</th>
                 </tr>
               </thead>
               <tbody>
                 {/* Transactions */}
                 {statementRows.map((row) => (
-                  <tr key={row.txn.id} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="px-3 py-2 text-gray-600 whitespace-nowrap">
+                  <tr key={row.txn.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:bg-gray-900">
+                    <td className="px-3 py-2 text-gray-600 dark:text-gray-400 whitespace-nowrap">
                       {new Date(row.txn.transaction_date).toLocaleDateString('en-IN', {
                         day: '2-digit',
                         month: 'short',
@@ -147,7 +147,7 @@ export default function AccountDetailsPage() {
                     </td>
                     <td className="px-3 py-2">
                       <div>
-                        <p className="font-medium text-gray-800">{row.txn.title}</p>
+                        <p className="font-medium text-gray-800 dark:text-gray-200">{row.txn.title}</p>
                         <div className="flex gap-2 mt-0.5">
                           <span className={`text-xs px-1.5 py-0.5 rounded ${
                             row.txn.nature === 'INCOME' ? 'bg-green-100 text-green-700' :
@@ -159,17 +159,17 @@ export default function AccountDetailsPage() {
                             {row.txn.nature === 'EMI_PAYMENT' ? 'EMI' : row.txn.nature === 'LOAN_DISBURSEMENT' ? 'LOAN' : row.txn.nature}
                           </span>
                           {row.txn.payment_method && (
-                            <span className="text-xs text-gray-500">{row.txn.payment_method}</span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">{row.txn.payment_method}</span>
                           )}
                         </div>
                         {row.txn.notes && (
-                          <p className="text-xs text-gray-500 mt-1">{row.txn.notes}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{row.txn.notes}</p>
                         )}
                       </div>
                     </td>
                     <td className="px-3 py-2 text-right whitespace-nowrap">
                       {row.debit > 0 && (
-                        <span className="text-red-600 font-medium">
+                        <span className="text-red-600 dark:text-red-400 font-medium">
                           ₹{row.debit.toLocaleString('en-IN')}
                         </span>
                       )}
@@ -183,27 +183,27 @@ export default function AccountDetailsPage() {
                     </td>
                     <td className="px-3 py-2 text-right whitespace-nowrap">
                       {row.credit > 0 && (
-                        <span className="text-green-600 font-medium">
+                        <span className="text-green-600 dark:text-green-400 font-medium">
                           ₹{row.credit.toLocaleString('en-IN')}
                         </span>
                       )}
                     </td>
-                    <td className="px-3 py-2 text-right font-semibold text-gray-800 whitespace-nowrap">
+                    <td className="px-3 py-2 text-right font-semibold text-gray-800 dark:text-gray-200 whitespace-nowrap">
                       ₹{row.balance.toLocaleString('en-IN')}
                     </td>
                   </tr>
                 ))}
 
                 {/* Opening Balance - at the bottom since transactions are newest first */}
-                <tr className="border-t-2 border-blue-200 bg-blue-50">
-                  <td className="px-3 py-2 text-gray-600">—</td>
+                <tr className="border-t-2 border-blue-200 bg-blue-50 dark:bg-blue-900/30">
+                  <td className="px-3 py-2 text-gray-600 dark:text-gray-400">—</td>
                   <td className="px-3 py-2">
-                    <span className="font-medium text-gray-700 underline decoration-dotted">Balance Brought Forward</span>
+                    <span className="font-medium text-gray-700 dark:text-gray-300 underline decoration-dotted">Balance Brought Forward</span>
                   </td>
                   <td className="px-3 py-2 text-right">—</td>
                   <td className="px-3 py-2 text-right">—</td>
                   <td className="px-3 py-2 text-right">—</td>
-                  <td className="px-3 py-2 text-right font-semibold text-gray-800">
+                  <td className="px-3 py-2 text-right font-semibold text-gray-800 dark:text-gray-200">
                     ₹{openingBalanceAccount.current_balance.toLocaleString('en-IN')}
                   </td>
                 </tr>

@@ -26,11 +26,11 @@ export default function CreateTemplatePage() {
       <div className="flex items-center gap-3 mb-4">
         <button
           onClick={() => navigate('/templates')}
-          className="text-gray-600 text-xl"
+          className="text-gray-600 dark:text-gray-400 text-xl"
         >
           ←
         </button>
-        <h2 className="text-lg font-semibold text-gray-800">Create Template</h2>
+        <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Create Template</h2>
       </div>
       <TransactionForm onSubmit={handleSubmit} submitLabel="Save Template" />
     </div>

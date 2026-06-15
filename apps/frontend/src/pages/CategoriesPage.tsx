@@ -72,7 +72,7 @@ export default function CategoriesPage() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-semibold text-gray-800">Categories</h2>
+      <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Categories</h2>
 
       {/* Entity tabs */}
       <div className="flex gap-2">
@@ -81,7 +81,7 @@ export default function CategoriesPage() {
             key={e}
             onClick={() => setSelectedEntity(e)}
             className={`flex-1 py-1.5 rounded-lg text-sm font-medium ${
-              selectedEntity === e ? 'bg-blue-600 text-white' : 'bg-white border border-gray-300 text-gray-600'
+              selectedEntity === e ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400'
             }`}
           >
             {e}
@@ -96,7 +96,7 @@ export default function CategoriesPage() {
             key={n}
             onClick={() => setSelectedNature(n)}
             className={`flex-1 py-1.5 rounded-lg text-sm font-medium ${
-              selectedNature === n ? 'bg-orange-600 text-white' : 'bg-white border border-gray-300 text-gray-600'
+              selectedNature === n ? 'bg-orange-600 text-white' : 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400'
             }`}
           >
             {n}
@@ -111,14 +111,14 @@ export default function CategoriesPage() {
       ) : (
         <div className="space-y-3">
           {categories.map((cat) => (
-            <div key={cat.id} className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
-              <div className="flex justify-between items-center px-4 py-3 bg-gray-50 border-b border-gray-100">
-                <span className="font-bold text-gray-800 text-sm italic">{cat.name}</span>
+            <div key={cat.id} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
+              <div className="flex justify-between items-center px-4 py-3 bg-gray-50 dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800">
+                <span className="font-bold text-gray-800 dark:text-gray-200 text-sm italic">{cat.name}</span>
                 <div className="flex gap-3">
                   {editMode && (
                     <button
                       onClick={() => handleAddSub(cat.id)}
-                      className="text-xs bg-blue-50 text-blue-600 px-2.5 py-1 rounded-md font-semibold border border-blue-100"
+                      className="text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2.5 py-1 rounded-md font-semibold border border-blue-100"
                     >
                       + Sub
                     </button>
@@ -137,8 +137,8 @@ export default function CategoriesPage() {
                   <p className="px-5 py-3 text-xs text-gray-400 italic">No sub-categories</p>
                 ) : (
                   (cat.sub_categories ?? []).map((sc) => (
-                    <div key={sc.id} className="flex justify-between items-center px-5 py-2.5 hover:bg-gray-50 transition-colors">
-                      <span className="text-sm text-gray-600 font-medium">{sc.name}</span>
+                    <div key={sc.id} className="flex justify-between items-center px-5 py-2.5 hover:bg-gray-50 dark:bg-gray-900 transition-colors">
+                      <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">{sc.name}</span>
                       {editMode && (
                         <button onClick={() => deleteSubCategory(cat.id, sc.id)} className="text-red-300 hover:text-red-500 transition-colors p-1">
                           ✕
@@ -148,7 +148,7 @@ export default function CategoriesPage() {
                   ))
                 )}
                 {addingSubFor === cat.id && (
-                  <div className="flex items-center gap-2 px-4 py-2.5 bg-blue-50">
+                  <div className="flex items-center gap-2 px-4 py-2.5 bg-blue-50 dark:bg-blue-900/30">
                     <input
                       type="text"
                       value={newSubName}
@@ -159,7 +159,7 @@ export default function CategoriesPage() {
                       }}
                       placeholder="Sub-category name"
                       autoFocus
-                      className="flex-1 px-2.5 py-1.5 border border-blue-300 rounded-md text-sm focus:ring-2 focus:ring-blue-400 outline-none bg-white"
+                      className="flex-1 px-2.5 py-1.5 border border-blue-300 rounded-md text-sm focus:ring-2 focus:ring-blue-400 outline-none bg-white dark:bg-gray-800 dark:text-white"
                     />
                     <button
                       onClick={() => handleSubSubmit(cat.id)}
@@ -170,7 +170,7 @@ export default function CategoriesPage() {
                     </button>
                     <button
                       onClick={() => setAddingSubFor(null)}
-                      className="text-xs text-gray-500 px-2 py-1.5"
+                      className="text-xs text-gray-500 dark:text-gray-400 px-2 py-1.5"
                     >
                       ✕
                     </button>

@@ -7,9 +7,9 @@ import TransactionFilter, { DEFAULT_FILTERS, countActiveFilters, DATE_PRESET_LAB
 import type { FilterState } from '../components/TransactionFilter';
 
 const natureColors: Record<TxNature, string> = {
-  INCOME: 'text-green-600',
-  EXPENSE: 'text-red-600',
-  TRANSFER: 'text-blue-600',
+  INCOME: 'text-green-600 dark:text-green-400',
+  EXPENSE: 'text-red-600 dark:text-red-400',
+  TRANSFER: 'text-blue-600 dark:text-blue-400',
   EMI_PAYMENT: 'text-orange-600',
   LOAN_DISBURSEMENT: 'text-green-800',
 };
@@ -116,12 +116,12 @@ export default function TransactionsPage() {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-gray-800">Transactions</h2>
+        <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Transactions</h2>
         <div className="flex items-center gap-2 relative">
           {/* Export dropdown */}
           <button
             onClick={() => setShowExportOptions(!showExportOptions)}
-            className="text-xs px-3 py-1.5 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 flex items-center gap-1 font-medium transition-colors"
+            className="text-xs px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:bg-gray-900 flex items-center gap-1 font-medium transition-colors"
           >
             Export
             <svg xmlns="http://www.w3.org/2000/svg" className={`h-3 w-3 transition-transform ${showExportOptions ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -130,16 +130,16 @@ export default function TransactionsPage() {
           </button>
 
           {showExportOptions && (
-            <div className="absolute top-full right-8 mt-1 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-30 overflow-hidden">
+            <div className="absolute top-full right-8 mt-1 w-32 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-30 overflow-hidden">
               <button
                 onClick={() => { handleExport('csv'); setShowExportOptions(false); }}
-                className="w-full text-left px-4 py-2 text-xs text-gray-700 hover:bg-gray-50 border-b border-gray-100"
+                className="w-full text-left px-4 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800"
               >
                 As CSV
               </button>
               <button
                 onClick={() => { handleExport('excel'); setShowExportOptions(false); }}
-                className="w-full text-left px-4 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                className="w-full text-left px-4 py-2 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:bg-gray-900"
               >
                 As Excel
               </button>
@@ -149,7 +149,7 @@ export default function TransactionsPage() {
           {/* Filter icon button */}
           <button
             onClick={() => setIsFilterOpen(true)}
-            className="relative p-1.5 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors"
+            className="relative p-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:bg-gray-900 transition-colors"
             aria-label="Open filters"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -199,18 +199,18 @@ export default function TransactionsPage() {
 
       {/* Summary Stats */}
       {!loading && transactions.length > 0 && (
-        <div className="grid grid-cols-3 gap-2 bg-white p-3 rounded-lg border border-gray-200">
+        <div className="grid grid-cols-3 gap-2 bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
           <div className="text-center">
-            <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">Income</p>
-            <p className="text-sm font-bold text-green-600">₹{summary.income.toLocaleString('en-IN')}</p>
+            <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wider">Income</p>
+            <p className="text-sm font-bold text-green-600 dark:text-green-400">₹{summary.income.toLocaleString('en-IN')}</p>
           </div>
-          <div className="text-center border-x border-gray-100">
-            <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">Expense</p>
-            <p className="text-sm font-bold text-red-600">₹{summary.expense.toLocaleString('en-IN')}</p>
+          <div className="text-center border-x border-gray-100 dark:border-gray-800">
+            <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wider">Expense</p>
+            <p className="text-sm font-bold text-red-600 dark:text-red-400">₹{summary.expense.toLocaleString('en-IN')}</p>
           </div>
           <div className="text-center">
-            <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">Diff</p>
-            <p className={`text-sm font-bold ${summary.income - summary.expense >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wider">Diff</p>
+            <p className={`text-sm font-bold ${summary.income - summary.expense >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
               ₹{(summary.income - summary.expense).toLocaleString('en-IN')}
             </p>
           </div>
@@ -226,17 +226,17 @@ export default function TransactionsPage() {
           {transactions.map((t) => (
             <div
               key={t.id}
-              className="bg-white rounded-lg border border-gray-200 p-3"
+              className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3"
             >
               <div className="flex justify-between items-start">
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-gray-800 truncate">{t.title}</p>
-                  <p className="text-xs text-gray-500">
+                  <p className="font-medium text-gray-800 dark:text-gray-200 truncate">{t.title}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
                     {t.transaction_date} · {natureLabels[t.nature]} · {t.entity}
                     {t.payment_method && ` · ${t.payment_method}`}
                   </p>
                   {t.nature === 'EMI_PAYMENT' && (
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
                       P: ₹{t.principal_amount.toLocaleString('en-IN')} + I: ₹{t.interest_amount.toLocaleString('en-IN')}
                     </p>
                   )}
@@ -291,7 +291,7 @@ export default function TransactionsPage() {
 
 function FilterPill({ label, onRemove }: { label: string; onRemove: () => void }) {
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 border border-blue-200 text-blue-700 rounded-full text-xs font-medium">
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 text-blue-700 rounded-full text-xs font-medium">
       {label}
       <button onClick={onRemove} className="hover:text-blue-900" aria-label="Remove filter">
         <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -33,10 +33,10 @@ function EntityCard({ e }: { e: EntitySummary }) {
   const isPositive = e.net_flow >= 0;
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2.5 bg-gray-50 border-b border-gray-100">
-        <span className="text-sm font-bold text-gray-700 tracking-wide">{e.entity}</span>
+      <div className="flex items-center justify-between px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800">
+        <span className="text-sm font-bold text-gray-700 dark:text-gray-300 tracking-wide">{e.entity}</span>
         <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${isPositive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
           {isPositive ? '+' : '-'}{fmt(e.net_flow)}
         </span>
@@ -49,9 +49,9 @@ function EntityCard({ e }: { e: EntitySummary }) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-green-500 inline-block"></span>
-              <span className="text-sm text-gray-500">Income</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">Income</span>
             </div>
-            <span className="text-sm font-semibold text-green-600">{fmt(e.total_income)}</span>
+            <span className="text-sm font-semibold text-green-600 dark:text-green-400">{fmt(e.total_income)}</span>
           </div>
         )}
 
@@ -60,7 +60,7 @@ function EntityCard({ e }: { e: EntitySummary }) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-red-400 inline-block"></span>
-              <span className="text-sm text-gray-500">Expense</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">Expense</span>
             </div>
             <span className="text-sm font-semibold text-red-500">{fmt(e.total_expense)}</span>
           </div>
@@ -71,7 +71,7 @@ function EntityCard({ e }: { e: EntitySummary }) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-orange-400 inline-block"></span>
-              <span className="text-sm text-gray-500">EMI Payments</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">EMI Payments</span>
             </div>
             <span className="text-sm font-semibold text-orange-500">{fmt(e.total_emi)}</span>
           </div>
@@ -79,9 +79,9 @@ function EntityCard({ e }: { e: EntitySummary }) {
 
         {/* Divider + total out */}
         {totalOut > 0 && e.total_income > 0 && (
-          <div className="flex items-center justify-between pt-1 border-t border-gray-100">
+          <div className="flex items-center justify-between pt-1 border-t border-gray-100 dark:border-gray-800">
             <span className="text-xs text-gray-400">Total Out</span>
-            <span className="text-xs font-medium text-gray-500">{fmt(totalOut)}</span>
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{fmt(totalOut)}</span>
           </div>
         )}
       </div>
@@ -118,11 +118,11 @@ export default function SummaryPage() {
     <div className="space-y-4">
       {/* Month navigation */}
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-gray-800">Monthly Summary</h2>
+        <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Monthly Summary</h2>
         <div className="flex items-center gap-1">
           <button
             onClick={() => setMonth(prevMonth)}
-            className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-gray-200 text-gray-500 hover:bg-gray-50 active:scale-95 text-lg"
+            className="w-8 h-8 flex items-center justify-center rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:bg-gray-900 active:scale-95 text-lg"
           >
             ‹
           </button>
@@ -130,12 +130,12 @@ export default function SummaryPage() {
             type="month"
             value={month}
             onChange={(e) => setMonth(e.target.value)}
-            className="px-2 py-1 border border-gray-200 rounded-lg text-xs font-medium text-gray-600 focus:ring-2 focus:ring-blue-500 outline-none w-32 text-center"
+            className="px-2 py-1 border border-gray-200 dark:border-gray-700 rounded-lg text-xs font-medium text-gray-600 dark:text-gray-400 focus:ring-2 focus:ring-blue-500 outline-none w-32 text-center dark:bg-gray-800 dark:text-white"
           />
           <button
             onClick={() => setMonth(nextMonth)}
             disabled={isCurrentMonth}
-            className="w-8 h-8 flex items-center justify-center rounded-lg bg-white border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-30 active:scale-95 text-lg"
+            className="w-8 h-8 flex items-center justify-center rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:bg-gray-900 disabled:opacity-30 active:scale-95 text-lg"
           >
             ›
           </button>
@@ -143,7 +143,7 @@ export default function SummaryPage() {
       </div>
 
       {/* Month label */}
-      <p className="text-sm text-gray-500 -mt-2">{monthLabel(month)}</p>
+      <p className="text-sm text-gray-500 dark:text-gray-400 -mt-2">{monthLabel(month)}</p>
 
       {loading ? (
         <p className="text-gray-400 text-center py-12">Loading...</p>

@@ -34,8 +34,8 @@ export default function TallyPage() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-semibold text-gray-800">Loan Reconciliation</h2>
-      <p className="text-sm text-gray-500">
+      <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Loan Reconciliation</h2>
+      <p className="text-sm text-gray-500 dark:text-gray-400">
         Compare FinTrack's outstanding balance with your lender's actual statement.
       </p>
 
@@ -43,7 +43,7 @@ export default function TallyPage() {
         <select
           value={selectedId ?? ''}
           onChange={(e) => { setSelectedId(parseInt(e.target.value)); setResult(null); }}
-          className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-white outline-none"
+          className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 outline-none"
         >
           {accounts.map((a) => (
             <option key={a.id} value={a.id}>{a.name}</option>
@@ -56,7 +56,7 @@ export default function TallyPage() {
           value={actualBalance}
           onChange={(e) => setActualBalance(e.target.value)}
           required
-          className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm outline-none"
+          className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm outline-none"
         />
 
         <button
@@ -69,16 +69,16 @@ export default function TallyPage() {
 
       {result && (
         <div className={`rounded-lg border p-4 space-y-2 ${
-          result.difference === 0 ? 'border-green-200 bg-green-50' : 'border-yellow-200 bg-yellow-50'
+          result.difference === 0 ? 'border-green-200 bg-green-50 dark:bg-green-900/30' : 'border-yellow-200 bg-yellow-50'
         }`}>
-          <h3 className="font-semibold text-gray-800">{result.account_name}</h3>
+          <h3 className="font-semibold text-gray-800 dark:text-gray-200">{result.account_name}</h3>
           <div className="grid grid-cols-2 gap-2 text-sm">
             <div>
-              <p className="text-gray-500">FinTrack Outstanding</p>
+              <p className="text-gray-500 dark:text-gray-400">FinTrack Outstanding</p>
               <p className="font-medium">₹{result.calculated_balance.toLocaleString('en-IN')}</p>
             </div>
             <div>
-              <p className="text-gray-500">Lender's Statement</p>
+              <p className="text-gray-500 dark:text-gray-400">Lender's Statement</p>
               <p className="font-medium">₹{result.actual_balance.toLocaleString('en-IN')}</p>
             </div>
           </div>

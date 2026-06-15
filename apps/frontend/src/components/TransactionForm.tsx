@@ -152,11 +152,11 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {error && <p className="text-red-600 text-sm bg-red-50 p-2 rounded">{error}</p>}
+      {error && <p className="text-red-600 dark:text-red-400 text-sm bg-red-50 dark:bg-red-900/30 p-2 rounded">{error}</p>}
 
       {/* Entity selector */}
       <div>
-        <label className="text-xs text-gray-500 mb-1 block">Entity *</label>
+        <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Entity *</label>
         <div className="flex gap-2">
           {ENTITIES.map((e) => (
             <button
@@ -164,7 +164,7 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
               type="button"
               onClick={() => set('entity', e)}
               className={`flex-1 py-2 rounded-lg text-sm font-medium ${
-                form.entity === e ? 'bg-blue-600 text-white' : 'bg-white border border-gray-300 text-gray-600'
+                form.entity === e ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400'
               }`}
             >
               {e}
@@ -175,7 +175,7 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
 
       {/* Nature selector */}
       <div>
-        <label className="text-xs text-gray-500 mb-1 block">Transaction Type *</label>
+        <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Transaction Type *</label>
         <div className="grid grid-cols-4 gap-1">
           {availableNatures.map((n) => (
             <button
@@ -183,7 +183,7 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
               type="button"
               onClick={() => set('nature', n)}
               className={`py-2 rounded-lg text-xs font-medium ${
-                form.nature === n ? 'bg-blue-600 text-white' : 'bg-white border border-gray-300 text-gray-600'
+                form.nature === n ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400'
               }`}
             >
               {n === 'EMI_PAYMENT' ? 'EMI' : n === 'LOAN_DISBURSEMENT' ? 'LOAN' : n}
@@ -194,21 +194,21 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
 
       {/* Title */}
       <div>
-        <label className="text-xs text-gray-500 mb-1 block">Title *</label>
+        <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Title *</label>
         <input
           type="text"
           placeholder="e.g. Groceries, Salary"
           value={form.title}
           onChange={(e) => set('title', e.target.value)}
           required
-          className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+          className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none dark:bg-gray-800 dark:text-white"
         />
       </div>
 
       {/* Loan Account - shown for EMI_PAYMENT and LOAN_DISBURSEMENT natures */}
       {(form.nature === 'EMI_PAYMENT' || form.nature === 'LOAN_DISBURSEMENT') && (
         <div>
-          <label className="text-xs text-gray-500 mb-1 block">Loan Account *</label>
+          <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Loan Account *</label>
           <select
             value={form.nature === 'LOAN_DISBURSEMENT' ? form.source_account_id : form.target_account_id}
             onChange={(e) => {
@@ -219,7 +219,7 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
               }
             }}
             required
-            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+            className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-800 dark:text-white"
           >
             <option value="">Select loan account</option>
             {liabilityAccounts.map((a) => (
@@ -234,7 +234,7 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
       {/* Amount (hidden for EMI_PAYMENT since it's auto-calculated) */}
       {form.nature !== 'EMI_PAYMENT' && (
         <div>
-          <label className="text-xs text-gray-500 mb-1 block">Amount (₹) *</label>
+          <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Amount (₹) *</label>
           <input
             type="number"
             step="0.01"
@@ -243,7 +243,7 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
             value={form.amount}
             onChange={(e) => set('amount', e.target.value)}
             required
-            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none dark:bg-gray-800 dark:text-white"
           />
         </div>
       )}
@@ -257,18 +257,18 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
         return (
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">Principal (₹)</label>
+              <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Principal (₹)</label>
               <input
                 type="number"
                 step="0.01"
                 min="0"
                 value={form.principal_amount}
                 onChange={(e) => set('principal_amount', e.target.value)}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none dark:bg-gray-800 dark:text-white"
               />
             </div>
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">
+              <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">
                 Interest (₹)
                 {suggestedInterest !== null && (
                   <span className="ml-1 text-orange-500 font-normal">
@@ -282,7 +282,7 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
                 min="0"
                 value={form.interest_amount}
                 onChange={(e) => set('interest_amount', e.target.value)}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none dark:bg-gray-800 dark:text-white"
               />
               {suggestedInterest !== null && (
                 <p className="text-[10px] text-orange-500 mt-0.5">
@@ -290,7 +290,7 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
                 </p>
               )}
             </div>
-            <p className="col-span-2 text-xs text-gray-500">
+            <p className="col-span-2 text-xs text-gray-500 dark:text-gray-400">
               Total EMI: ₹{(parseFloat(form.principal_amount || '0') + parseFloat(form.interest_amount || '0')).toLocaleString('en-IN')}
             </p>
           </div>
@@ -301,11 +301,11 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
       {(form.nature === 'INCOME' || form.nature === 'EXPENSE') && (
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className="text-xs text-gray-500 mb-1 block">Category</label>
+            <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Category</label>
             <select
               value={selectedCategoryId}
               onChange={(e) => handleCategoryChange(e.target.value)}
-              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+              className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-800 dark:text-white"
             >
               <option value="">Select category</option>
               {categories.map((c) => (
@@ -317,12 +317,12 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
           </div>
 
           <div>
-            <label className="text-xs text-gray-500 mb-1 block">Sub-category</label>
+            <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Sub-category</label>
             <select
               value={form.sub_category_id}
               onChange={(e) => set('sub_category_id', e.target.value)}
               disabled={!selectedCategoryId}
-              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+              className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-800 disabled:bg-gray-100 dark:disabled:bg-gray-700 dark:disabled:text-gray-400 dark:bg-gray-700 disabled:cursor-not-allowed dark:text-white"
             >
               <option value="">
                 {selectedCategoryId ? 'Select sub-category' : 'Choose category first'}
@@ -340,11 +340,11 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
       {/* Payment method - Only for EXPENSE and EMI_PAYMENT */}
       {(form.nature === 'EXPENSE' || form.nature === 'EMI_PAYMENT') && (
         <div>
-          <label className="text-xs text-gray-500 mb-1 block">Payment Method</label>
+          <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Payment Method</label>
           <select
             value={form.payment_method}
             onChange={(e) => set('payment_method', e.target.value)}
-            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white"
+            className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-800 dark:text-white"
           >
             <option value="">No payment method</option>
             {PAYMENT_METHODS.map((pm) => (
@@ -358,26 +358,26 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
 
       {/* Date */}
       <div>
-        <label className="text-xs text-gray-500 mb-1 block">Transaction Date *</label>
+        <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Transaction Date *</label>
         <input
           type="date"
           value={form.transaction_date}
           onChange={(e) => set('transaction_date', e.target.value)}
           max={new Date().toISOString().split('T')[0]}
           required
-          className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+          className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none dark:bg-gray-800 dark:text-white"
         />
       </div>
 
       {/* Notes */}
       <div>
-        <label className="text-xs text-gray-500 mb-1 block">Notes</label>
+        <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Notes</label>
         <textarea
           placeholder="Additional notes (optional)"
           value={form.notes}
           onChange={(e) => set('notes', e.target.value)}
           rows={2}
-          className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"
+          className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none dark:bg-gray-800 dark:text-white"
         />
       </div>
 

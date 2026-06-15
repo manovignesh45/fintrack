@@ -46,17 +46,17 @@ export default function CreateCategoryPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <button onClick={() => navigate('/categories')} className="text-gray-600 text-xl">
+        <button onClick={() => navigate('/categories')} className="text-gray-600 dark:text-gray-400 text-xl">
           ←
         </button>
-        <h2 className="text-lg font-semibold text-gray-800">Create Category</h2>
+        <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Create Category</h2>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {error && <p className="text-red-600 text-sm bg-red-50 p-3 rounded-lg">{error}</p>}
+        {error && <p className="text-red-600 dark:text-red-400 text-sm bg-red-50 dark:bg-red-900/30 p-3 rounded-lg">{error}</p>}
 
         <div>
-          <label className="text-xs text-gray-500 mb-1 block">Entity *</label>
+          <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Entity *</label>
           <div className="flex gap-2">
             {ENTITIES.map((e) => (
               <button
@@ -64,7 +64,7 @@ export default function CreateCategoryPage() {
                 type="button"
                 onClick={() => setEntity(e)}
                 className={`flex-1 py-2 rounded-lg text-sm font-medium ${
-                  entity === e ? 'bg-blue-600 text-white' : 'bg-white border border-gray-300 text-gray-600'
+                  entity === e ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400'
                 }`}
               >
                 {e}
@@ -74,7 +74,7 @@ export default function CreateCategoryPage() {
         </div>
 
         <div>
-          <label className="text-xs text-gray-500 mb-1 block">Transaction Type *</label>
+          <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Transaction Type *</label>
           <div className="flex gap-2">
             {(['EXPENSE', 'INCOME'] as TxNature[]).map((n) => (
               <button
@@ -82,7 +82,7 @@ export default function CreateCategoryPage() {
                 type="button"
                 onClick={() => setNature(n)}
                 className={`flex-1 py-2 rounded-lg text-sm font-medium ${
-                  nature === n ? 'bg-orange-600 text-white' : 'bg-white border border-gray-300 text-gray-600'
+                  nature === n ? 'bg-orange-600 text-white' : 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400'
                 }`}
               >
                 {n}
@@ -92,7 +92,7 @@ export default function CreateCategoryPage() {
         </div>
 
         <div>
-          <label className="text-xs text-gray-500 mb-1 block">Category Name *</label>
+          <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Category Name *</label>
           <input
             type="text"
             value={name}
@@ -100,7 +100,7 @@ export default function CreateCategoryPage() {
             placeholder="e.g. Groceries, Shopping"
             required
             autoFocus
-            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+            className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none dark:bg-gray-800 dark:text-white"
           />
         </div>
 

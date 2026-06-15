@@ -55,7 +55,7 @@ export default function TemplatesPage() {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-lg font-semibold text-gray-800">Templates</h2>
+        <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Templates</h2>
       </div>
 
       {loading ? (
@@ -67,11 +67,11 @@ export default function TemplatesPage() {
       ) : (
         <div className="space-y-2">
           {templates.map((t) => (
-            <div key={t.id} className="bg-white rounded-lg border border-gray-200 p-3">
+            <div key={t.id} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
               <div className="flex justify-between items-start">
                 <div>
-                  <p className="font-medium text-gray-800 text-sm">{t.title}</p>
-                  <p className="text-xs text-gray-500">
+                  <p className="font-medium text-gray-800 dark:text-gray-200 text-sm">{t.title}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
                     {natureLabels[t.nature]} · {t.entity} · ₹{t.amount.toLocaleString('en-IN')}
                     {t.payment_method && ` · ${t.payment_method}`}
                   </p>
@@ -86,7 +86,7 @@ export default function TemplatesPage() {
                   {editMode && (
                     <button
                       onClick={() => handleDelete(t.id)}
-                      className="px-3 py-1.5 bg-red-100 text-red-600 rounded text-xs font-medium"
+                      className="px-3 py-1.5 bg-red-100 text-red-600 dark:text-red-400 rounded text-xs font-medium"
                     >
                       Del
                     </button>

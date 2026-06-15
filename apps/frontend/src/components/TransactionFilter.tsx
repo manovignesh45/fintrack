@@ -210,18 +210,18 @@ export default function TransactionFilter({ isOpen, filters, onApply, onClose }:
       />
 
       {/* Panel */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl z-50 max-h-[90vh] flex flex-col shadow-2xl">
+      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 rounded-t-2xl z-50 max-h-[90vh] flex flex-col shadow-2xl">
         {/* Drag handle */}
         <div className="flex justify-center pt-3 pb-1">
           <div className="w-10 h-1 bg-gray-300 rounded-full" />
         </div>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100">
-          <h3 className="font-semibold text-gray-800 text-base">Filter Transactions</h3>
+        <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100 dark:border-gray-800">
+          <h3 className="font-semibold text-gray-800 dark:text-gray-200 text-base">Filter Transactions</h3>
           <button
             onClick={onClose}
-            className="p-1 text-gray-400 hover:text-gray-600"
+            className="p-1 text-gray-400 hover:text-gray-600 dark:text-gray-400"
             aria-label="Close filter"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -234,7 +234,7 @@ export default function TransactionFilter({ isOpen, filters, onApply, onClose }:
         <div className="overflow-y-auto flex-1 min-h-0 px-4 py-3 space-y-4">
           {/* Search */}
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Search</label>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Search</label>
             <div className="relative">
               <svg xmlns="http://www.w3.org/2000/svg" className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
@@ -244,12 +244,12 @@ export default function TransactionFilter({ isOpen, filters, onApply, onClose }:
                 value={draft.search}
                 onChange={(e) => set('search', e.target.value)}
                 placeholder="Search title or notes…"
-                className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full pl-9 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none dark:bg-gray-800 dark:text-white"
               />
               {draft.search && (
                 <button
                   onClick={() => set('search', '')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-gray-400"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -261,11 +261,11 @@ export default function TransactionFilter({ isOpen, filters, onApply, onClose }:
 
           {/* Entity */}
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Entity</label>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Entity</label>
             <div className="flex gap-2 flex-wrap">
               <button
                 onClick={() => set('entity', '')}
-                className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${draft.entity === '' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300'}`}
+                className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${draft.entity === '' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-600'}`}
               >
                 All
               </button>
@@ -273,7 +273,7 @@ export default function TransactionFilter({ isOpen, filters, onApply, onClose }:
                 <button
                   key={e}
                   onClick={() => set('entity', e)}
-                  className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${draft.entity === e ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300'}`}
+                  className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${draft.entity === e ? 'bg-blue-600 text-white border-blue-600' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-600'}`}
                 >
                   {e}
                 </button>
@@ -283,11 +283,11 @@ export default function TransactionFilter({ isOpen, filters, onApply, onClose }:
 
           {/* Transaction Type */}
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Transaction Type</label>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Transaction Type</label>
             <select
               value={draft.nature}
               onChange={(e) => set('nature', e.target.value as TxNature | '')}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-gray-800 dark:text-white"
             >
               <option value="">All Types</option>
               {TX_NATURES.filter(({ value }) => availableNatures.includes(value)).map(({ value, label }) => (
@@ -298,7 +298,7 @@ export default function TransactionFilter({ isOpen, filters, onApply, onClose }:
 
           {/* Category */}
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Category</label>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Category</label>
             {loadingCats ? (
               <p className="text-xs text-gray-400">Loading categories…</p>
             ) : (
@@ -306,7 +306,7 @@ export default function TransactionFilter({ isOpen, filters, onApply, onClose }:
                 value={draft.category_id}
                 onChange={(e) => set('category_id', e.target.value)}
                 disabled={filteredCategories.length === 0}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white disabled:bg-gray-50 disabled:text-gray-400"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-gray-800 disabled:bg-gray-50 dark:bg-gray-900 disabled:text-gray-400 dark:text-white"
               >
                 <option value="">
                   {filteredCategories.length === 0 ? 'No categories for selection' : 'All Categories'}
@@ -322,12 +322,12 @@ export default function TransactionFilter({ isOpen, filters, onApply, onClose }:
 
           {/* Sub-category */}
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Sub-category</label>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Sub-category</label>
             <select
               value={draft.sub_category_id}
               onChange={(e) => set('sub_category_id', e.target.value)}
               disabled={!draft.category_id || subCategories.length === 0}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white disabled:bg-gray-50 disabled:text-gray-400"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-gray-800 disabled:bg-gray-50 dark:bg-gray-900 disabled:text-gray-400 dark:text-white"
             >
               <option value="">
                 {!draft.category_id ? 'Select a category first' : 'All Sub-categories'}
@@ -340,11 +340,11 @@ export default function TransactionFilter({ isOpen, filters, onApply, onClose }:
 
           {/* Date Filter */}
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Date Filter</label>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Date Filter</label>
             <select
               value={draft.datePreset}
               onChange={(e) => set('datePreset', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-gray-800 dark:text-white"
             >
               <option value="">All Time</option>
               {Object.entries(DATE_PRESET_LABELS).map(([value, label]) => (
@@ -356,21 +356,21 @@ export default function TransactionFilter({ isOpen, filters, onApply, onClose }:
             {draft.datePreset === 'custom' && (
               <div className="grid grid-cols-2 gap-3 mt-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">From</label>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">From</label>
                   <input
                     type="date"
                     value={draft.date_from}
                     onChange={(e) => setDraft((prev) => ({ ...prev, date_from: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none dark:bg-gray-800 dark:text-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-500 mb-1">To</label>
+                  <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">To</label>
                   <input
                     type="date"
                     value={draft.date_to}
                     onChange={(e) => setDraft((prev) => ({ ...prev, date_to: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none dark:bg-gray-800 dark:text-white"
                   />
                 </div>
               </div>
@@ -382,10 +382,10 @@ export default function TransactionFilter({ isOpen, filters, onApply, onClose }:
         </div>
 
         {/* Footer */}
-        <div className="px-4 py-3 border-t border-gray-100 flex gap-3">
+        <div className="px-4 py-3 border-t border-gray-100 dark:border-gray-800 flex gap-3">
           <button
             onClick={handleReset}
-            className="flex-1 py-2.5 border border-gray-300 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+            className="flex-1 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:bg-gray-900 transition-colors"
           >
             Reset All
           </button>

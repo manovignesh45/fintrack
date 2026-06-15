@@ -27,7 +27,7 @@ export default function AddTransactionPage() {
 
   return (
     <div>
-      <h2 className="text-lg font-semibold text-gray-800 mb-4">Add Transaction</h2>
+      <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Add Transaction</h2>
       <TransactionForm 
         initial={initialData}
         onSubmit={handleSubmit} 

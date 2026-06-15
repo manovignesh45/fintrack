@@ -54,14 +54,14 @@ export default function CreateSubCategoryPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <button onClick={() => navigate('/categories')} className="text-gray-600 text-xl">
+        <button onClick={() => navigate('/categories')} className="text-gray-600 dark:text-gray-400 text-xl">
           ←
         </button>
-        <h2 className="text-lg font-semibold text-gray-800">Create Sub-category</h2>
+        <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Create Sub-category</h2>
       </div>
 
-      <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 mb-4">
-        <p className="text-xs text-blue-600 font-semibold mb-1 uppercase tracking-wider">Parent Category</p>
+      <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-xl border border-blue-100 mb-4">
+        <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold mb-1 uppercase tracking-wider">Parent Category</p>
         <p className="text-sm font-bold text-blue-800">{category.name}</p>
         <div className="flex gap-2 mt-2">
             <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold uppercase">{category.entity}</span>
@@ -70,10 +70,10 @@ export default function CreateSubCategoryPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        {error && <p className="text-red-600 text-sm bg-red-50 p-3 rounded-lg">{error}</p>}
+        {error && <p className="text-red-600 dark:text-red-400 text-sm bg-red-50 dark:bg-red-900/30 p-3 rounded-lg">{error}</p>}
 
         <div>
-          <label className="text-xs text-gray-500 mb-1 block">Sub-category Name *</label>
+          <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Sub-category Name *</label>
           <input
             type="text"
             value={name}
@@ -81,7 +81,7 @@ export default function CreateSubCategoryPage() {
             placeholder="e.g. Milk, Fruits, Clothes"
             required
             autoFocus
-            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+            className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none dark:bg-gray-800 dark:text-white"
           />
         </div>
 
