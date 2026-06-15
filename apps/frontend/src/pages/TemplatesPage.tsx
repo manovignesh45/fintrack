@@ -65,33 +65,46 @@ export default function TemplatesPage() {
           No templates yet. Create one or save from the transaction form.
         </p>
       ) : (
-        <div className="space-y-2">
-          {templates.map((t) => (
-            <div key={t.id} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="font-medium text-gray-800 dark:text-gray-200 text-sm">{t.title}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {natureLabels[t.nature]} · {t.entity} · ₹{t.amount.toLocaleString('en-IN')}
-                    {t.payment_method && ` · ${t.payment_method}`}
-                  </p>
-                </div>
-                <div className="flex gap-2 ml-3">
-                  <button
-                    onClick={() => handleUse(t)}
-                    className="px-3 py-1.5 bg-blue-600 text-white rounded text-xs font-medium"
-                  >
-                    Use
-                  </button>
-                  {editMode && (
-                    <button
-                      onClick={() => handleDelete(t.id)}
-                      className="px-3 py-1.5 bg-red-100 text-red-600 dark:text-red-400 rounded text-xs font-medium"
-                    >
-                      Del
-                    </button>
-                  )}
-                </div>
+        <div className="space-y-6">
+          {Object.entries(
+            templates.reduce((acc, t) => {
+              if (!acc[t.entity]) acc[t.entity] = [];
+              acc[t.entity].push(t);
+              return acc;
+            }, {} as Record<string, TransactionTemplate[]>)
+          ).sort().map(([entity, entityTemplates]) => (
+            <div key={entity} className="space-y-3">
+              <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider pl-1">{entity}</h3>
+              <div className="space-y-2">
+                {entityTemplates.map((t) => (
+                  <div key={t.id} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-medium text-gray-800 dark:text-gray-200 text-sm">{t.title}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                          {natureLabels[t.nature]} · ₹{t.amount.toLocaleString('en-IN')}
+                          {t.payment_method && ` · ${t.payment_method}`}
+                        </p>
+                      </div>
+                      <div className="flex gap-2 ml-3">
+                        <button
+                          onClick={() => handleUse(t)}
+                          className="px-3 py-1.5 bg-blue-600 text-white rounded text-xs font-medium"
+                        >
+                          Use
+                        </button>
+                        {editMode && (
+                          <button
+                            onClick={() => handleDelete(t.id)}
+                            className="px-3 py-1.5 bg-red-100 text-red-600 dark:text-red-400 dark:bg-red-900/30 rounded text-xs font-medium"
+                          >
+                            Del
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           ))}
