@@ -14,6 +14,7 @@ export default function AccountDetailsPage() {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   });
+  const [period, setPeriod] = useState<'month' | 'all'>('all');
 
   useEffect(() => {
     if (!id) return;
@@ -21,26 +22,39 @@ export default function AccountDetailsPage() {
     const loadData = async () => {
       setLoading(true);
       try {
-        const [year, monthNum] = month.split('-').map(Number);
-        const dateFrom = new Date(year, monthNum - 1, 1).toISOString().split('T')[0];
-        const dateTo = new Date(year, monthNum, 0).toISOString().split('T')[0];
-        
-        // Previous day to get the balance as it was before this month started
-        const dayBeforeStart = new Date(year, monthNum - 1, 0).toISOString().split('T')[0];
+        let accountCurr, accountAtStart, txnData;
 
-        const [accountCurr, accountAtStart, txnData] = await Promise.all([
-          accountsApi.get(parseInt(id), { date_to: dateTo }),
-          accountsApi.get(parseInt(id), { date_to: dayBeforeStart }),
-          transactionsApi.list({ 
-            account_id: id, 
-            date_from: dateFrom, 
-            date_to: dateTo,
-            per_page: "50" // Increase to show the whole month
-          }),
-        ]);
+        if (period === 'month') {
+          const [year, monthNum] = month.split('-').map(Number);
+          const dateFrom = new Date(year, monthNum - 1, 1).toISOString().split('T')[0];
+          const dateTo = new Date(year, monthNum, 0).toISOString().split('T')[0];
+          const dayBeforeStart = new Date(year, monthNum - 1, 0).toISOString().split('T')[0];
+
+          [accountCurr, accountAtStart, txnData] = await Promise.all([
+            accountsApi.get(parseInt(id), { date_to: dateTo }),
+            accountsApi.get(parseInt(id), { date_to: dayBeforeStart }),
+            transactionsApi.list({ 
+              account_id: id, 
+              date_from: dateFrom, 
+              date_to: dateTo,
+              per_page: "100" 
+            }),
+          ]);
+        } else {
+          [accountCurr, txnData] = await Promise.all([
+            accountsApi.get(parseInt(id)),
+            transactionsApi.list({ 
+              account_id: id, 
+              per_page: "1000"
+            }),
+          ]);
+          // For all time, the opening balance is the initial balance
+          accountAtStart = { ...accountCurr, current_balance: accountCurr.initial_balance };
+        }
+
         setAccount(accountCurr);
         setOpeningBalanceAccount(accountAtStart);
-        setTransactions(txnData);
+        setTransactions(txnData || []);
       } catch (err) {
         alert('Failed to load account details');
         navigate('/accounts');
@@ -50,7 +64,7 @@ export default function AccountDetailsPage() {
     };
 
     loadData();
-  }, [id, navigate, month]);
+  }, [id, navigate, month, period]);
 
   if (loading) {
     return (
@@ -89,19 +103,33 @@ export default function AccountDetailsPage() {
           </div>
         </div>
         
-        <input
-          type="month"
-          value={month}
-          onChange={(e) => setMonth(e.target.value)}
-          className="px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-sm focus:ring-1 focus:ring-blue-500 outline-none dark:bg-gray-800 dark:text-white"
-        />
+        <div className="flex items-center gap-2">
+          <select
+            value={period}
+            onChange={(e) => setPeriod(e.target.value as 'month' | 'all')}
+            className="px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-1 focus:ring-blue-500 outline-none bg-white dark:bg-gray-800 dark:text-white"
+          >
+            <option value="all">All Time</option>
+            <option value="month">Monthly</option>
+          </select>
+          {period === 'month' && (
+            <input
+              type="month"
+              value={month}
+              onChange={(e) => setMonth(e.target.value)}
+              className="px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-1 focus:ring-blue-500 outline-none bg-white dark:bg-gray-800 dark:text-white"
+            />
+          )}
+        </div>
       </div>
 
       {/* Current Balance Card */}
       <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg p-4 text-white shadow-sm">
         <div className="flex justify-between items-start">
           <div>
-            <p className="text-xs opacity-90 uppercase font-semibold">Closing Balance ({new Date(month + '-01').toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })})</p>
+            <p className="text-xs opacity-90 uppercase font-semibold">
+              Closing Balance {period === 'month' ? `(${new Date(month + '-01').toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })})` : ''}
+            </p>
             <p className="text-3xl font-bold mt-1">
               ₹{account.current_balance.toLocaleString('en-IN')}
             </p>
@@ -137,7 +165,7 @@ export default function AccountDetailsPage() {
               <tbody>
                 {/* Transactions */}
                 {statementRows.map((row) => (
-                  <tr key={row.txn.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:bg-gray-900">
+                  <tr key={row.txn.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                     <td className="px-3 py-2 text-gray-600 dark:text-gray-400 whitespace-nowrap">
                       {new Date(row.txn.transaction_date).toLocaleDateString('en-IN', {
                         day: '2-digit',
