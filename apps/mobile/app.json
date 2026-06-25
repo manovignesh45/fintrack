@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "mobile",
+    "name": "Fintrack",
     "slug": "mobile",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -45,6 +45,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "062f41c9-a53a-486c-9a56-547f7ea67e58"
+      }
+    },
+    "owner": "manovignesh45"
   }
 }
