@@ -1,11 +1,17 @@
 import { useEffect, useState, useCallback } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, Alert, ActivityIndicator, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useSQLiteContext } from 'expo-sqlite';
 import { transactionsApi } from '@/src/api/client';
+import { transactionRepo } from '@/src/db/transactionRepo';
+import { accountRepo } from '@/src/db/referenceDataRepo';
 import { useAuth } from '@/src/context/AuthContext';
+import { useSyncStore } from '@/src/store/syncStore';
+import { SyncStatusBar } from '@/src/components/SyncStatusBar';
 import TransactionFilter from '@/src/components/TransactionFilter';
-import type { Transaction, TxNature, FilterState } from '@fintrack/shared';
+import type { TxNature, FilterState } from '@fintrack/shared';
+import type { LocalTransaction } from '@/src/db/localTypes';
 import { DEFAULT_FILTERS, countActiveFilters } from '@fintrack/shared';
 
 const natureColors: Record<TxNature, string> = {
@@ -25,33 +31,102 @@ const natureLabels: Record<TxNature, string> = {
 };
 
 export default function TransactionsScreen() {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [transactions, setTransactions] = useState<LocalTransaction[]>([]);
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
-  const { editMode } = useAuth();
+  const db = useSQLiteContext();
+  const { editMode, user } = useAuth();
+  const { setPendingCount } = useSyncStore();
 
-  const load = useCallback(async (f: FilterState = filters) => {
-    setLoading(true);
+  const loadFromDb = useCallback(async (f: FilterState = filters) => {
     try {
-      const params: Record<string, string> = {};
-      if (f.entity) params.entity = f.entity;
-      if (f.nature) params.nature = f.nature;
-      if (f.date_from) params.date_from = f.date_from;
-      if (f.date_to) params.date_to = f.date_to;
-      if (f.search) params.search = f.search;
-      if (f.category_id) params.category_id = f.category_id;
-      if (f.sub_category_id) params.sub_category_id = f.sub_category_id;
-      const data = await transactionsApi.list(params);
-      setTransactions(data || []);
+      const data = await transactionRepo.getAll(db, f, user?.id);
+      setTransactions(data);
+      const pending = await transactionRepo.countPending(db);
+      setPendingCount(pending);
     } catch {
       setTransactions([]);
-    } finally {
-      setLoading(false);
     }
+  }, [db, filters]);
+
+  useEffect(() => {
+    setLoading(true);
+    loadFromDb(filters).finally(() => setLoading(false));
   }, [filters]);
 
-  useEffect(() => { load(filters); }, [filters]);
+  // Pull-to-refresh: fetch from server → upsert to SQLite → trigger sync
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const params: Record<string, string> = {};
+      if (filters.entity) params.entity = filters.entity;
+      if (filters.nature) params.nature = filters.nature;
+      if (filters.date_from) params.date_from = filters.date_from;
+      if (filters.date_to) params.date_to = filters.date_to;
+      if (filters.search) params.search = filters.search;
+      if (filters.sub_category_id) params.sub_category_id = filters.sub_category_id;
+
+      // Fetch server-synced transactions and merge them into local DB
+      const serverTx = await transactionsApi.list(params);
+      if (serverTx?.length) {
+        await db.withTransactionAsync(async () => {
+          for (const tx of serverTx) {
+            const existing = await transactionRepo.getByLocalId(db, `server_${tx.id}`);
+            if (!existing) {
+              await db.runAsync(
+                `INSERT OR REPLACE INTO transactions
+                  (id, local_id, user_id, title, amount, nature, source_account_id,
+                   target_account_id, sub_category_id, entity, payment_method, notes,
+                   principal_amount, interest_amount, transaction_date, created_at, sync_status)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'synced')`,
+                [
+                  tx.id, `server_${tx.id}`, tx.user_id, tx.title, tx.amount, tx.nature,
+                  tx.source_account_id, tx.target_account_id ?? null, tx.sub_category_id ?? null,
+                  tx.entity, tx.payment_method ?? null, tx.notes ?? null,
+                  tx.principal_amount, tx.interest_amount, tx.transaction_date, tx.created_at,
+                ],
+              );
+            }
+          }
+          // Also refresh account cache
+          const accts = await import('@/src/api/client').then(m => m.accountsApi.list());
+          if (accts) await accountRepo.upsertAll(db, accts);
+        });
+      }
+    } catch {
+      // Network unavailable — just reload from SQLite
+    }
+
+    // Trigger pending sync
+    const { syncPendingTransactions } = await import('@/src/sync/syncEngine');
+    syncPendingTransactions(db).catch(() => {});
+
+    await loadFromDb(filters);
+    setRefreshing(false);
+  }, [db, filters, loadFromDb]);
+
+  const handleDelete = async (item: LocalTransaction) => {
+    Alert.alert('Delete', 'Delete this transaction?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            if (item.id) {
+              await transactionsApi.delete(item.id);
+            }
+            await transactionRepo.softDelete(db, item.local_id);
+            await loadFromDb(filters);
+          } catch {
+            Alert.alert('Error', 'Failed to delete');
+          }
+        },
+      },
+    ]);
+  };
 
   const summary = transactions.reduce(
     (acc, t) => {
@@ -62,29 +137,19 @@ export default function TransactionsScreen() {
     { income: 0, expense: 0 },
   );
 
-  const handleDelete = (id: number) => {
-    Alert.alert('Delete', 'Delete this transaction?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await transactionsApi.delete(id);
-            load(filters);
-          } catch {
-            Alert.alert('Error', 'Failed to delete');
-          }
-        },
-      },
-    ]);
-  };
-
-  const renderItem = ({ item: t }: { item: Transaction }) => (
-    <View className="bg-white rounded-lg border border-gray-200 p-3 mb-2 mx-4">
+  const renderItem = ({ item: t }: { item: LocalTransaction }) => (
+    <View className={`bg-white rounded-lg border p-3 mb-2 mx-4 ${t.sync_status === 'failed' ? 'border-red-300' : 'border-gray-200'}`}>
       <View className="flex-row justify-between items-start">
         <View className="flex-1 mr-3">
-          <Text className="font-medium text-gray-800" numberOfLines={1}>{t.title}</Text>
+          <View className="flex-row items-center gap-1.5">
+            <Text className="font-medium text-gray-800" numberOfLines={1}>{t.title}</Text>
+            {t.sync_status === 'pending' && (
+              <Ionicons name="time-outline" size={12} color="#9ca3af" />
+            )}
+            {t.sync_status === 'failed' && (
+              <Ionicons name="alert-circle-outline" size={12} color="#ef4444" />
+            )}
+          </View>
           <Text className="text-xs text-gray-500">
             {t.transaction_date} · {natureLabels[t.nature]} · {t.entity}
             {t.payment_method ? ` · ${t.payment_method}` : ''}
@@ -94,7 +159,11 @@ export default function TransactionsScreen() {
               P: ₹{t.principal_amount.toLocaleString('en-IN')} + I: ₹{t.interest_amount.toLocaleString('en-IN')}
             </Text>
           )}
-          {t.notes ? <Text className="text-xs text-gray-400 mt-1">{t.notes}</Text> : null}
+          {t.sync_error ? (
+            <Text className="text-xs text-red-500 mt-0.5">{t.sync_error}</Text>
+          ) : t.notes ? (
+            <Text className="text-xs text-gray-400 mt-1">{t.notes}</Text>
+          ) : null}
         </View>
         <View className="items-end">
           <Text className={`font-semibold ${natureColors[t.nature]}`}>
@@ -102,10 +171,12 @@ export default function TransactionsScreen() {
           </Text>
           {editMode && (
             <View className="flex-row gap-2 mt-1">
-              <TouchableOpacity onPress={() => router.push(`/edit/${t.id}`)}>
-                <Text className="text-xs text-blue-500">Edit</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => handleDelete(t.id)}>
+              {t.id && (
+                <TouchableOpacity onPress={() => router.push(`/edit/${t.id}`)}>
+                  <Text className="text-xs text-blue-500">Edit</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity onPress={() => handleDelete(t)}>
                 <Text className="text-xs text-red-500">Del</Text>
               </TouchableOpacity>
             </View>
@@ -155,6 +226,7 @@ export default function TransactionsScreen() {
 
   return (
     <View className="flex-1 bg-gray-50">
+      <SyncStatusBar />
       {loading ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="#2563eb" />
@@ -162,11 +234,12 @@ export default function TransactionsScreen() {
       ) : (
         <FlatList
           data={transactions}
-          keyExtractor={(t) => t.id.toString()}
+          keyExtractor={(t) => t.local_id}
           renderItem={renderItem}
           ListHeaderComponent={ListHeader}
           ListEmptyComponent={<Text className="text-gray-400 text-center py-8">No transactions yet</Text>}
           contentContainerStyle={{ paddingBottom: 100 }}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         />
       )}
 
