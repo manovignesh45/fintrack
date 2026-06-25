@@ -1,9 +1,9 @@
 import { useEffect, useState, useCallback } from 'react';
 import { View, Text, FlatList, TouchableOpacity, Alert, ActivityIndicator, RefreshControl } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSQLiteContext } from 'expo-sqlite';
-import { transactionsApi } from '@/src/api/client';
+import { transactionsApi, accountsApi } from '@/src/api/client';
 import { transactionRepo } from '@/src/db/transactionRepo';
 import { accountRepo } from '@/src/db/referenceDataRepo';
 import { useAuth } from '@/src/context/AuthContext';
@@ -49,14 +49,37 @@ export default function TransactionsScreen() {
     } catch {
       setTransactions([]);
     }
-  }, [db, filters]);
+  }, [db, filters, user?.id]);
 
-  useEffect(() => {
-    setLoading(true);
-    loadFromDb(filters).finally(() => setLoading(false));
-  }, [filters]);
+  // Silently reload from SQLite on focus (returning from add screen, switching tabs)
+  // Does not touch loading state — spinner is controlled by the login effect below
+  useFocusEffect(
+    useCallback(() => {
+      loadFromDb(filters);
+    }, [filters, loadFromDb])
+  );
 
-  // Pull-to-refresh: fetch from server → upsert to SQLite → trigger sync
+  const seedTransactions = useCallback(async (serverTx: Awaited<ReturnType<typeof transactionsApi.list>>) => {
+    if (!serverTx?.length) return;
+    for (const tx of serverTx) {
+      await db.runAsync(
+        `INSERT OR IGNORE INTO transactions
+          (id, local_id, user_id, title, amount, nature, source_account_id,
+           target_account_id, sub_category_id, entity, payment_method, notes,
+           principal_amount, interest_amount, transaction_date, created_at, sync_status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'synced')`,
+        [
+          tx.id, `server_${tx.id}`, tx.user_id, tx.title, tx.amount, tx.nature,
+          tx.source_account_id, tx.target_account_id ?? null, tx.sub_category_id ?? null,
+          tx.entity, tx.payment_method ?? null, tx.notes ?? null,
+          tx.principal_amount, tx.interest_amount, tx.transaction_date, tx.created_at,
+        ],
+      );
+    }
+  }, [db]);
+
+  // Pull-to-refresh: fetch filtered page from server → seed SQLite → reload list
+  // Network calls happen BEFORE any DB writes to avoid holding a write lock during I/O
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
@@ -68,44 +91,45 @@ export default function TransactionsScreen() {
       if (filters.search) params.search = filters.search;
       if (filters.sub_category_id) params.sub_category_id = filters.sub_category_id;
 
-      // Fetch server-synced transactions and merge them into local DB
-      const serverTx = await transactionsApi.list(params);
-      if (serverTx?.length) {
-        await db.withTransactionAsync(async () => {
-          for (const tx of serverTx) {
-            const existing = await transactionRepo.getByLocalId(db, `server_${tx.id}`);
-            if (!existing) {
-              await db.runAsync(
-                `INSERT OR REPLACE INTO transactions
-                  (id, local_id, user_id, title, amount, nature, source_account_id,
-                   target_account_id, sub_category_id, entity, payment_method, notes,
-                   principal_amount, interest_amount, transaction_date, created_at, sync_status)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'synced')`,
-                [
-                  tx.id, `server_${tx.id}`, tx.user_id, tx.title, tx.amount, tx.nature,
-                  tx.source_account_id, tx.target_account_id ?? null, tx.sub_category_id ?? null,
-                  tx.entity, tx.payment_method ?? null, tx.notes ?? null,
-                  tx.principal_amount, tx.interest_amount, tx.transaction_date, tx.created_at,
-                ],
-              );
-            }
-          }
-          // Also refresh account cache
-          const accts = await import('@/src/api/client').then(m => m.accountsApi.list());
-          if (accts) await accountRepo.upsertAll(db, accts);
-        });
-      }
+      const [serverTx, accts] = await Promise.all([
+        transactionsApi.list(params),
+        accountsApi.list(),
+      ]);
+      await seedTransactions(serverTx);
+      if (accts) await accountRepo.upsertAll(db, accts);
     } catch {
       // Network unavailable — just reload from SQLite
     }
 
-    // Trigger pending sync
     const { syncPendingTransactions } = await import('@/src/sync/syncEngine');
     syncPendingTransactions(db).catch(() => {});
 
     await loadFromDb(filters);
     setRefreshing(false);
-  }, [db, filters, loadFromDb]);
+  }, [db, filters, loadFromDb, seedTransactions]);
+
+  // On login: fetch ALL transactions (no date filter) + accounts, seed SQLite, then show list.
+  // Separate from onRefresh because onRefresh uses current filters (date-limited).
+  // Data was wiped on logout, so we need a full re-seed from the server here.
+  useEffect(() => {
+    if (!user?.id) return;
+    const loginSync = async () => {
+      setLoading(true);
+      try {
+        const [serverTx, accts] = await Promise.all([
+          transactionsApi.list({}),
+          accountsApi.list(),
+        ]);
+        await seedTransactions(serverTx);
+        if (accts) await accountRepo.upsertAll(db, accts);
+      } catch {
+        // Network unavailable on login — show whatever is in SQLite
+      }
+      await loadFromDb(filters);
+      setLoading(false);
+    };
+    loginSync();
+  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleDelete = async (item: LocalTransaction) => {
     Alert.alert('Delete', 'Delete this transaction?', [

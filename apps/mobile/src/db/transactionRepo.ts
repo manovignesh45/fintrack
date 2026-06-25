@@ -101,7 +101,7 @@ export const transactionRepo = {
 
     const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
     const rows = await db.getAllAsync<Record<string, unknown>>(
-      `SELECT * FROM transactions ${where} ORDER BY transaction_date DESC, created_at DESC LIMIT 200`,
+      `SELECT * FROM transactions ${where} ORDER BY transaction_date DESC, datetime(created_at) DESC LIMIT 200`,
       params,
     );
     return rows.map(rowToLocal);
@@ -117,8 +117,8 @@ export const transactionRepo = {
 
   async markSynced(db: SQLiteDatabase, localId: string, serverId: number): Promise<void> {
     await db.runAsync(
-      `UPDATE transactions SET id = ?, sync_status = 'synced', sync_error = NULL WHERE local_id = ?`,
-      [serverId, localId],
+      `UPDATE transactions SET id = ?, local_id = ?, sync_status = 'synced', sync_error = NULL WHERE local_id = ?`,
+      [serverId, `server_${serverId}`, localId],
     );
   },
 

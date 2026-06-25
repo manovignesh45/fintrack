@@ -121,6 +121,6 @@ export function emptyTransactionForm(): {
     notes: '',
     principal_amount: '0',
     interest_amount: '0',
-    transaction_date: new Date().toISOString().split('T')[0],
+    transaction_date: fmt(new Date()),
   };
 }

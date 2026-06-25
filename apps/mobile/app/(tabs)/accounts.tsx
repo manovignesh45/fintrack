@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, TextInput, Alert, ActivityIndicator, Switch } from 'react-native';
+import { useEffect, useState, useCallback } from 'react';
+import { View, Text, FlatList, TouchableOpacity, TextInput, Alert, ActivityIndicator, Switch, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { accountsApi } from '@/src/api/client';
@@ -16,6 +16,7 @@ export default function AccountsScreen() {
   const [newBalance, setNewBalance] = useState('0');
   const [newInterestRate, setNewInterestRate] = useState('0');
   const [saving, setSaving] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const load = () => {
     setLoading(true);
@@ -24,6 +25,18 @@ export default function AccountsScreen() {
       .catch(() => setAccounts([]))
       .finally(() => setLoading(false));
   };
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const data = await accountsApi.list({ type: 'LIABILITY' });
+      setAccounts(data || []);
+    } catch {
+      // keep existing data on network failure
+    } finally {
+      setRefreshing(false);
+    }
+  }, []);
 
   useEffect(() => { load(); }, []);
 
@@ -184,6 +197,7 @@ export default function AccountsScreen() {
             <Text className="text-sm text-gray-400 text-center py-4">No loan accounts yet.</Text>
           }
           contentContainerStyle={{ paddingBottom: 100 }}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         />
       )}
 

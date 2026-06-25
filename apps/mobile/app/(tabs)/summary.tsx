@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { useEffect, useState, useCallback } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { summaryApi } from '@/src/api/client';
 import type { EntitySummary, SummaryResponse } from '@fintrack/shared';
@@ -87,6 +87,7 @@ export default function SummaryScreen() {
   const [month, setMonth] = useState(currentMonth);
   const [data, setData] = useState<SummaryResponse | null>(null);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const isCurrentMonth = month === currentMonth();
 
   useEffect(() => {
@@ -97,12 +98,28 @@ export default function SummaryScreen() {
       .finally(() => setLoading(false));
   }, [month]);
 
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const result = await summaryApi.get(month);
+      setData(result);
+    } catch {
+      // keep existing data on network failure
+    } finally {
+      setRefreshing(false);
+    }
+  }, [month]);
+
   const totalIncome = data?.entities.reduce((s, e) => s + e.total_income, 0) ?? 0;
   const totalExpense = data?.entities.reduce((s, e) => s + e.total_expense + e.total_emi, 0) ?? 0;
   const totalNet = totalIncome - totalExpense;
 
   return (
-    <ScrollView className="flex-1 bg-gray-50" contentContainerClassName="p-4 pb-8">
+    <ScrollView
+      className="flex-1 bg-gray-50"
+      contentContainerClassName="p-4 pb-8"
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+    >
       {/* Month navigation */}
       <View className="flex-row items-center justify-between mb-1">
         <Text className="text-lg font-semibold text-gray-800">Monthly Summary</Text>

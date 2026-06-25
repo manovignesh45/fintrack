@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { useEffect, useState, useCallback } from 'react';
+import { View, Text, FlatList, TouchableOpacity, Alert, ActivityIndicator, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { templatesApi } from '@/src/api/client';
@@ -16,6 +16,7 @@ const natureLabels: Record<string, string> = {
 export default function TemplatesScreen() {
   const [templates, setTemplates] = useState<TransactionTemplate[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
   const { editMode } = useAuth();
 
@@ -26,6 +27,18 @@ export default function TemplatesScreen() {
       .catch(() => setTemplates([]))
       .finally(() => setLoading(false));
   };
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const data = await templatesApi.list();
+      setTemplates(data || []);
+    } catch {
+      // keep existing data on network failure
+    } finally {
+      setRefreshing(false);
+    }
+  }, []);
 
   useEffect(() => { load(); }, []);
 
@@ -120,6 +133,7 @@ export default function TemplatesScreen() {
             </Text>
           }
           contentContainerStyle={{ paddingBottom: 100 }}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         />
       )}
 
