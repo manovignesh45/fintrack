@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { HapticTab } from '@/components/haptic-tab';
@@ -8,6 +8,8 @@ import { useAuth } from '@/src/context/AuthContext';
 
 function HeaderRight() {
   const { editMode, setEditMode, user, logout } = useAuth();
+  const [menuVisible, setMenuVisible] = React.useState(false);
+  const [menuView, setMenuView] = React.useState<'main' | 'settings' | 'theme'>('main');
   const initials = user?.username ? user.username.slice(0, 2).toUpperCase() : '?';
 
   return (
@@ -24,11 +26,82 @@ function HeaderRight() {
         </TouchableOpacity>
       </View>
       <TouchableOpacity
-        onPress={logout}
+        onPress={() => setMenuVisible(true)}
         className="w-8 h-8 rounded-full bg-blue-600 items-center justify-center"
       >
         <Text className="text-white text-xs font-bold">{initials}</Text>
       </TouchableOpacity>
+
+      <React.Fragment>
+        {menuVisible && (
+          <Modal transparent animationType="fade" visible={menuVisible} onRequestClose={() => setMenuVisible(false)}>
+            <TouchableOpacity 
+              style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.2)' }} 
+              activeOpacity={1} 
+              onPress={() => { setMenuVisible(false); setTimeout(() => setMenuView('main'), 200); }}
+            >
+              <View 
+                className="absolute top-14 right-4 w-48 bg-white rounded-lg shadow-xl overflow-hidden border border-gray-200"
+                onStartShouldSetResponder={() => true}
+              >
+                {menuView === 'main' && (
+                  <>
+                    <View className="px-4 py-3 border-b border-gray-100">
+                      <Text className="text-xs text-gray-500">Signed in as</Text>
+                      <Text className="text-sm font-semibold text-gray-800 mt-0.5" numberOfLines={1}>{user?.username}</Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => setMenuView('settings')}
+                      className="flex-row justify-between items-center px-4 py-3 border-b border-gray-100 bg-white"
+                    >
+                      <Text className="text-sm text-gray-700">Settings</Text>
+                      <Ionicons name="chevron-forward" size={16} color="#9ca3af" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => { setMenuVisible(false); setMenuView('main'); logout(); }}
+                      className="px-4 py-3 bg-white"
+                    >
+                      <Text className="text-sm text-red-600">Logout</Text>
+                    </TouchableOpacity>
+                  </>
+                )}
+                {menuView === 'settings' && (
+                  <>
+                    <TouchableOpacity
+                      onPress={() => setMenuView('main')}
+                      className="flex-row items-center gap-2 px-4 py-3 border-b border-gray-100 bg-gray-50"
+                    >
+                      <Ionicons name="chevron-back" size={16} color="#6b7280" />
+                      <Text className="text-sm text-gray-600">Back</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => setMenuView('theme')}
+                      className="flex-row justify-between items-center px-4 py-3 bg-white"
+                    >
+                      <Text className="text-sm text-gray-700">Theme</Text>
+                      <Ionicons name="chevron-forward" size={16} color="#9ca3af" />
+                    </TouchableOpacity>
+                  </>
+                )}
+                {menuView === 'theme' && (
+                  <>
+                    <TouchableOpacity
+                      onPress={() => setMenuView('settings')}
+                      className="flex-row items-center gap-2 px-4 py-3 border-b border-gray-100 bg-gray-50"
+                    >
+                      <Ionicons name="chevron-back" size={16} color="#6b7280" />
+                      <Text className="text-sm text-gray-600">Back</Text>
+                    </TouchableOpacity>
+                    <View className="px-4 py-3 bg-white">
+                      <Text className="text-sm text-gray-500 italic">Coming in Phase 3</Text>
+                    </View>
+                  </>
+                )}
+              </View>
+            </TouchableOpacity>
+          </Modal>
+        )}
+      </React.Fragment>
     </View>
   );
 }

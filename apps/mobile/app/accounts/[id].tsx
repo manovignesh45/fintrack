@@ -86,29 +86,44 @@ export default function AccountDetailsScreen() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [month, setMonth] = useState(currentMonth);
+  const [period, setPeriod] = useState<'month' | 'all'>('all');
 
   useEffect(() => {
     if (!id) return;
     setLoading(true);
 
-    const [year, monthNum] = month.split('-').map(Number);
-    const dateFrom = new Date(year, monthNum - 1, 1).toISOString().split('T')[0];
-    const dateTo = new Date(year, monthNum, 0).toISOString().split('T')[0];
-    const dayBeforeStart = new Date(year, monthNum - 1, 0).toISOString().split('T')[0];
+    if (period === 'all') {
+      Promise.all([
+        accountsApi.get(parseInt(id)),
+        transactionsApi.list({ account_id: id, per_page: '1000' }),
+      ])
+        .then(([curr, txns]) => {
+          setAccount(curr);
+          setOpeningBalanceAccount({ ...curr, current_balance: curr.initial_balance });
+          setTransactions(txns);
+        })
+        .catch(() => router.back())
+        .finally(() => setLoading(false));
+    } else {
+      const [year, monthNum] = month.split('-').map(Number);
+      const dateFrom = new Date(year, monthNum - 1, 1).toISOString().split('T')[0];
+      const dateTo = new Date(year, monthNum, 0).toISOString().split('T')[0];
+      const dayBeforeStart = new Date(year, monthNum - 1, 0).toISOString().split('T')[0];
 
-    Promise.all([
-      accountsApi.get(parseInt(id), { date_to: dateTo }),
-      accountsApi.get(parseInt(id), { date_to: dayBeforeStart }),
-      transactionsApi.list({ account_id: id, date_from: dateFrom, date_to: dateTo, per_page: '50' }),
-    ])
-      .then(([curr, start, txns]) => {
-        setAccount(curr);
-        setOpeningBalanceAccount(start);
-        setTransactions(txns);
-      })
-      .catch(() => router.back())
-      .finally(() => setLoading(false));
-  }, [id, month]);
+      Promise.all([
+        accountsApi.get(parseInt(id), { date_to: dateTo }),
+        accountsApi.get(parseInt(id), { date_to: dayBeforeStart }),
+        transactionsApi.list({ account_id: id, date_from: dateFrom, date_to: dateTo, per_page: '50' }),
+      ])
+        .then(([curr, start, txns]) => {
+          setAccount(curr);
+          setOpeningBalanceAccount(start);
+          setTransactions(txns);
+        })
+        .catch(() => router.back())
+        .finally(() => setLoading(false));
+    }
+  }, [id, month, period]);
 
   if (loading) {
     return (
@@ -138,19 +153,26 @@ export default function AccountDetailsScreen() {
           </View>
         </View>
         <View className="flex-row items-center gap-1">
-          <TouchableOpacity onPress={() => setMonth(prevMonth)} className="w-8 h-8 items-center justify-center rounded-lg bg-white border border-gray-200">
-            <Ionicons name="chevron-back" size={14} color="#6b7280" />
+          <TouchableOpacity onPress={() => setPeriod(p => p === 'all' ? 'month' : 'all')} className="px-2 py-1 mr-2 border border-gray-200 rounded-lg bg-white">
+            <Text className="text-[10px] font-medium text-gray-600">{period === 'all' ? 'All Time' : 'Monthly'}</Text>
           </TouchableOpacity>
-          <View className="px-2 py-1 border border-gray-200 rounded-lg bg-white">
-            <Text className="text-[10px] font-medium text-gray-600">{monthShort}</Text>
-          </View>
-          <TouchableOpacity
-            onPress={() => setMonth(nextMonth)}
-            disabled={isCurrentMonth}
-            className={`w-8 h-8 items-center justify-center rounded-lg bg-white border border-gray-200 ${isCurrentMonth ? 'opacity-30' : ''}`}
-          >
-            <Ionicons name="chevron-forward" size={14} color="#6b7280" />
-          </TouchableOpacity>
+          {period === 'month' && (
+            <>
+              <TouchableOpacity onPress={() => setMonth(prevMonth)} className="w-8 h-8 items-center justify-center rounded-lg bg-white border border-gray-200">
+                <Ionicons name="chevron-back" size={14} color="#6b7280" />
+              </TouchableOpacity>
+              <View className="px-2 py-1 border border-gray-200 rounded-lg bg-white">
+                <Text className="text-[10px] font-medium text-gray-600">{monthShort}</Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setMonth(nextMonth)}
+                disabled={isCurrentMonth}
+                className={`w-8 h-8 items-center justify-center rounded-lg bg-white border border-gray-200 ${isCurrentMonth ? 'opacity-30' : ''}`}
+              >
+                <Ionicons name="chevron-forward" size={14} color="#6b7280" />
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       </View>
 
@@ -158,7 +180,7 @@ export default function AccountDetailsScreen() {
       <View className="mx-4 bg-blue-600 rounded-lg p-4 mb-4">
         <View className="flex-row justify-between items-start">
           <View>
-            <Text className="text-xs text-blue-200 uppercase font-semibold">Closing Balance ({monthShort})</Text>
+            <Text className="text-xs text-blue-200 uppercase font-semibold">{period === 'all' ? 'Current Balance' : `Closing Balance (${monthShort})`}</Text>
             <Text className="text-2xl font-bold text-white mt-1">₹{account.current_balance.toLocaleString('en-IN')}</Text>
           </View>
           <View className="items-end">

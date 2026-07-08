@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Alert, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, SectionList, TouchableOpacity, Alert, ActivityIndicator, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { templatesApi } from '@/src/api/client';
@@ -9,6 +9,7 @@ import type { TransactionTemplate } from '@fintrack/shared';
 const natureLabels: Record<string, string> = {
   INCOME: 'Income',
   EXPENSE: 'Expense',
+  TRANSFER: 'Transfer',
   EMI_PAYMENT: 'EMI',
   LOAN_DISBURSEMENT: 'Loan',
 };
@@ -118,10 +119,24 @@ export default function TemplatesScreen() {
           <ActivityIndicator size="large" color="#2563eb" />
         </View>
       ) : (
-        <FlatList
-          data={templates}
+        <SectionList
+          sections={Object.entries(
+            templates.reduce((acc, t) => {
+              const entity = t.entity || 'OTHER';
+              if (!acc[entity]) acc[entity] = [];
+              acc[entity].push(t);
+              return acc;
+            }, {} as Record<string, TransactionTemplate[]>)
+          )
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([title, data]) => ({ title, data }))}
           keyExtractor={(t) => t.id.toString()}
           renderItem={renderItem}
+          renderSectionHeader={({ section: { title } }) => (
+            <View className="px-4 py-2 mt-2">
+              <Text className="text-xs font-bold text-gray-500 uppercase tracking-wider">{title}</Text>
+            </View>
+          )}
           ListHeaderComponent={
             <View className="px-4 pb-2 pt-2">
               <Text className="text-lg font-semibold text-gray-800">Templates</Text>

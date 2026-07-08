@@ -12,7 +12,7 @@ import { SyncStatusBar } from '@/src/components/SyncStatusBar';
 import TransactionFilter from '@/src/components/TransactionFilter';
 import type { TxNature, FilterState } from '@fintrack/shared';
 import type { LocalTransaction } from '@/src/db/localTypes';
-import { DEFAULT_FILTERS, countActiveFilters } from '@fintrack/shared';
+import { DEFAULT_FILTERS, countActiveFilters, DATE_PRESET_LABELS } from '@fintrack/shared';
 
 const natureColors: Record<TxNature, string> = {
   INCOME: 'text-green-600',
@@ -89,6 +89,7 @@ export default function TransactionsScreen() {
       if (filters.date_from) params.date_from = filters.date_from;
       if (filters.date_to) params.date_to = filters.date_to;
       if (filters.search) params.search = filters.search;
+      if (filters.category_id) params.category_id = filters.category_id;
       if (filters.sub_category_id) params.sub_category_id = filters.sub_category_id;
 
       const [serverTx, accts] = await Promise.all([
@@ -221,8 +222,14 @@ export default function TransactionsScreen() {
         <View className="flex-row flex-wrap gap-1.5 mb-3">
           {filters.entity ? <FilterPill label={filters.entity} onRemove={() => setFilters((f) => ({ ...f, entity: '' }))} /> : null}
           {filters.nature ? <FilterPill label={filters.nature} onRemove={() => setFilters((f) => ({ ...f, nature: '' }))} /> : null}
-          {filters.date_from ? <FilterPill label={`From ${filters.date_from}`} onRemove={() => setFilters((f) => ({ ...f, date_from: '' }))} /> : null}
-          {filters.date_to ? <FilterPill label={`To ${filters.date_to}`} onRemove={() => setFilters((f) => ({ ...f, date_to: '' }))} /> : null}
+          {filters.datePreset && filters.datePreset !== 'custom' ? (
+            <FilterPill label={DATE_PRESET_LABELS[filters.datePreset as keyof typeof DATE_PRESET_LABELS] ?? 'Date Range'} onRemove={() => setFilters((f) => ({ ...f, datePreset: '', date_from: '', date_to: '' }))} />
+          ) : (
+            <>
+              {filters.date_from ? <FilterPill label={`From ${filters.date_from}`} onRemove={() => setFilters((f) => ({ ...f, date_from: '', datePreset: 'custom' }))} /> : null}
+              {filters.date_to ? <FilterPill label={`To ${filters.date_to}`} onRemove={() => setFilters((f) => ({ ...f, date_to: '', datePreset: 'custom' }))} /> : null}
+            </>
+          )}
           {filters.search ? <FilterPill label={`"${filters.search}"`} onRemove={() => setFilters((f) => ({ ...f, search: '' }))} /> : null}
         </View>
       )}

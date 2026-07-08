@@ -9,7 +9,7 @@ import { ENTITIES } from '@fintrack/shared';
 
 export default function CategoriesScreen() {
   const router = useRouter();
-  const { editMode } = useAuth();
+  const { editMode, setEditMode } = useAuth();
   const [selectedEntity, setSelectedEntity] = useState<EntityType>('PERSONAL');
   const [selectedNature, setSelectedNature] = useState<TxNature>('EXPENSE');
   const [categories, setCategories] = useState<Category[]>([]);
@@ -66,11 +66,22 @@ export default function CategoriesScreen() {
   return (
     <View className="flex-1 bg-gray-50">
       <ScrollView contentContainerClassName="p-4 pb-24">
-        <View className="flex-row items-center gap-3 mb-4">
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={22} color="#4b5563" />
-          </TouchableOpacity>
-          <Text className="text-lg font-semibold text-gray-800">Categories</Text>
+        <View className="flex-row items-center justify-between mb-4">
+          <View className="flex-row items-center gap-3">
+            <TouchableOpacity onPress={() => router.back()}>
+              <Ionicons name="arrow-back" size={22} color="#4b5563" />
+            </TouchableOpacity>
+            <Text className="text-lg font-semibold text-gray-800">Categories</Text>
+          </View>
+          <View className="flex-row items-center gap-1.5">
+            <Text className="text-xs text-gray-500">Edit</Text>
+            <TouchableOpacity
+              onPress={() => setEditMode(!editMode)}
+              className={`w-9 h-5 rounded-full justify-center ${editMode ? 'bg-blue-600' : 'bg-gray-300'}`}
+            >
+              <View className={`w-4 h-4 bg-white rounded-full ${editMode ? 'ml-[18px]' : 'ml-0.5'}`} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Entity tabs */}
