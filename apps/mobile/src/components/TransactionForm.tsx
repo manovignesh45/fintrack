@@ -5,6 +5,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { accountsApi, categoriesApi } from '@/src/api/client';
 import type { Account, Category, TransactionFormData } from '@fintrack/shared';
 import { ENTITIES, NATURES, PAYMENT_METHODS, emptyTransactionForm } from '@fintrack/shared';
+import { useColorScheme } from 'nativewind';
 
 interface Props {
   initial?: TransactionFormData;
@@ -20,6 +21,11 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
+  
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const pickerColor = isDark ? '#f3f4f6' : '#1f2937';
+  const placeholderColor = isDark ? '#9ca3af' : '#6b7280';
 
   useEffect(() => {
     accountsApi.list({ type: 'LIABILITY' }).then((data) => setAccounts(data || [])).catch(() => setAccounts([]));
@@ -110,17 +116,17 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
 
       {/* Entity selector */}
       <View className="mb-4">
-        <Text className="text-xs text-gray-500 mb-1">Entity *</Text>
+        <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">Entity *</Text>
         <View className="flex-row gap-2">
           {ENTITIES.map((e) => (
             <TouchableOpacity
               key={e}
               onPress={() => set('entity', e)}
               className={`flex-1 py-2.5 rounded-lg items-center ${
-                form.entity === e ? 'bg-blue-600' : 'bg-white border border-gray-300'
+                form.entity === e ? 'bg-blue-600 dark:bg-blue-500' : 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600'
               }`}
             >
-              <Text className={`text-sm font-medium ${form.entity === e ? 'text-white' : 'text-gray-600'}`}>
+              <Text className={`text-sm font-medium ${form.entity === e ? 'text-white' : 'text-gray-600 dark:text-gray-300'}`}>
                 {e}
               </Text>
             </TouchableOpacity>
@@ -130,17 +136,17 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
 
       {/* Nature selector */}
       <View className="mb-4">
-        <Text className="text-xs text-gray-500 mb-1">Transaction Type *</Text>
+        <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">Transaction Type *</Text>
         <View className="flex-row flex-wrap gap-1">
           {NATURES.map((n) => (
             <TouchableOpacity
               key={n}
               onPress={() => set('nature', n)}
               className={`flex-1 min-w-[23%] py-2 rounded-lg items-center ${
-                form.nature === n ? 'bg-blue-600' : 'bg-white border border-gray-300'
+                form.nature === n ? 'bg-blue-600 dark:bg-blue-500' : 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600'
               }`}
             >
-              <Text className={`text-xs font-medium ${form.nature === n ? 'text-white' : 'text-gray-600'}`}>
+              <Text className={`text-xs font-medium ${form.nature === n ? 'text-white' : 'text-gray-600 dark:text-gray-300'}`}>
                 {n === 'EMI_PAYMENT' ? 'EMI' : n === 'LOAN_DISBURSEMENT' ? 'LOAN' : n}
               </Text>
             </TouchableOpacity>
@@ -150,21 +156,25 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
 
       {/* Title */}
       <View className="mb-4">
-        <Text className="text-xs text-gray-500 mb-1">Title *</Text>
+        <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">Title *</Text>
         <TextInput
           placeholder="e.g. Groceries, Salary"
+          placeholderTextColor={placeholderColor}
           value={form.title}
           onChangeText={(v) => set('title', v)}
-          className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm"
+          className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-gray-100"
         />
       </View>
 
       {/* Loan Account */}
       {(form.nature === 'EMI_PAYMENT' || form.nature === 'LOAN_DISBURSEMENT') && (
         <View className="mb-4">
-          <Text className="text-xs text-gray-500 mb-1">Loan Account *</Text>
-          <View className="border border-gray-300 rounded-lg overflow-hidden bg-white">
+          <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">Loan Account *</Text>
+          <View className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden bg-white dark:bg-gray-800">
             <Picker
+              mode="dropdown"
+              style={{ color: pickerColor, backgroundColor: isDark ? '#1f2937' : '#ffffff' }}
+              dropdownIconColor={pickerColor}
               selectedValue={form.nature === 'LOAN_DISBURSEMENT' ? form.source_account_id : form.target_account_id}
               onValueChange={(v) => {
                 if (form.nature === 'LOAN_DISBURSEMENT') {
@@ -190,13 +200,14 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
       {/* Amount */}
       {form.nature !== 'EMI_PAYMENT' && (
         <View className="mb-4">
-          <Text className="text-xs text-gray-500 mb-1">Amount (₹) *</Text>
+          <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">Amount (₹) *</Text>
           <TextInput
             placeholder="e.g. 1500.00"
+            placeholderTextColor={placeholderColor}
             value={form.amount}
             onChangeText={(v) => set('amount', v)}
             keyboardType="decimal-pad"
-            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm"
+            className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-gray-100"
           />
         </View>
       )}
@@ -211,23 +222,23 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
           <View className="mb-4">
             <View className="flex-row gap-2">
               <View className="flex-1">
-                <Text className="text-xs text-gray-500 mb-1">Principal (₹)</Text>
+                <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">Principal (₹)</Text>
                 <TextInput
                   value={form.principal_amount}
                   onChangeText={(v) => set('principal_amount', v)}
                   keyboardType="decimal-pad"
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm"
+                  className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-gray-100"
                 />
               </View>
               <View className="flex-1">
-                <Text className="text-xs text-gray-500 mb-1">
+                <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">
                   Interest (₹){suggestedInterest !== null ? ` · ${selectedLoan!.interest_rate}% p.a.` : ''}
                 </Text>
                 <TextInput
                   value={form.interest_amount}
                   onChangeText={(v) => set('interest_amount', v)}
                   keyboardType="decimal-pad"
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm"
+                  className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-gray-100"
                 />
                 {suggestedInterest !== null && (
                   <Text className="text-[10px] text-orange-500 mt-0.5">
@@ -236,7 +247,7 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
                 )}
               </View>
             </View>
-            <Text className="text-xs text-gray-500 mt-1">
+            <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-1">
               Total EMI: ₹{(parseFloat(form.principal_amount || '0') + parseFloat(form.interest_amount || '0')).toLocaleString('en-IN')}
             </Text>
           </View>
@@ -247,9 +258,12 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
       {(form.nature === 'INCOME' || form.nature === 'EXPENSE') && (
         <View className="mb-4 flex-row gap-2">
           <View className="flex-1">
-            <Text className="text-xs text-gray-500 mb-1">Category</Text>
-            <View className="border border-gray-300 rounded-lg overflow-hidden bg-white">
+            <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">Category</Text>
+            <View className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden bg-white dark:bg-gray-800">
               <Picker
+                mode="dropdown"
+                style={{ color: pickerColor, backgroundColor: isDark ? '#1f2937' : '#ffffff' }}
+                dropdownIconColor={pickerColor}
                 selectedValue={selectedCategoryId}
                 onValueChange={handleCategoryChange}
               >
@@ -261,9 +275,12 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
             </View>
           </View>
           <View className="flex-1">
-            <Text className="text-xs text-gray-500 mb-1">Sub-category</Text>
-            <View className="border border-gray-300 rounded-lg overflow-hidden bg-white">
+            <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">Sub-category</Text>
+            <View className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden bg-white dark:bg-gray-800">
               <Picker
+                mode="dropdown"
+                style={{ color: pickerColor, backgroundColor: isDark ? '#1f2937' : '#ffffff' }}
+                dropdownIconColor={pickerColor}
                 selectedValue={form.sub_category_id}
                 onValueChange={(v) => set('sub_category_id', v)}
                 enabled={!!selectedCategoryId}
@@ -281,9 +298,12 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
       {/* Payment method */}
       {(form.nature === 'EXPENSE' || form.nature === 'EMI_PAYMENT') && (
         <View className="mb-4">
-          <Text className="text-xs text-gray-500 mb-1">Payment Method</Text>
-          <View className="border border-gray-300 rounded-lg overflow-hidden bg-white">
+          <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">Payment Method</Text>
+          <View className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden bg-white dark:bg-gray-800">
             <Picker
+              mode="dropdown"
+              style={{ color: pickerColor, backgroundColor: isDark ? '#1f2937' : '#ffffff' }}
+              dropdownIconColor={pickerColor}
               selectedValue={form.payment_method}
               onValueChange={(v) => set('payment_method', v)}
             >
@@ -298,12 +318,14 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
 
       {/* Date */}
       <View className="mb-4">
-        <Text className="text-xs text-gray-500 mb-1">Transaction Date *</Text>
+        <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">Transaction Date *</Text>
         <TouchableOpacity
           onPress={() => setShowDatePicker(true)}
-          className="w-full px-3 py-2.5 border border-gray-300 rounded-lg"
+          className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg"
         >
-          <Text className="text-sm">{form.transaction_date || 'Select date'}</Text>
+          <Text className={`text-sm ${form.transaction_date ? 'text-gray-900 dark:text-gray-100' : 'text-gray-500 dark:text-gray-400'}`}>
+            {form.transaction_date || 'Select date'}
+          </Text>
         </TouchableOpacity>
         {showDatePicker && (
           <DateTimePicker
@@ -324,21 +346,22 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
 
       {/* Notes */}
       <View className="mb-4">
-        <Text className="text-xs text-gray-500 mb-1">Notes</Text>
+        <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">Notes</Text>
         <TextInput
           placeholder="Additional notes (optional)"
+          placeholderTextColor={placeholderColor}
           value={form.notes}
           onChangeText={(v) => set('notes', v)}
           multiline
           numberOfLines={2}
-          className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm"
+          className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
         />
       </View>
 
       <TouchableOpacity
         onPress={handleSubmit}
         disabled={submitting}
-        className={`w-full py-3 rounded-lg items-center ${submitting ? 'bg-blue-400' : 'bg-blue-600'}`}
+        className={`w-full py-3 rounded-lg items-center ${submitting ? 'bg-blue-400' : 'bg-blue-600 dark:bg-blue-500'}`}
       >
         <Text className="text-white font-medium">{submitting ? 'Saving...' : submitLabel}</Text>
       </TouchableOpacity>

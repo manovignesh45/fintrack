@@ -1,3 +1,5 @@
+import { ThemeProvider, useTheme } from '@/src/context/ThemeContext';
+import { useThemeColors } from '@/src/theme/colors';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef } from 'react';
@@ -20,7 +22,6 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (loading) return;
 
-    // Clear all local data when user logs out
     if (prevAuthRef.current === true && !isAuthenticated) {
       clearAllUserData(db).catch(() => {});
     }
@@ -37,19 +38,27 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-// Mounts network and app-state sync listeners inside SQLiteProvider scope
 function NetworkSyncListener() {
   useNetworkSync();
   return null;
 }
 
-export default function RootLayout() {
+function RootContent() {
+  const { theme } = useTheme();
+  const colors = useThemeColors();
+
   return (
     <SQLiteProvider databaseName="fintrack.db" onInit={setupDatabase}>
       <AuthProvider>
         <AuthGate>
           <NetworkSyncListener />
-          <Stack>
+          <Stack
+            screenOptions={{
+              headerStyle: { backgroundColor: colors.headerBg },
+              headerTintColor: colors.headerText,
+              headerTitleStyle: { fontWeight: 'bold' },
+            }}
+          >
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="login" options={{ headerShown: false }} />
             <Stack.Screen name="add" options={{ title: 'Add Transaction', headerShown: false }} />
@@ -62,8 +71,16 @@ export default function RootLayout() {
             <Stack.Screen name="tally" options={{ title: 'Loan Reconciliation' }} />
           </Stack>
         </AuthGate>
-        <StatusBar style="auto" />
+        <StatusBar style={theme === 'system' ? 'auto' : theme} />
       </AuthProvider>
     </SQLiteProvider>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <ThemeProvider>
+      <RootContent />
+    </ThemeProvider>
   );
 }

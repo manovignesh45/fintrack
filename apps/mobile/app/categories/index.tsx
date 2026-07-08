@@ -64,22 +64,22 @@ export default function CategoriesScreen() {
   };
 
   return (
-    <View className="flex-1 bg-gray-50">
+    <View className="flex-1 bg-gray-50 dark:bg-gray-900">
       <ScrollView contentContainerClassName="p-4 pb-24">
         <View className="flex-row items-center justify-between mb-4">
           <View className="flex-row items-center gap-3">
             <TouchableOpacity onPress={() => router.back()}>
               <Ionicons name="arrow-back" size={22} color="#4b5563" />
             </TouchableOpacity>
-            <Text className="text-lg font-semibold text-gray-800">Categories</Text>
+            <Text className="text-lg font-semibold text-gray-800 dark:text-gray-100">Categories</Text>
           </View>
           <View className="flex-row items-center gap-1.5">
-            <Text className="text-xs text-gray-500">Edit</Text>
+            <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">Edit</Text>
             <TouchableOpacity
               onPress={() => setEditMode(!editMode)}
-              className={`w-9 h-5 rounded-full justify-center ${editMode ? 'bg-blue-600' : 'bg-gray-300'}`}
+              className={`w-9 h-5 rounded-full justify-center ${editMode ? 'bg-blue-600 dark:bg-blue-500' : 'bg-gray-300'}`}
             >
-              <View className={`w-4 h-4 bg-white rounded-full ${editMode ? 'ml-[18px]' : 'ml-0.5'}`} />
+              <View className={`w-4 h-4 bg-white dark:bg-gray-800 rounded-full ${editMode ? 'ml-[18px]' : 'ml-0.5'}`} />
             </TouchableOpacity>
           </View>
         </View>
@@ -91,10 +91,10 @@ export default function CategoriesScreen() {
               key={e}
               onPress={() => setSelectedEntity(e)}
               className={`flex-1 py-1.5 rounded-lg items-center ${
-                selectedEntity === e ? 'bg-blue-600' : 'bg-white border border-gray-300'
+                selectedEntity === e ? 'bg-blue-600 dark:bg-blue-500' : 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600'
               }`}
             >
-              <Text className={`text-sm font-medium ${selectedEntity === e ? 'text-white' : 'text-gray-600'}`}>{e}</Text>
+              <Text className={`text-sm font-medium ${selectedEntity === e ? 'text-white' : 'text-gray-600 dark:text-gray-300'}`}>{e}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -106,10 +106,10 @@ export default function CategoriesScreen() {
               key={n}
               onPress={() => setSelectedNature(n)}
               className={`flex-1 py-1.5 rounded-lg items-center ${
-                selectedNature === n ? 'bg-orange-600' : 'bg-white border border-gray-300'
+                selectedNature === n ? 'bg-orange-600' : 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600'
               }`}
             >
-              <Text className={`text-sm font-medium ${selectedNature === n ? 'text-white' : 'text-gray-600'}`}>{n}</Text>
+              <Text className={`text-sm font-medium ${selectedNature === n ? 'text-white' : 'text-gray-600 dark:text-gray-300'}`}>{n}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -117,21 +117,21 @@ export default function CategoriesScreen() {
         {loading ? (
           <ActivityIndicator size="large" color="#2563eb" className="py-4" />
         ) : categories.length === 0 ? (
-          <Text className="text-gray-400 text-center py-4">No categories yet</Text>
+          <Text className="text-gray-400 dark:text-gray-500 text-center py-4">No categories yet</Text>
         ) : (
           <View className="gap-3">
             {categories.map((cat) => (
-              <View key={cat.id} className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <View key={cat.id} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
                 {/* Category header */}
-                <View className="flex-row justify-between items-center px-4 py-3 bg-gray-50 border-b border-gray-100">
-                  <Text className="font-bold text-gray-800 text-sm italic">{cat.name}</Text>
+                <View className="flex-row justify-between items-center px-4 py-3 bg-gray-50 dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800">
+                  <Text className="font-bold text-gray-800 dark:text-gray-100 text-sm italic">{cat.name}</Text>
                   <View className="flex-row gap-3">
                     {editMode && (
                       <TouchableOpacity
                         onPress={() => { setAddingSubFor(cat.id); setNewSubName(''); }}
-                        className="bg-blue-50 px-2.5 py-1 rounded-md border border-blue-100"
+                        className="bg-blue-50 dark:bg-blue-900/20 px-2.5 py-1 rounded-md border border-blue-100"
                       >
-                        <Text className="text-xs font-semibold text-blue-600">+ Sub</Text>
+                        <Text className="text-xs font-semibold text-blue-600 dark:text-blue-400">+ Sub</Text>
                       </TouchableOpacity>
                     )}
                     {editMode && (
@@ -144,11 +144,11 @@ export default function CategoriesScreen() {
 
                 {/* Sub-categories */}
                 {(cat.sub_categories ?? []).length === 0 && addingSubFor !== cat.id ? (
-                  <Text className="px-5 py-3 text-xs text-gray-400 italic">No sub-categories</Text>
+                  <Text className="px-5 py-3 text-xs text-gray-400 dark:text-gray-500 italic">No sub-categories</Text>
                 ) : (
                   (cat.sub_categories ?? []).map((sc) => (
                     <View key={sc.id} className="flex-row justify-between items-center px-5 py-2.5 border-b border-gray-50">
-                      <Text className="text-sm text-gray-600 font-medium">{sc.name}</Text>
+                      <Text className="text-sm text-gray-600 dark:text-gray-300 font-medium">{sc.name}</Text>
                       {editMode && (
                         <TouchableOpacity onPress={() => deleteSubCategory(cat.id, sc.id)}>
                           <Ionicons name="close" size={14} color="#fca5a5" />
@@ -160,18 +160,18 @@ export default function CategoriesScreen() {
 
                 {/* Inline add sub-category */}
                 {addingSubFor === cat.id && (
-                  <View className="flex-row items-center gap-2 px-4 py-2.5 bg-blue-50">
+                  <View className="flex-row items-center gap-2 px-4 py-2.5 bg-blue-50 dark:bg-blue-900/20">
                     <TextInput
                       value={newSubName}
                       onChangeText={setNewSubName}
                       placeholder="Sub-category name"
                       autoFocus
-                      className="flex-1 px-2.5 py-1.5 border border-blue-300 rounded-md text-sm bg-white"
+                      className="flex-1 px-2.5 py-1.5 border border-blue-300 rounded-md text-sm bg-white dark:bg-gray-800"
                     />
                     <TouchableOpacity
                       onPress={() => handleSubSubmit(cat.id)}
                       disabled={subSubmitting || !newSubName.trim()}
-                      className={`px-3 py-1.5 rounded-md ${subSubmitting || !newSubName.trim() ? 'bg-blue-400' : 'bg-blue-600'}`}
+                      className={`px-3 py-1.5 rounded-md ${subSubmitting || !newSubName.trim() ? 'bg-blue-400' : 'bg-blue-600 dark:bg-blue-500'}`}
                     >
                       <Text className="text-xs text-white font-semibold">{subSubmitting ? '...' : 'Add'}</Text>
                     </TouchableOpacity>
@@ -193,7 +193,7 @@ export default function CategoriesScreen() {
             pathname: '/categories/new',
             params: { entity: selectedEntity, nature: selectedNature },
           })}
-          className="absolute bottom-6 right-6 w-14 h-14 bg-blue-600 rounded-full shadow-lg items-center justify-center"
+          className="absolute bottom-6 right-6 w-14 h-14 bg-blue-600 dark:bg-blue-500 rounded-full shadow-lg items-center justify-center"
           activeOpacity={0.8}
         >
           <Ionicons name="add" size={28} color="white" />

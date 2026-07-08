@@ -17,7 +17,7 @@ import { DEFAULT_FILTERS, countActiveFilters, DATE_PRESET_LABELS } from '@fintra
 const natureColors: Record<TxNature, string> = {
   INCOME: 'text-green-600',
   EXPENSE: 'text-red-600',
-  TRANSFER: 'text-blue-600',
+  TRANSFER: 'text-blue-600 dark:text-blue-400',
   EMI_PAYMENT: 'text-orange-600',
   LOAN_DISBURSEMENT: 'text-green-800',
 };
@@ -163,11 +163,11 @@ export default function TransactionsScreen() {
   );
 
   const renderItem = ({ item: t }: { item: LocalTransaction }) => (
-    <View className={`bg-white rounded-lg border p-3 mb-2 mx-4 ${t.sync_status === 'failed' ? 'border-red-300' : 'border-gray-200'}`}>
+    <View className={`bg-white dark:bg-gray-800 rounded-lg border p-3 mb-2 mx-4 ${t.sync_status === 'failed' ? 'border-red-300' : 'border-gray-200 dark:border-gray-700'}`}>
       <View className="flex-row justify-between items-start">
         <View className="flex-1 mr-3">
           <View className="flex-row items-center gap-1.5">
-            <Text className="font-medium text-gray-800" numberOfLines={1}>{t.title}</Text>
+            <Text className="font-medium text-gray-800 dark:text-gray-100" numberOfLines={1}>{t.title}</Text>
             {t.sync_status === 'pending' && (
               <Ionicons name="time-outline" size={12} color="#9ca3af" />
             )}
@@ -175,19 +175,19 @@ export default function TransactionsScreen() {
               <Ionicons name="alert-circle-outline" size={12} color="#ef4444" />
             )}
           </View>
-          <Text className="text-xs text-gray-500">
+          <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">
             {t.transaction_date} · {natureLabels[t.nature]} · {t.entity}
             {t.payment_method ? ` · ${t.payment_method}` : ''}
           </Text>
           {t.nature === 'EMI_PAYMENT' && (
-            <Text className="text-xs text-gray-500">
+            <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">
               P: ₹{t.principal_amount.toLocaleString('en-IN')} + I: ₹{t.interest_amount.toLocaleString('en-IN')}
             </Text>
           )}
           {t.sync_error ? (
             <Text className="text-xs text-red-500 mt-0.5">{t.sync_error}</Text>
           ) : t.notes ? (
-            <Text className="text-xs text-gray-400 mt-1">{t.notes}</Text>
+            <Text className="text-xs text-gray-400 dark:text-gray-500 mt-1">{t.notes}</Text>
           ) : null}
         </View>
         <View className="items-end">
@@ -214,7 +214,7 @@ export default function TransactionsScreen() {
   const ListHeader = () => (
     <View className="px-4 pb-2">
       <View className="flex-row items-center justify-between mb-3">
-        <Text className="text-lg font-semibold text-gray-800">Transactions</Text>
+        <Text className="text-lg font-semibold text-gray-800 dark:text-gray-100">Transactions</Text>
         <TransactionFilter filters={filters} onChange={setFilters} />
       </View>
 
@@ -235,17 +235,17 @@ export default function TransactionsScreen() {
       )}
 
       {!loading && transactions.length > 0 && (
-        <View className="flex-row bg-white p-3 rounded-lg border border-gray-200 mb-2">
+        <View className="flex-row bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700 mb-2">
           <View className="flex-1 items-center">
-            <Text className="text-[10px] text-gray-500 font-medium uppercase">Income</Text>
+            <Text className="text-[10px] text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium uppercase">Income</Text>
             <Text className="text-sm font-bold text-green-600">₹{summary.income.toLocaleString('en-IN')}</Text>
           </View>
-          <View className="flex-1 items-center border-x border-gray-100">
-            <Text className="text-[10px] text-gray-500 font-medium uppercase">Expense</Text>
+          <View className="flex-1 items-center border-x border-gray-100 dark:border-gray-800">
+            <Text className="text-[10px] text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium uppercase">Expense</Text>
             <Text className="text-sm font-bold text-red-600">₹{summary.expense.toLocaleString('en-IN')}</Text>
           </View>
           <View className="flex-1 items-center">
-            <Text className="text-[10px] text-gray-500 font-medium uppercase">Diff</Text>
+            <Text className="text-[10px] text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium uppercase">Diff</Text>
             <Text className={`text-sm font-bold ${summary.income - summary.expense >= 0 ? 'text-green-600' : 'text-red-600'}`}>
               ₹{(summary.income - summary.expense).toLocaleString('en-IN')}
             </Text>
@@ -256,7 +256,7 @@ export default function TransactionsScreen() {
   );
 
   return (
-    <View className="flex-1 bg-gray-50">
+    <View className="flex-1 bg-gray-50 dark:bg-gray-900">
       <SyncStatusBar />
       {loading ? (
         <View className="flex-1 items-center justify-center">
@@ -268,7 +268,7 @@ export default function TransactionsScreen() {
           keyExtractor={(t) => t.local_id}
           renderItem={renderItem}
           ListHeaderComponent={ListHeader}
-          ListEmptyComponent={<Text className="text-gray-400 text-center py-8">No transactions yet</Text>}
+          ListEmptyComponent={<Text className="text-gray-400 dark:text-gray-500 text-center py-8">No transactions yet</Text>}
           contentContainerStyle={{ paddingBottom: 100 }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         />
@@ -276,7 +276,7 @@ export default function TransactionsScreen() {
 
       <TouchableOpacity
         onPress={() => router.push('/add')}
-        className="absolute bottom-6 right-6 w-14 h-14 bg-blue-600 rounded-full shadow-lg items-center justify-center"
+        className="absolute bottom-6 right-6 w-14 h-14 bg-blue-600 dark:bg-blue-500 rounded-full shadow-lg items-center justify-center"
         activeOpacity={0.8}
       >
         <Ionicons name="add" size={28} color="white" />
@@ -287,8 +287,8 @@ export default function TransactionsScreen() {
 
 function FilterPill({ label, onRemove }: { label: string; onRemove: () => void }) {
   return (
-    <View className="flex-row items-center gap-1 px-2 py-0.5 bg-blue-50 border border-blue-200 rounded-full">
-      <Text className="text-xs text-blue-700 font-medium">{label}</Text>
+    <View className="flex-row items-center gap-1 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-full">
+      <Text className="text-xs text-blue-700 dark:text-blue-300 font-medium">{label}</Text>
       <TouchableOpacity onPress={onRemove}>
         <Ionicons name="close-circle" size={14} color="#1d4ed8" />
       </TouchableOpacity>

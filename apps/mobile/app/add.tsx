@@ -68,12 +68,12 @@ export default function AddTransactionScreen() {
   };
 
   return (
-    <View className="flex-1 bg-gray-50">
+    <View className="flex-1 bg-gray-50 dark:bg-gray-900">
       <View className="flex-row items-center gap-3 px-4 pt-2 pb-2">
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={22} color="#4b5563" />
         </TouchableOpacity>
-        <Text className="text-lg font-semibold text-gray-800">Add Transaction</Text>
+        <Text className="text-lg font-semibold text-gray-800 dark:text-gray-100">Add Transaction</Text>
       </View>
       <TransactionForm initial={initialData} onSubmit={handleSubmit} submitLabel="Add Transaction" />
     </View>

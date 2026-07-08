@@ -83,11 +83,11 @@ export default function TemplatesScreen() {
   };
 
   const renderItem = ({ item: t }: { item: TransactionTemplate }) => (
-    <View className="bg-white rounded-lg border border-gray-200 p-3 mb-2 mx-4">
+    <View className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 mb-2 mx-4">
       <View className="flex-row justify-between items-start">
         <View className="flex-1 mr-3">
-          <Text className="font-medium text-gray-800 text-sm">{t.title}</Text>
-          <Text className="text-xs text-gray-500">
+          <Text className="font-medium text-gray-800 dark:text-gray-100 text-sm">{t.title}</Text>
+          <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">
             {natureLabels[t.nature] ?? t.nature} · {t.entity} · ₹{t.amount.toLocaleString('en-IN')}
             {t.payment_method ? ` · ${t.payment_method}` : ''}
           </Text>
@@ -95,7 +95,7 @@ export default function TemplatesScreen() {
         <View className="flex-row gap-2 ml-3">
           <TouchableOpacity
             onPress={() => handleUse(t)}
-            className="px-3 py-1.5 bg-blue-600 rounded"
+            className="px-3 py-1.5 bg-blue-600 dark:bg-blue-500 rounded"
           >
             <Text className="text-white text-xs font-medium">Use</Text>
           </TouchableOpacity>
@@ -113,7 +113,7 @@ export default function TemplatesScreen() {
   );
 
   return (
-    <View className="flex-1 bg-gray-50">
+    <View className="flex-1 bg-gray-50 dark:bg-gray-900">
       {loading ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="#2563eb" />
@@ -134,16 +134,16 @@ export default function TemplatesScreen() {
           renderItem={renderItem}
           renderSectionHeader={({ section: { title } }) => (
             <View className="px-4 py-2 mt-2">
-              <Text className="text-xs font-bold text-gray-500 uppercase tracking-wider">{title}</Text>
+              <Text className="text-xs font-bold text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wider">{title}</Text>
             </View>
           )}
           ListHeaderComponent={
             <View className="px-4 pb-2 pt-2">
-              <Text className="text-lg font-semibold text-gray-800">Templates</Text>
+              <Text className="text-lg font-semibold text-gray-800 dark:text-gray-100">Templates</Text>
             </View>
           }
           ListEmptyComponent={
-            <Text className="text-gray-400 text-center py-8">
+            <Text className="text-gray-400 dark:text-gray-500 text-center py-8">
               No templates yet. Create one or save from the transaction form.
             </Text>
           }
@@ -155,7 +155,7 @@ export default function TemplatesScreen() {
       {editMode && (
         <TouchableOpacity
           onPress={() => router.push('/templates/new')}
-          className="absolute bottom-6 right-6 w-14 h-14 bg-blue-600 rounded-full shadow-lg items-center justify-center"
+          className="absolute bottom-6 right-6 w-14 h-14 bg-blue-600 dark:bg-blue-500 rounded-full shadow-lg items-center justify-center"
           activeOpacity={0.8}
         >
           <Ionicons name="add" size={28} color="white" />

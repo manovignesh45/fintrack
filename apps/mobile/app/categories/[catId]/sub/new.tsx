@@ -57,21 +57,21 @@ export default function CreateSubCategoryScreen() {
   }
 
   return (
-    <ScrollView className="flex-1 bg-gray-50" contentContainerClassName="p-4" keyboardShouldPersistTaps="handled">
+    <ScrollView className="flex-1 bg-gray-50 dark:bg-gray-900" contentContainerClassName="p-4" keyboardShouldPersistTaps="handled">
       <View className="flex-row items-center gap-3 mb-6">
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={22} color="#4b5563" />
         </TouchableOpacity>
-        <Text className="text-lg font-semibold text-gray-800">Create Sub-category</Text>
+        <Text className="text-lg font-semibold text-gray-800 dark:text-gray-100">Create Sub-category</Text>
       </View>
 
       {/* Parent category info */}
-      <View className="bg-blue-50 p-4 rounded-xl border border-blue-100 mb-4">
-        <Text className="text-xs text-blue-600 font-semibold mb-1 uppercase">Parent Category</Text>
+      <View className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 mb-4">
+        <Text className="text-xs text-blue-600 dark:text-blue-400 font-semibold mb-1 uppercase">Parent Category</Text>
         <Text className="text-sm font-bold text-blue-800">{category.name}</Text>
         <View className="flex-row gap-2 mt-2">
           <View className="bg-blue-100 px-2 py-0.5 rounded-full">
-            <Text className="text-[10px] text-blue-700 font-bold uppercase">{category.entity}</Text>
+            <Text className="text-[10px] text-blue-700 dark:text-blue-300 font-bold uppercase">{category.entity}</Text>
           </View>
           <View className="bg-orange-100 px-2 py-0.5 rounded-full">
             <Text className="text-[10px] text-orange-700 font-bold uppercase">{category.nature}</Text>
@@ -86,20 +86,20 @@ export default function CreateSubCategoryScreen() {
       ) : null}
 
       <View className="mb-6">
-        <Text className="text-xs text-gray-500 mb-1">Sub-category Name *</Text>
+        <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">Sub-category Name *</Text>
         <TextInput
           value={name}
           onChangeText={setName}
           placeholder="e.g. Milk, Fruits, Clothes"
           autoFocus
-          className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm"
+          className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm"
         />
       </View>
 
       <TouchableOpacity
         onPress={handleSubmit}
         disabled={submitting}
-        className={`w-full py-3 rounded-lg items-center ${submitting ? 'bg-blue-400' : 'bg-blue-600'}`}
+        className={`w-full py-3 rounded-lg items-center ${submitting ? 'bg-blue-400' : 'bg-blue-600 dark:bg-blue-50 dark:bg-blue-900/200'}`}
       >
         <Text className="text-white font-semibold">{submitting ? 'Creating...' : 'Create Sub-category'}</Text>
       </TouchableOpacity>

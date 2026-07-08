@@ -30,12 +30,12 @@ export default function CreateCategoryScreen() {
   };
 
   return (
-    <ScrollView className="flex-1 bg-gray-50" contentContainerClassName="p-4" keyboardShouldPersistTaps="handled">
+    <ScrollView className="flex-1 bg-gray-50 dark:bg-gray-900" contentContainerClassName="p-4" keyboardShouldPersistTaps="handled">
       <View className="flex-row items-center gap-3 mb-6">
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={22} color="#4b5563" />
         </TouchableOpacity>
-        <Text className="text-lg font-semibold text-gray-800">Create Category</Text>
+        <Text className="text-lg font-semibold text-gray-800 dark:text-gray-100">Create Category</Text>
       </View>
 
       {error ? (
@@ -46,17 +46,17 @@ export default function CreateCategoryScreen() {
 
       {/* Entity */}
       <View className="mb-4">
-        <Text className="text-xs text-gray-500 mb-1">Entity *</Text>
+        <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">Entity *</Text>
         <View className="flex-row gap-2">
           {ENTITIES.map((e) => (
             <TouchableOpacity
               key={e}
               onPress={() => setEntity(e)}
               className={`flex-1 py-2 rounded-lg items-center ${
-                entity === e ? 'bg-blue-600' : 'bg-white border border-gray-300'
+                entity === e ? 'bg-blue-600 dark:bg-blue-500' : 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600'
               }`}
             >
-              <Text className={`text-sm font-medium ${entity === e ? 'text-white' : 'text-gray-600'}`}>{e}</Text>
+              <Text className={`text-sm font-medium ${entity === e ? 'text-white' : 'text-gray-600 dark:text-gray-300'}`}>{e}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -64,17 +64,17 @@ export default function CreateCategoryScreen() {
 
       {/* Nature */}
       <View className="mb-4">
-        <Text className="text-xs text-gray-500 mb-1">Transaction Type *</Text>
+        <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">Transaction Type *</Text>
         <View className="flex-row gap-2">
           {(['EXPENSE', 'INCOME'] as TxNature[]).map((n) => (
             <TouchableOpacity
               key={n}
               onPress={() => setNature(n)}
               className={`flex-1 py-2 rounded-lg items-center ${
-                nature === n ? 'bg-orange-600' : 'bg-white border border-gray-300'
+                nature === n ? 'bg-orange-600' : 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600'
               }`}
             >
-              <Text className={`text-sm font-medium ${nature === n ? 'text-white' : 'text-gray-600'}`}>{n}</Text>
+              <Text className={`text-sm font-medium ${nature === n ? 'text-white' : 'text-gray-600 dark:text-gray-300'}`}>{n}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -82,20 +82,20 @@ export default function CreateCategoryScreen() {
 
       {/* Name */}
       <View className="mb-6">
-        <Text className="text-xs text-gray-500 mb-1">Category Name *</Text>
+        <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">Category Name *</Text>
         <TextInput
           value={name}
           onChangeText={setName}
           placeholder="e.g. Groceries, Shopping"
           autoFocus
-          className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm"
+          className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm"
         />
       </View>
 
       <TouchableOpacity
         onPress={handleSubmit}
         disabled={submitting}
-        className={`w-full py-3 rounded-lg items-center ${submitting ? 'bg-blue-400' : 'bg-blue-600'}`}
+        className={`w-full py-3 rounded-lg items-center ${submitting ? 'bg-blue-400' : 'bg-blue-600 dark:bg-blue-500'}`}
       >
         <Text className="text-white font-semibold">{submitting ? 'Creating...' : 'Create Category'}</Text>
       </TouchableOpacity>

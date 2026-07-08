@@ -35,9 +35,9 @@ function EntityCard({ e }: { e: EntitySummary }) {
   const isPositive = e.net_flow >= 0;
 
   return (
-    <View className="bg-white rounded-xl border border-gray-200 overflow-hidden mb-3">
-      <View className="flex-row items-center justify-between px-4 py-2.5 bg-gray-50 border-b border-gray-100">
-        <Text className="text-sm font-bold text-gray-700">{e.entity}</Text>
+    <View className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden mb-3">
+      <View className="flex-row items-center justify-between px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800">
+        <Text className="text-sm font-bold text-gray-700 dark:text-gray-200">{e.entity}</Text>
         <View className={`px-2 py-0.5 rounded-full ${isPositive ? 'bg-green-100' : 'bg-red-100'}`}>
           <Text className={`text-xs font-semibold ${isPositive ? 'text-green-700' : 'text-red-700'}`}>
             {isPositive ? '+' : '-'}{fmt(e.net_flow)}
@@ -49,7 +49,7 @@ function EntityCard({ e }: { e: EntitySummary }) {
           <View className="flex-row items-center justify-between">
             <View className="flex-row items-center gap-2">
               <View className="w-2 h-2 rounded-full bg-green-500" />
-              <Text className="text-sm text-gray-500">Income</Text>
+              <Text className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">Income</Text>
             </View>
             <Text className="text-sm font-semibold text-green-600">{fmt(e.total_income)}</Text>
           </View>
@@ -58,7 +58,7 @@ function EntityCard({ e }: { e: EntitySummary }) {
           <View className="flex-row items-center justify-between">
             <View className="flex-row items-center gap-2">
               <View className="w-2 h-2 rounded-full bg-red-400" />
-              <Text className="text-sm text-gray-500">Expense</Text>
+              <Text className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">Expense</Text>
             </View>
             <Text className="text-sm font-semibold text-red-500">{fmt(e.total_expense)}</Text>
           </View>
@@ -67,15 +67,15 @@ function EntityCard({ e }: { e: EntitySummary }) {
           <View className="flex-row items-center justify-between">
             <View className="flex-row items-center gap-2">
               <View className="w-2 h-2 rounded-full bg-orange-400" />
-              <Text className="text-sm text-gray-500">EMI Payments</Text>
+              <Text className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">EMI Payments</Text>
             </View>
             <Text className="text-sm font-semibold text-orange-500">{fmt(e.total_emi)}</Text>
           </View>
         )}
         {totalOut > 0 && e.total_income > 0 && (
-          <View className="flex-row items-center justify-between pt-1 border-t border-gray-100">
-            <Text className="text-xs text-gray-400">Total Out</Text>
-            <Text className="text-xs font-medium text-gray-500">{fmt(totalOut)}</Text>
+          <View className="flex-row items-center justify-between pt-1 border-t border-gray-100 dark:border-gray-800">
+            <Text className="text-xs text-gray-400 dark:text-gray-500">Total Out</Text>
+            <Text className="text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500">{fmt(totalOut)}</Text>
           </View>
         )}
       </View>
@@ -116,34 +116,34 @@ export default function SummaryScreen() {
 
   return (
     <ScrollView
-      className="flex-1 bg-gray-50"
+      className="flex-1 bg-gray-50 dark:bg-gray-900"
       contentContainerClassName="p-4 pb-8"
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
       {/* Month navigation */}
       <View className="flex-row items-center justify-between mb-1">
-        <Text className="text-lg font-semibold text-gray-800">Monthly Summary</Text>
+        <Text className="text-lg font-semibold text-gray-800 dark:text-gray-100">Monthly Summary</Text>
         <View className="flex-row items-center gap-1">
           <TouchableOpacity
             onPress={() => setMonth(prevMonth)}
-            className="w-8 h-8 items-center justify-center rounded-lg bg-white border border-gray-200"
+            className="w-8 h-8 items-center justify-center rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
           >
             <Ionicons name="chevron-back" size={16} color="#6b7280" />
           </TouchableOpacity>
-          <View className="px-3 py-1 border border-gray-200 rounded-lg bg-white">
-            <Text className="text-xs font-medium text-gray-600">{monthLabel(month)}</Text>
+          <View className="px-3 py-1 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800">
+            <Text className="text-xs font-medium text-gray-600 dark:text-gray-300">{monthLabel(month)}</Text>
           </View>
           <TouchableOpacity
             onPress={() => setMonth(nextMonth)}
             disabled={isCurrentMonth}
-            className={`w-8 h-8 items-center justify-center rounded-lg bg-white border border-gray-200 ${isCurrentMonth ? 'opacity-30' : ''}`}
+            className={`w-8 h-8 items-center justify-center rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 ${isCurrentMonth ? 'opacity-30' : ''}`}
           >
             <Ionicons name="chevron-forward" size={16} color="#6b7280" />
           </TouchableOpacity>
         </View>
       </View>
 
-      <Text className="text-sm text-gray-500 mb-4">{monthLabel(month)}</Text>
+      <Text className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-4">{monthLabel(month)}</Text>
 
       {loading ? (
         <View className="items-center justify-center py-12">
@@ -152,12 +152,12 @@ export default function SummaryScreen() {
       ) : !data || data.entities.length === 0 ? (
         <View className="items-center py-12">
           <Text className="text-3xl mb-2">📭</Text>
-          <Text className="text-sm text-gray-400">No transactions for {monthLabel(month)}</Text>
+          <Text className="text-sm text-gray-400 dark:text-gray-500">No transactions for {monthLabel(month)}</Text>
         </View>
       ) : (
         <>
           {/* Grand total banner */}
-          <View className="bg-blue-600 rounded-xl p-4 mb-4">
+          <View className="bg-blue-600 dark:bg-blue-50 dark:bg-blue-900/200 rounded-xl p-4 mb-4">
             <Text className="text-xs font-semibold uppercase text-blue-200 mb-3">Grand Total</Text>
             <View className="flex-row">
               <View className="flex-1 items-center">

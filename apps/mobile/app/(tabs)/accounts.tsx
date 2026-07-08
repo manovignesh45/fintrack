@@ -94,12 +94,12 @@ export default function AccountsScreen() {
   const renderItem = ({ item: a }: { item: Account }) => (
     <TouchableOpacity
       onPress={() => router.push(`/accounts/${a.id}`)}
-      className={`bg-white rounded-lg border border-gray-200 p-3 mb-2 mx-4 ${!a.is_active ? 'opacity-50' : ''}`}
+      className={`bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 mb-2 mx-4 ${!a.is_active ? 'opacity-50' : ''}`}
       activeOpacity={0.7}
     >
       <View className="flex-row justify-between items-center">
         <View className="flex-row items-center gap-2">
-          <Text className="font-medium text-gray-800 text-sm">{a.name}</Text>
+          <Text className="font-medium text-gray-800 dark:text-gray-100 text-sm">{a.name}</Text>
           {editMode && (
             <TouchableOpacity
               onPress={() => handleDelete(a)}
@@ -115,13 +115,13 @@ export default function AccountsScreen() {
       </View>
       <View className="flex-row justify-between items-center mt-2">
         <View className="flex-row gap-3">
-          <Text className="text-xs text-gray-400">Total: ₹{a.initial_balance.toLocaleString('en-IN')}</Text>
+          <Text className="text-xs text-gray-400 dark:text-gray-500">Total: ₹{a.initial_balance.toLocaleString('en-IN')}</Text>
           {a.interest_rate > 0 && (
             <Text className="text-xs font-medium text-orange-500">{a.interest_rate}% p.a.</Text>
           )}
         </View>
         <View className="flex-row items-center gap-2">
-          <Text className="text-xs text-gray-500">{a.is_active ? 'Active' : 'Inactive'}</Text>
+          <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{a.is_active ? 'Active' : 'Inactive'}</Text>
           <Switch
             value={a.is_active}
             onValueChange={() => handleToggle(a)}
@@ -135,7 +135,7 @@ export default function AccountsScreen() {
   );
 
   return (
-    <View className="flex-1 bg-gray-50">
+    <View className="flex-1 bg-gray-50 dark:bg-gray-900">
       {loading ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="#2563eb" />
@@ -147,54 +147,54 @@ export default function AccountsScreen() {
           renderItem={renderItem}
           ListHeaderComponent={
             <View className="px-4 pb-2 pt-2">
-              <Text className="text-lg font-semibold text-gray-800">Loan Accounts</Text>
+              <Text className="text-lg font-semibold text-gray-800 dark:text-gray-100">Loan Accounts</Text>
               {showAdd && editMode && (
-                <View className="bg-white border border-gray-200 rounded-lg p-3 mt-3 gap-2">
+                <View className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 mt-3 gap-2">
                   <TextInput
                     placeholder="Loan name (e.g. SBI Home Loan)"
                     value={newName}
                     onChangeText={setNewName}
-                    className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm"
                   />
                   <View>
-                    <Text className="text-xs text-gray-500 mb-1">Total Loan Amount (₹)</Text>
+                    <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">Total Loan Amount (₹)</Text>
                     <TextInput
                       placeholder="e.g. 200000"
                       value={newBalance}
                       onChangeText={setNewBalance}
                       keyboardType="decimal-pad"
-                      className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm"
                     />
                   </View>
                   <View>
-                    <Text className="text-xs text-gray-500 mb-1">Interest Rate (% per year)</Text>
+                    <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">Interest Rate (% per year)</Text>
                     <TextInput
                       placeholder="e.g. 12.5"
                       value={newInterestRate}
                       onChangeText={setNewInterestRate}
                       keyboardType="decimal-pad"
-                      className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm"
                     />
                   </View>
                   <TouchableOpacity
                     onPress={handleAdd}
                     disabled={saving}
-                    className={`w-full py-2 rounded items-center ${saving ? 'bg-blue-400' : 'bg-blue-600'}`}
+                    className={`w-full py-2 rounded items-center ${saving ? 'bg-blue-400' : 'bg-blue-600 dark:bg-blue-50 dark:bg-blue-900/200'}`}
                   >
                     <Text className="text-white text-sm font-medium">{saving ? 'Adding...' : 'Add Loan Account'}</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => setShowAdd(false)}
-                    className="w-full py-2 border border-gray-300 rounded items-center"
+                    className="w-full py-2 border border-gray-300 dark:border-gray-600 rounded items-center"
                   >
-                    <Text className="text-gray-600 text-sm font-medium">Cancel</Text>
+                    <Text className="text-gray-600 dark:text-gray-300 text-sm font-medium">Cancel</Text>
                   </TouchableOpacity>
                 </View>
               )}
             </View>
           }
           ListEmptyComponent={
-            <Text className="text-sm text-gray-400 text-center py-4">No loan accounts yet.</Text>
+            <Text className="text-sm text-gray-400 dark:text-gray-500 text-center py-4">No loan accounts yet.</Text>
           }
           contentContainerStyle={{ paddingBottom: 100 }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
@@ -204,7 +204,7 @@ export default function AccountsScreen() {
       {editMode && (
         <TouchableOpacity
           onPress={() => setShowAdd(true)}
-          className="absolute bottom-6 right-6 w-14 h-14 bg-blue-600 rounded-full shadow-lg items-center justify-center"
+          className="absolute bottom-6 right-6 w-14 h-14 bg-blue-600 dark:bg-blue-50 dark:bg-blue-900/200 rounded-full shadow-lg items-center justify-center"
           activeOpacity={0.8}
         >
           <Ionicons name="add" size={28} color="white" />

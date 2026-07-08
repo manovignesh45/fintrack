@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { useAuth } from '@/src/context/AuthContext';
+import { useThemeColors } from '@/src/theme/colors';
 
 function HeaderRight() {
   const { editMode, setEditMode, user, logout } = useAuth();
@@ -107,17 +108,19 @@ function HeaderRight() {
 }
 
 export default function TabLayout() {
+  const colors = useThemeColors();
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#2563eb',
-        tabBarInactiveTintColor: '#6b7280',
+        tabBarActiveTintColor: colors.iconActive,
+        tabBarInactiveTintColor: colors.iconMuted,
         headerShown: true,
         headerTitle: 'FinTrack',
-        headerTitleStyle: { fontWeight: 'bold', fontSize: 18 },
+        headerTitleStyle: { fontWeight: 'bold', fontSize: 18, color: colors.headerText },
+        headerStyle: { backgroundColor: colors.headerBg },
         headerRight: () => <HeaderRight />,
         tabBarButton: HapticTab,
-        tabBarStyle: { paddingBottom: 4, height: 56 },
+        tabBarStyle: { paddingBottom: 4, height: 56, backgroundColor: colors.tabBarBg, borderTopColor: colors.border },
       }}
     >
       <Tabs.Screen

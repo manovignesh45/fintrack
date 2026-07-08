@@ -73,7 +73,7 @@ function currentMonth() {
 const natureColors: Record<string, string> = {
   INCOME: 'bg-green-100 text-green-700',
   EXPENSE: 'bg-red-100 text-red-700',
-  TRANSFER: 'bg-blue-100 text-blue-700',
+  TRANSFER: 'bg-blue-100 text-blue-700 dark:text-blue-300',
   EMI_PAYMENT: 'bg-orange-100 text-orange-700',
   LOAN_DISBURSEMENT: 'bg-purple-100 text-purple-700',
 };
@@ -140,7 +140,7 @@ export default function AccountDetailsScreen() {
   const monthShort = new Date(month + '-01').toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
 
   return (
-    <ScrollView className="flex-1 bg-gray-50" contentContainerClassName="pb-8">
+    <ScrollView className="flex-1 bg-gray-50 dark:bg-gray-900" contentContainerClassName="pb-8">
       {/* Header */}
       <View className="flex-row items-center justify-between px-4 py-3">
         <View className="flex-row items-center gap-3">
@@ -148,26 +148,26 @@ export default function AccountDetailsScreen() {
             <Ionicons name="arrow-back" size={22} color="#4b5563" />
           </TouchableOpacity>
           <View>
-            <Text className="text-lg font-semibold text-gray-800">{account.name}</Text>
-            <Text className="text-sm text-gray-500">{account.type}</Text>
+            <Text className="text-lg font-semibold text-gray-800 dark:text-gray-100">{account.name}</Text>
+            <Text className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">{account.type}</Text>
           </View>
         </View>
         <View className="flex-row items-center gap-1">
-          <TouchableOpacity onPress={() => setPeriod(p => p === 'all' ? 'month' : 'all')} className="px-2 py-1 mr-2 border border-gray-200 rounded-lg bg-white">
-            <Text className="text-[10px] font-medium text-gray-600">{period === 'all' ? 'All Time' : 'Monthly'}</Text>
+          <TouchableOpacity onPress={() => setPeriod(p => p === 'all' ? 'month' : 'all')} className="px-2 py-1 mr-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800">
+            <Text className="text-[10px] font-medium text-gray-600 dark:text-gray-300">{period === 'all' ? 'All Time' : 'Monthly'}</Text>
           </TouchableOpacity>
           {period === 'month' && (
             <>
-              <TouchableOpacity onPress={() => setMonth(prevMonth)} className="w-8 h-8 items-center justify-center rounded-lg bg-white border border-gray-200">
+              <TouchableOpacity onPress={() => setMonth(prevMonth)} className="w-8 h-8 items-center justify-center rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
                 <Ionicons name="chevron-back" size={14} color="#6b7280" />
               </TouchableOpacity>
-              <View className="px-2 py-1 border border-gray-200 rounded-lg bg-white">
-                <Text className="text-[10px] font-medium text-gray-600">{monthShort}</Text>
+              <View className="px-2 py-1 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800">
+                <Text className="text-[10px] font-medium text-gray-600 dark:text-gray-300">{monthShort}</Text>
               </View>
               <TouchableOpacity
                 onPress={() => setMonth(nextMonth)}
                 disabled={isCurrentMonth}
-                className={`w-8 h-8 items-center justify-center rounded-lg bg-white border border-gray-200 ${isCurrentMonth ? 'opacity-30' : ''}`}
+                className={`w-8 h-8 items-center justify-center rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 ${isCurrentMonth ? 'opacity-30' : ''}`}
               >
                 <Ionicons name="chevron-forward" size={14} color="#6b7280" />
               </TouchableOpacity>
@@ -177,7 +177,7 @@ export default function AccountDetailsScreen() {
       </View>
 
       {/* Balance card */}
-      <View className="mx-4 bg-blue-600 rounded-lg p-4 mb-4">
+      <View className="mx-4 bg-blue-600 dark:bg-blue-50 dark:bg-blue-900/200 rounded-lg p-4 mb-4">
         <View className="flex-row justify-between items-start">
           <View>
             <Text className="text-xs text-blue-200 uppercase font-semibold">{period === 'all' ? 'Current Balance' : `Closing Balance (${monthShort})`}</Text>
@@ -191,25 +191,25 @@ export default function AccountDetailsScreen() {
       </View>
 
       {/* Statement */}
-      <View className="mx-4 bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <View className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-          <Text className="text-sm font-semibold text-gray-700">Account Statement</Text>
+      <View className="mx-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <View className="bg-gray-50 dark:bg-gray-900 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+          <Text className="text-sm font-semibold text-gray-700 dark:text-gray-200">Account Statement</Text>
         </View>
 
         {statementRows.length === 0 ? (
-          <Text className="text-center text-gray-400 py-8">No transactions found</Text>
+          <Text className="text-center text-gray-400 dark:text-gray-500 py-8">No transactions found</Text>
         ) : (
           <>
             {statementRows.map((row) => (
-              <View key={row.txn.id} className="px-4 py-3 border-b border-gray-100">
+              <View key={row.txn.id} className="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
                 <View className="flex-row justify-between items-start mb-1">
                   <View className="flex-1 mr-2">
-                    <Text className="font-medium text-gray-800 text-sm">{row.txn.title}</Text>
-                    <Text className="text-[10px] text-gray-500 mt-0.5">
+                    <Text className="font-medium text-gray-800 dark:text-gray-100 text-sm">{row.txn.title}</Text>
+                    <Text className="text-[10px] text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-0.5">
                       {new Date(row.txn.transaction_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
                     </Text>
                   </View>
-                  <Text className="font-semibold text-gray-800 text-sm">₹{row.balance.toLocaleString('en-IN')}</Text>
+                  <Text className="font-semibold text-gray-800 dark:text-gray-100 text-sm">₹{row.balance.toLocaleString('en-IN')}</Text>
                 </View>
                 <View className="flex-row gap-2 flex-wrap">
                   {row.debit > 0 && (
@@ -226,10 +226,10 @@ export default function AccountDetailsScreen() {
             ))}
 
             {/* Opening balance row */}
-            <View className="px-4 py-3 bg-blue-50 border-t-2 border-blue-200">
+            <View className="px-4 py-3 bg-blue-50 dark:bg-blue-900/20 border-t-2 border-blue-200 dark:border-blue-800">
               <View className="flex-row justify-between">
-                <Text className="font-medium text-gray-700">Balance Brought Forward</Text>
-                <Text className="font-semibold text-gray-800">₹{openingBalanceAccount.current_balance.toLocaleString('en-IN')}</Text>
+                <Text className="font-medium text-gray-700 dark:text-gray-200">Balance Brought Forward</Text>
+                <Text className="font-semibold text-gray-800 dark:text-gray-100">₹{openingBalanceAccount.current_balance.toLocaleString('en-IN')}</Text>
               </View>
             </View>
           </>

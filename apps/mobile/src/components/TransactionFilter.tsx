@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, Modal, ScrollView, Platform, T
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
+import { useColorScheme } from 'nativewind';
 import type { FilterState, Category, TxNature } from '@fintrack/shared';
 import {
   ENTITIES,
@@ -34,6 +35,9 @@ export default function TransactionFilter({ filters, onChange }: Props) {
   const [showDateFrom, setShowDateFrom] = useState(false);
   const [showDateTo, setShowDateTo] = useState(false);
   const activeCount = countActiveFilters(filters);
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const pickerColor = isDark ? '#f3f4f6' : '#1f2937';
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [loadingCats, setLoadingCats] = useState(false);
@@ -112,10 +116,10 @@ export default function TransactionFilter({ filters, onChange }: Props) {
 
   return (
     <>
-      <TouchableOpacity onPress={open} className="flex-row items-center px-2 py-1.5 rounded-lg bg-white border border-gray-300">
+      <TouchableOpacity onPress={open} className="flex-row items-center px-2 py-1.5 rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600">
         <Ionicons name="filter-outline" size={16} color="#4b5563" />
         {activeCount > 0 && (
-          <View className="ml-1 bg-blue-600 rounded-full w-4 h-4 items-center justify-center">
+          <View className="ml-1 bg-blue-600 dark:bg-blue-500 rounded-full w-4 h-4 items-center justify-center">
             <Text className="text-white text-[10px] font-bold">{activeCount}</Text>
           </View>
         )}
@@ -127,15 +131,15 @@ export default function TransactionFilter({ filters, onChange }: Props) {
             <View className="absolute inset-0 bg-black/40" />
           </TouchableWithoutFeedback>
           
-          <View className="bg-white rounded-t-2xl max-h-[90%] flex flex-col shadow-2xl">
+          <View className="bg-white dark:bg-gray-800 rounded-t-2xl max-h-[90%] flex flex-col shadow-2xl">
             {/* Drag handle */}
             <View className="items-center pt-3 pb-1">
               <View className="w-10 h-1 bg-gray-300 rounded-full" />
             </View>
 
             {/* Header */}
-            <View className="flex-row items-center justify-between px-4 py-2 border-b border-gray-200">
-              <Text className="text-lg font-semibold text-gray-800">Filter Transactions</Text>
+            <View className="flex-row items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-gray-700">
+              <Text className="text-lg font-semibold text-gray-800 dark:text-gray-100">Filter Transactions</Text>
               <TouchableOpacity onPress={() => setVisible(false)} className="p-1">
                 <Ionicons name="close" size={24} color="#9ca3af" />
               </TouchableOpacity>
@@ -144,32 +148,33 @@ export default function TransactionFilter({ filters, onChange }: Props) {
             <ScrollView className="shrink p-4" keyboardShouldPersistTaps="handled">
               {/* Search */}
               <View className="mb-4">
-                <Text className="text-xs font-medium text-gray-500 mb-1">Search</Text>
+                <Text className="text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">Search</Text>
                 <TextInput
                   placeholder="Search title or notes…"
+                  placeholderTextColor={isDark ? '#9ca3af' : '#6b7280'}
                   value={local.search}
                   onChangeText={(v) => set('search', v)}
-                  className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-white"
+                  className="px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                 />
               </View>
 
               {/* Entity */}
               <View className="mb-4">
-                <Text className="text-xs font-medium text-gray-500 mb-1">Entity</Text>
+                <Text className="text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">Entity</Text>
                 <View className="flex-row flex-wrap gap-2">
                   <TouchableOpacity
                     onPress={() => set('entity', '')}
-                    className={`px-3 py-1.5 rounded-full border ${!local.entity ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-300'}`}
+                    className={`px-3 py-1.5 rounded-full border ${!local.entity ? 'bg-blue-600 dark:bg-blue-500 border-blue-600 dark:border-blue-500' : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600'}`}
                   >
-                    <Text className={`text-sm ${!local.entity ? 'text-white' : 'text-gray-600'}`}>All</Text>
+                    <Text className={`text-sm ${!local.entity ? 'text-white' : 'text-gray-600 dark:text-gray-300'}`}>All</Text>
                   </TouchableOpacity>
                   {ENTITIES.map((e) => (
                     <TouchableOpacity
                       key={e}
                       onPress={() => set('entity', e)}
-                      className={`px-3 py-1.5 rounded-full border ${local.entity === e ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-300'}`}
+                      className={`px-3 py-1.5 rounded-full border ${local.entity === e ? 'bg-blue-600 dark:bg-blue-500 border-blue-600 dark:border-blue-500' : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600'}`}
                     >
-                      <Text className={`text-sm ${local.entity === e ? 'text-white' : 'text-gray-600'}`}>{e}</Text>
+                      <Text className={`text-sm ${local.entity === e ? 'text-white' : 'text-gray-600 dark:text-gray-300'}`}>{e}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -177,12 +182,14 @@ export default function TransactionFilter({ filters, onChange }: Props) {
 
               {/* Transaction Type */}
               <View className="mb-4">
-                <Text className="text-xs font-medium text-gray-500 mb-1">Transaction Type</Text>
-                <View className="border border-gray-300 rounded-lg bg-white overflow-hidden">
+                <Text className="text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">Transaction Type</Text>
+                <View className="border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 overflow-hidden">
                   <Picker
+                    mode="dropdown"
                     selectedValue={local.nature}
                     onValueChange={(v) => set('nature', v)}
-                    style={{ height: 50 }}
+                    style={{ height: 50, color: pickerColor, backgroundColor: isDark ? '#1f2937' : '#ffffff' }}
+                    dropdownIconColor={pickerColor}
                   >
                     <Picker.Item label="All Types" value="" />
                     {TX_NATURES.filter(({ value }) => availableNatures.includes(value)).map(({ value, label }) => (
@@ -194,16 +201,18 @@ export default function TransactionFilter({ filters, onChange }: Props) {
 
               {/* Category */}
               <View className="mb-4">
-                <Text className="text-xs font-medium text-gray-500 mb-1">Category</Text>
+                <Text className="text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">Category</Text>
                 {loadingCats ? (
-                  <Text className="text-xs text-gray-400">Loading categories…</Text>
+                  <Text className="text-xs text-gray-400 dark:text-gray-500">Loading categories…</Text>
                 ) : (
-                  <View className="border border-gray-300 rounded-lg bg-white overflow-hidden">
+                  <View className="border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 overflow-hidden">
                     <Picker
+                      mode="dropdown"
                       selectedValue={local.category_id}
                       onValueChange={(v) => set('category_id', v)}
                       enabled={filteredCategories.length > 0}
-                      style={{ height: 50 }}
+                      style={{ height: 50, color: pickerColor, backgroundColor: isDark ? '#1f2937' : '#ffffff' }}
+                      dropdownIconColor={pickerColor}
                     >
                       <Picker.Item label={filteredCategories.length === 0 ? 'No categories for selection' : 'All Categories'} value="" />
                       {filteredCategories.map((c) => (
@@ -220,13 +229,15 @@ export default function TransactionFilter({ filters, onChange }: Props) {
 
               {/* Sub-category */}
               <View className="mb-4">
-                <Text className="text-xs font-medium text-gray-500 mb-1">Sub-category</Text>
-                <View className="border border-gray-300 rounded-lg bg-white overflow-hidden">
+                <Text className="text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">Sub-category</Text>
+                <View className="border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 overflow-hidden">
                   <Picker
+                    mode="dropdown"
                     selectedValue={local.sub_category_id}
                     onValueChange={(v) => set('sub_category_id', v)}
                     enabled={!!local.category_id && subCategories.length > 0}
-                    style={{ height: 50 }}
+                    style={{ height: 50, color: pickerColor, backgroundColor: isDark ? '#1f2937' : '#ffffff' }}
+                    dropdownIconColor={pickerColor}
                   >
                     <Picker.Item label={!local.category_id ? 'Select a category first' : 'All Sub-categories'} value="" />
                     {subCategories.map((s) => (
@@ -238,12 +249,14 @@ export default function TransactionFilter({ filters, onChange }: Props) {
 
               {/* Date Filter */}
               <View className="mb-4">
-                <Text className="text-xs font-medium text-gray-500 mb-1">Date Filter</Text>
-                <View className="border border-gray-300 rounded-lg bg-white overflow-hidden mb-2">
+                <Text className="text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">Date Filter</Text>
+                <View className="border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 overflow-hidden mb-2">
                   <Picker
+                    mode="dropdown"
                     selectedValue={local.datePreset}
                     onValueChange={(v) => set('datePreset', v)}
-                    style={{ height: 50 }}
+                    style={{ height: 50, color: pickerColor, backgroundColor: isDark ? '#1f2937' : '#ffffff' }}
+                    dropdownIconColor={pickerColor}
                   >
                     <Picker.Item label="All Time" value="" />
                     {Object.entries(DATE_PRESET_LABELS).map(([value, label]) => (
@@ -256,12 +269,14 @@ export default function TransactionFilter({ filters, onChange }: Props) {
                 {local.datePreset === 'custom' && (
                   <View className="flex-row gap-3">
                     <View className="flex-1">
-                      <Text className="text-xs text-gray-500 mb-1">From</Text>
+                      <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">From</Text>
                       <TouchableOpacity
                         onPress={() => setShowDateFrom(true)}
-                        className="px-3 py-2.5 border border-gray-300 rounded-lg bg-white"
+                        className="px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
                       >
-                        <Text className="text-sm">{local.date_from || 'Start date'}</Text>
+                        <Text className={`text-sm ${local.date_from ? 'text-gray-900 dark:text-gray-100' : 'text-gray-500 dark:text-gray-400'}`}>
+                          {local.date_from || 'Start date'}
+                        </Text>
                       </TouchableOpacity>
                       {showDateFrom && (
                         <DateTimePicker
@@ -276,12 +291,14 @@ export default function TransactionFilter({ filters, onChange }: Props) {
                       )}
                     </View>
                     <View className="flex-1">
-                      <Text className="text-xs text-gray-500 mb-1">To</Text>
+                      <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">To</Text>
                       <TouchableOpacity
                         onPress={() => setShowDateTo(true)}
-                        className="px-3 py-2.5 border border-gray-300 rounded-lg bg-white"
+                        className="px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
                       >
-                        <Text className="text-sm">{local.date_to || 'End date'}</Text>
+                        <Text className={`text-sm ${local.date_to ? 'text-gray-900 dark:text-gray-100' : 'text-gray-500 dark:text-gray-400'}`}>
+                          {local.date_to || 'End date'}
+                        </Text>
                       </TouchableOpacity>
                       {showDateTo && (
                         <DateTimePicker
@@ -303,11 +320,11 @@ export default function TransactionFilter({ filters, onChange }: Props) {
             </ScrollView>
 
             {/* Footer */}
-            <View className="flex-row gap-3 px-4 py-3 bg-white border-t border-gray-200">
-              <TouchableOpacity onPress={reset} className="flex-1 py-3 border border-gray-300 rounded-xl items-center bg-gray-50">
-                <Text className="text-gray-600 font-medium">Reset All</Text>
+            <View className="flex-row gap-3 px-4 py-3 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+              <TouchableOpacity onPress={reset} className="flex-1 py-3 border border-gray-300 dark:border-gray-600 rounded-xl items-center bg-gray-50 dark:bg-gray-900">
+                <Text className="text-gray-600 dark:text-gray-300 font-medium">Reset All</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={apply} className="flex-1 py-3 bg-blue-600 rounded-xl items-center">
+              <TouchableOpacity onPress={apply} className="flex-1 py-3 bg-blue-600 dark:bg-blue-500 rounded-xl items-center">
                 <Text className="text-white font-medium">Apply Filters</Text>
               </TouchableOpacity>
             </View>
