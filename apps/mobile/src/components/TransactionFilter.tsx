@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Modal, ScrollView, Platform, TouchableWithoutFeedback } from 'react-native';
+import { useState, useRef, forwardRef, useImperativeHandle, useMemo, useCallback } from 'react';
+import { View, Text, TextInput, TouchableOpacity, Platform } from 'react-native';
+import { BottomSheetModal, BottomSheetScrollView, BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,6 +20,11 @@ interface Props {
   onChange: (filters: FilterState) => void;
 }
 
+export interface TransactionFilterRef {
+  open: () => void;
+  close: () => void;
+}
+
 const TX_NATURES: { value: TxNature; label: string }[] = [
   { value: 'INCOME', label: 'Income' },
   { value: 'EXPENSE', label: 'Expense' },
@@ -29,8 +35,7 @@ const TX_NATURES: { value: TxNature; label: string }[] = [
 
 const STRUCTURAL_NATURES: TxNature[] = ['TRANSFER', 'EMI_PAYMENT', 'LOAN_DISBURSEMENT'];
 
-export default function TransactionFilter({ filters, onChange }: Props) {
-  const [visible, setVisible] = useState(false);
+const TransactionFilter = forwardRef<TransactionFilterRef, Props>(({ filters, onChange }, ref) => {
   const [local, setLocal] = useState<FilterState>(filters);
   const [showDateFrom, setShowDateFrom] = useState(false);
   const [showDateTo, setShowDateTo] = useState(false);
@@ -43,8 +48,12 @@ export default function TransactionFilter({ filters, onChange }: Props) {
   const [loadingCats, setLoadingCats] = useState(false);
   const loaded = useRef(false);
 
-  useEffect(() => {
-    if (visible && !loaded.current) {
+  const bottomSheetModalRef = useRef<BottomSheetModal>(null);
+  const snapPoints = useMemo(() => ['75%', '90%'], []);
+
+  const open = useCallback(() => {
+    setLocal(filters);
+    if (!loaded.current) {
       loaded.current = true;
       setLoadingCats(true);
       categoriesApi.list().then((data) => {
@@ -53,22 +62,35 @@ export default function TransactionFilter({ filters, onChange }: Props) {
         setCategories([]);
       }).finally(() => setLoadingCats(false));
     }
-  }, [visible]);
+    bottomSheetModalRef.current?.present();
+  }, [filters]);
 
-  const open = () => {
-    setLocal(filters);
-    setVisible(true);
-  };
+  useImperativeHandle(ref, () => ({
+    open,
+    close: () => bottomSheetModalRef.current?.dismiss(),
+  }));
 
   const apply = () => {
     onChange(local);
-    setVisible(false);
+    bottomSheetModalRef.current?.dismiss();
   };
 
   const reset = () => {
     onChange(DEFAULT_FILTERS);
-    setVisible(false);
+    bottomSheetModalRef.current?.dismiss();
   };
+
+  const renderBackdrop = useCallback(
+    (props: any) => (
+      <BottomSheetBackdrop
+        {...props}
+        disappearsOnIndex={-1}
+        appearsOnIndex={0}
+        opacity={0.4}
+      />
+    ),
+    []
+  );
 
   const set = (field: keyof FilterState, value: string) => {
     setLocal((prev) => {
@@ -125,29 +147,24 @@ export default function TransactionFilter({ filters, onChange }: Props) {
         )}
       </TouchableOpacity>
 
-      <Modal visible={visible} transparent animationType="slide" onRequestClose={() => setVisible(false)}>
-        <View className="flex-1 justify-end">
-          <TouchableWithoutFeedback onPress={() => setVisible(false)}>
-            <View className="absolute inset-0 bg-black/40" />
-          </TouchableWithoutFeedback>
-          
-          <View className="bg-white dark:bg-gray-800 rounded-t-2xl max-h-[90%] flex flex-col shadow-2xl">
-            {/* Drag handle */}
-            <View className="items-center pt-3 pb-1">
-              <View className="w-10 h-1 bg-gray-300 rounded-full" />
-            </View>
+      <BottomSheetModal
+        ref={bottomSheetModalRef}
+        index={0}
+        snapPoints={snapPoints}
+        backdropComponent={renderBackdrop}
+        backgroundStyle={{ backgroundColor: isDark ? '#1f2937' : '#ffffff' }}
+        handleIndicatorStyle={{ backgroundColor: isDark ? '#4b5563' : '#d1d5db' }}
+      >
+        <View className="flex-row items-center justify-between px-4 pb-3 border-b border-gray-200 dark:border-gray-700">
+          <Text className="text-lg font-semibold text-gray-800 dark:text-gray-100">Filter Transactions</Text>
+          <TouchableOpacity onPress={() => bottomSheetModalRef.current?.dismiss()} className="p-1">
+            <Ionicons name="close" size={24} color="#9ca3af" />
+          </TouchableOpacity>
+        </View>
 
-            {/* Header */}
-            <View className="flex-row items-center justify-between px-4 py-2 border-b border-gray-200 dark:border-gray-700">
-              <Text className="text-lg font-semibold text-gray-800 dark:text-gray-100">Filter Transactions</Text>
-              <TouchableOpacity onPress={() => setVisible(false)} className="p-1">
-                <Ionicons name="close" size={24} color="#9ca3af" />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView className="shrink p-4" keyboardShouldPersistTaps="handled">
-              {/* Search */}
-              <View className="mb-4">
+        <BottomSheetScrollView contentContainerStyle={{ padding: 16 }} keyboardShouldPersistTaps="handled">
+          {/* Search */}
+          <View className="mb-4">
                 <Text className="text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">Search</Text>
                 <TextInput
                   placeholder="Search title or notes…"
@@ -316,21 +333,22 @@ export default function TransactionFilter({ filters, onChange }: Props) {
                 )}
               </View>
 
-              <View className="h-6" />
-            </ScrollView>
+            <View className="h-6" />
+        </BottomSheetScrollView>
 
-            {/* Footer */}
-            <View className="flex-row gap-3 px-4 py-3 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
-              <TouchableOpacity onPress={reset} className="flex-1 py-3 border border-gray-300 dark:border-gray-600 rounded-xl items-center bg-gray-50 dark:bg-gray-900">
-                <Text className="text-gray-600 dark:text-gray-300 font-medium">Reset All</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={apply} className="flex-1 py-3 bg-blue-600 dark:bg-blue-500 rounded-xl items-center">
-                <Text className="text-white font-medium">Apply Filters</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+        {/* Footer */}
+        <View className="flex-row gap-3 px-4 py-3 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+          <TouchableOpacity onPress={reset} className="flex-1 py-3 border border-gray-300 dark:border-gray-600 rounded-xl items-center bg-gray-50 dark:bg-gray-900">
+            <Text className="text-gray-600 dark:text-gray-300 font-medium">Reset All</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={apply} className="flex-1 py-3 bg-blue-600 dark:bg-blue-500 rounded-xl items-center">
+            <Text className="text-white font-medium">Apply Filters</Text>
+          </TouchableOpacity>
         </View>
-      </Modal>
+      </BottomSheetModal>
     </>
   );
-}
+});
+
+TransactionFilter.displayName = 'TransactionFilter';
+export default TransactionFilter;

@@ -1,5 +1,7 @@
-import { useEffect, useState, useCallback } from 'react';
-import { View, Text, FlatList, TouchableOpacity, Alert, ActivityIndicator, RefreshControl } from 'react-native';
+import 'react-native-gesture-handler';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { View, Text, TouchableOpacity, Alert, ActivityIndicator, RefreshControl } from 'react-native';
+import { Gesture, GestureDetector, Directions, FlatList } from 'react-native-gesture-handler';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSQLiteContext } from 'expo-sqlite';
@@ -9,7 +11,7 @@ import { accountRepo } from '@/src/db/referenceDataRepo';
 import { useAuth } from '@/src/context/AuthContext';
 import { useSyncStore } from '@/src/store/syncStore';
 import { SyncStatusBar } from '@/src/components/SyncStatusBar';
-import TransactionFilter from '@/src/components/TransactionFilter';
+import TransactionFilter, { TransactionFilterRef } from '@/src/components/TransactionFilter';
 import type { TxNature, FilterState } from '@fintrack/shared';
 import type { LocalTransaction } from '@/src/db/localTypes';
 import { DEFAULT_FILTERS, countActiveFilters, DATE_PRESET_LABELS } from '@fintrack/shared';
@@ -35,6 +37,7 @@ export default function TransactionsScreen() {
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const filterRef = useRef<TransactionFilterRef>(null);
   const router = useRouter();
   const db = useSQLiteContext();
   const { editMode, user } = useAuth();
@@ -215,7 +218,7 @@ export default function TransactionsScreen() {
     <View className="px-4 pb-2">
       <View className="flex-row items-center justify-between mb-3">
         <Text className="text-lg font-semibold text-gray-800 dark:text-gray-100">Transactions</Text>
-        <TransactionFilter filters={filters} onChange={setFilters} />
+        <TransactionFilter ref={filterRef} filters={filters} onChange={setFilters} />
       </View>
 
       {countActiveFilters(filters) > 0 && (
@@ -255,8 +258,16 @@ export default function TransactionsScreen() {
     </View>
   );
 
+  const flingUp = Gesture.Fling()
+    .direction(Directions.UP)
+    .onEnd(() => {
+      filterRef.current?.open();
+    })
+    .runOnJS(true);
+
   return (
-    <View className="flex-1 bg-gray-50 dark:bg-gray-900">
+    <GestureDetector gesture={flingUp}>
+      <View className="flex-1 bg-gray-50 dark:bg-gray-900">
       <SyncStatusBar />
       {loading ? (
         <View className="flex-1 items-center justify-center">
@@ -282,6 +293,7 @@ export default function TransactionsScreen() {
         <Ionicons name="add" size={28} color="white" />
       </TouchableOpacity>
     </View>
+    </GestureDetector>
   );
 }
 

@@ -48,3 +48,23 @@ Join our community of developers creating universal apps.
 
 - [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
 - [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+
+## Building the Package (EAS Build)
+
+To build the mobile application for Android/iOS, we use Expo Application Services (EAS).
+
+1. **Ensure you are logged in to Expo:**
+   ```bash
+   npx eas-cli login
+   ```
+   *(You can verify your login status with `npx eas-cli whoami`)*
+
+2. **Trigger the build:**
+   To build an Android APK (preview profile) that you can install directly on a device:
+   ```bash
+   npx eas-cli build --platform android --profile preview
+   ```
+   *Note: If you need an AAB for the Google Play Store, use `--profile production`.*
+
+3. **Wait for completion:**
+   The command will upload your project to the Expo servers. Once the build finishes, it will provide a link to download the package (APK/AAB/IPA).

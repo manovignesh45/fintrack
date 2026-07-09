@@ -36,14 +36,14 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1 bg-gray-100"
+      className="flex-1 bg-gray-100 dark:bg-gray-900"
     >
       <ScrollView contentContainerClassName="flex-1 justify-center p-4">
         <View className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-8 mx-auto w-full max-w-md">
-          <Text className="text-2xl font-bold text-center mb-6 text-indigo-600">
+          <Text className="text-2xl font-bold text-center mb-6 text-indigo-600 dark:text-indigo-400">
             FinTrack
           </Text>
-          <Text className="text-xl font-semibold text-center mb-8">
+          <Text className="text-xl font-semibold text-center mb-8 text-gray-800 dark:text-gray-100">
             {isRegistering ? 'Create an Account' : 'Login to Your Account'}
           </Text>
 
@@ -56,12 +56,13 @@ export default function LoginScreen() {
           <View className="mb-4">
             <Text className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Username</Text>
             <TextInput
-              className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md text-sm"
+              className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700"
               value={username}
               onChangeText={setUsername}
               autoCapitalize="none"
               autoCorrect={false}
               placeholder="Enter username"
+              placeholderTextColor="#9ca3af"
             />
           </View>
 
@@ -69,11 +70,12 @@ export default function LoginScreen() {
             <Text className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Password</Text>
             <View className="relative">
               <TextInput
-                className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md text-sm pr-10"
+                className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-md text-sm pr-10 text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700"
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
                 placeholder="Enter password"
+                placeholderTextColor="#9ca3af"
               />
               <TouchableOpacity
                 onPress={() => setShowPassword(!showPassword)}
@@ -102,7 +104,7 @@ export default function LoginScreen() {
             onPress={() => setIsRegistering(!isRegistering)}
             className="mt-6"
           >
-            <Text className="text-indigo-600 text-sm text-center">
+            <Text className="text-indigo-600 dark:text-indigo-400 text-sm text-center">
               {isRegistering ? 'Already have an account? Login' : 'Need an account? Register'}
             </Text>
           </TouchableOpacity>
