@@ -33,18 +33,42 @@ func (h *AccountHandler) ImportCSV(w http.ResponseWriter, r *http.Request) {
 	defer file.Close()
 
 	reader := csv.NewReader(file)
+	reader.FieldsPerRecord = -1 // Allow variable number of fields per record
+	reader.LazyQuotes = true
 	records, err := reader.ReadAll()
 	if err != nil || len(records) < 2 {
 		writeError(w, http.StatusBadRequest, "Invalid CSV format or empty file")
 		return
 	}
 
-	headers := records[0]
-	// Expected columns (case insensitive, approximate): Date, Title, Amount, Nature, Source Account, Target Account, Sub Category, Entity, Notes
+	// Find the header row (look for "Date" and "Amount")
+	var headerRowIdx int = -1
+	var headers []string
 	colIdx := make(map[string]int)
-	for i, h := range headers {
-		colIdx[strings.ToLower(strings.TrimSpace(h))] = i
+
+	for i, row := range records {
+		for _, col := range row {
+			if strings.ToLower(strings.TrimSpace(col)) == "date" || strings.ToLower(strings.TrimSpace(col)) == "transaction_date" {
+				headerRowIdx = i
+				headers = row
+				break
+			}
+		}
+		if headerRowIdx != -1 {
+			for j, h := range headers {
+				colIdx[strings.ToLower(strings.TrimSpace(h))] = j
+			}
+			break
+		}
 	}
+
+	if headerRowIdx == -1 {
+		writeError(w, http.StatusBadRequest, "Could not find header row in CSV")
+		return
+	}
+
+	// Only process records after the header row
+	dataRecords := records[headerRowIdx+1:]
 
 	ctx := r.Context()
 	tx, err := h.db.Begin(ctx)
@@ -146,10 +170,7 @@ func (h *AccountHandler) ImportCSV(w http.ResponseWriter, r *http.Request) {
 		return &subID, nil
 	}
 
-	for i, row := range records[1:] {
-		if len(row) < len(headers) {
-			continue // skip malformed rows
-		}
+	for i, row := range dataRecords {
 
 		safeGet := func(colNames ...string) string {
 			for _, col := range colNames {
@@ -173,16 +194,32 @@ func (h *AccountHandler) ImportCSV(w http.ResponseWriter, r *http.Request) {
 		nature := models.TxNature(strings.ToUpper(natureStr))
 		
 		sourceAcctName := safeGet("source account", "source_account")
-		sourceAcctID, err := getAccountID(ledgerID, sourceAcctName, models.AccountTypeAsset)
+		targetAcctName := safeGet("target account", "target_account")
+		loanAcctName := safeGet("loan account", "loan_account")
+		paymentMethod := safeGet("payment method", "payment_method")
+
+		sourceAcctType := models.AccountTypeAsset
+		targetAcctType := models.AccountTypeAsset
+
+		if loanAcctName != "" {
+			if nature == "EMI_PAYMENT" {
+				targetAcctName = loanAcctName
+				targetAcctType = models.AccountTypeLiability
+			} else if nature == "LOAN_DISBURSEMENT" {
+				sourceAcctName = loanAcctName
+				sourceAcctType = models.AccountTypeLiability
+			}
+		}
+
+		sourceAcctID, err := getAccountID(ledgerID, sourceAcctName, sourceAcctType)
 		if err != nil || sourceAcctID == 0 {
 			// fallback
 			sourceAcctID, _ = getAccountID(ledgerID, "Default Account", models.AccountTypeAsset)
 		}
 
-		targetAcctName := safeGet("target account", "target_account")
 		var targetAcctID *int
 		if targetAcctName != "" {
-			tID, err := getAccountID(ledgerID, targetAcctName, models.AccountTypeAsset)
+			tID, err := getAccountID(ledgerID, targetAcctName, targetAcctType)
 			if err == nil {
 				targetAcctID = &tID
 			}
@@ -202,14 +239,34 @@ func (h *AccountHandler) ImportCSV(w http.ResponseWriter, r *http.Request) {
 
 		notes := safeGet("notes")
 		
+		var principalAmount, interestAmount float64
+		if nature == "EMI_PAYMENT" {
+			if strings.Contains(strings.ToLower(title), "interest only") || strings.Contains(strings.ToLower(title), "interest") {
+				interestAmount = amount
+				principalAmount = 0
+			} else {
+				principalAmount = amount
+				interestAmount = 0
+			}
+		} else if nature == "LOAN_DISBURSEMENT" {
+			principalAmount = amount
+			interestAmount = 0
+		}
+
 		_, err = tx.Exec(ctx,
 			`INSERT INTO transactions 
-			(ledger_id, title, amount, nature, source_account_id, target_account_id, sub_category_id, transaction_date, notes) 
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-			ledgerID, title, amount, nature, sourceAcctID, targetAcctID, subCategoryID, dateStr, notes)
+			(ledger_id, title, amount, nature, source_account_id, target_account_id, sub_category_id, payment_method, transaction_date, notes, principal_amount, interest_amount) 
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+			ledgerID, title, amount, nature, sourceAcctID, targetAcctID, subCategoryID, paymentMethod, dateStr, notes, principalAmount, interestAmount)
 		
 		if err != nil {
 			fmt.Printf("Error inserting row %d: %v\n", i, err)
+		} else {
+			// Apply balance changes
+			err = applyBalanceChange(ctx, tx, ledgerID, nature, sourceAcctID, targetAcctID, amount, principalAmount)
+			if err != nil {
+				fmt.Printf("Error applying balance for row %d: %v\n", i, err)
+			}
 		}
 	}
 
