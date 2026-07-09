@@ -3,15 +3,11 @@ package models
 import "time"
 
 type AccountType string
-type EntityType string
 type TxNature string
 
 const (
 	AccountTypeAsset     AccountType = "ASSET"
 	AccountTypeLiability AccountType = "LIABILITY"
-
-	EntityPersonal EntityType = "PERSONAL"
-	EntityHome     EntityType = "HOME"
 
 	NatureIncome           TxNature = "INCOME"
 	NatureExpense          TxNature = "EXPENSE"
@@ -22,7 +18,7 @@ const (
 
 type Account struct {
 	ID             int         `json:"id"`
-	UserID         int         `json:"user_id"`
+	LedgerID       int         `json:"ledger_id"`
 	Name           string      `json:"name"`
 	Type           AccountType `json:"type"`
 	InitialBalance float64     `json:"initial_balance"`
@@ -34,9 +30,8 @@ type Account struct {
 
 type Category struct {
 	ID            int           `json:"id"`
-	UserID        int           `json:"user_id"`
+	LedgerID      int           `json:"ledger_id"`
 	Name          string        `json:"name"`
-	Entity        EntityType    `json:"entity"`
 	Nature        TxNature      `json:"nature"`
 	CreatedAt     time.Time     `json:"created_at"`
 	SubCategories []SubCategory `json:"sub_categories,omitempty"`
@@ -45,21 +40,20 @@ type Category struct {
 type SubCategory struct {
 	ID         int       `json:"id"`
 	CategoryID int       `json:"category_id"`
-	UserID     int       `json:"user_id"`
+	LedgerID   int       `json:"ledger_id"`
 	Name       string    `json:"name"`
 	CreatedAt  time.Time `json:"created_at"`
 }
 
 type Transaction struct {
 	ID              int        `json:"id"`
-	UserID          int        `json:"user_id"`
+	LedgerID        int        `json:"ledger_id"`
 	Title           string     `json:"title"`
 	Amount          float64    `json:"amount"`
 	Nature          TxNature   `json:"nature"`
 	SourceAccountID int        `json:"source_account_id"`
 	TargetAccountID *int       `json:"target_account_id,omitempty"`
 	SubCategoryID   *int       `json:"sub_category_id,omitempty"`
-	Entity          EntityType `json:"entity"`
 	PaymentMethod   string     `json:"payment_method,omitempty"`
 	Notes           string     `json:"notes,omitempty"`
 	PrincipalAmount float64    `json:"principal_amount"`
@@ -70,18 +64,25 @@ type Transaction struct {
 
 type TransactionTemplate struct {
 	ID              int        `json:"id"`
-	UserID          int        `json:"user_id"`
+	LedgerID        int        `json:"ledger_id"`
 	Title           string     `json:"title"`
 	Amount          float64    `json:"amount"`
 	Nature          TxNature   `json:"nature"`
 	SourceAccountID int        `json:"source_account_id"`
 	TargetAccountID *int       `json:"target_account_id,omitempty"`
 	SubCategoryID   *int       `json:"sub_category_id,omitempty"`
-	Entity          EntityType `json:"entity"`
 	PaymentMethod   string     `json:"payment_method,omitempty"`
 	PrincipalAmount float64    `json:"principal_amount"`
 	InterestAmount  float64    `json:"interest_amount"`
 	CreatedAt       time.Time  `json:"created_at"`
+}
+
+type Ledger struct {
+	ID        int       `json:"id"`
+	UserID    int       `json:"user_id"`
+	Name      string    `json:"name"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type User struct {
@@ -104,6 +105,10 @@ type RegisterReq struct {
 	Password string `json:"password"`
 }
 
+type CreateLedgerReq struct {
+	Name string `json:"name"`
+}
+
 type AuthRes struct {
 	Token string `json:"token"`
 	User  User   `json:"user"`
@@ -124,7 +129,6 @@ type UpdateAccountReq struct {
 
 type CreateCategoryReq struct {
 	Name   string     `json:"name"`
-	Entity EntityType `json:"entity"`
 	Nature TxNature   `json:"nature"`
 }
 
@@ -147,7 +151,6 @@ type CreateTransactionReq struct {
 	SourceAccountID int        `json:"source_account_id"`
 	TargetAccountID *int       `json:"target_account_id,omitempty"`
 	SubCategoryID   *int       `json:"sub_category_id,omitempty"`
-	Entity          EntityType `json:"entity"`
 	PaymentMethod   string     `json:"payment_method,omitempty"`
 	Notes           string     `json:"notes,omitempty"`
 	PrincipalAmount float64    `json:"principal_amount"`
@@ -164,7 +167,6 @@ type CreateTemplateReq struct {
 	SourceAccountID int        `json:"source_account_id"`
 	TargetAccountID *int       `json:"target_account_id,omitempty"`
 	SubCategoryID   *int       `json:"sub_category_id,omitempty"`
-	Entity          EntityType `json:"entity"`
 	PaymentMethod   string     `json:"payment_method,omitempty"`
 	PrincipalAmount float64    `json:"principal_amount"`
 	InterestAmount  float64    `json:"interest_amount"`
@@ -183,20 +185,14 @@ type TallyResponse struct {
 }
 
 type SummaryResponse struct {
-	Month    string          `json:"month"`
-	Entities []EntitySummary `json:"entities"`
-}
-
-type EntitySummary struct {
-	Entity       EntityType `json:"entity"`
-	TotalIncome  float64    `json:"total_income"`
-	TotalExpense float64    `json:"total_expense"`
-	TotalEMI     float64    `json:"total_emi"`
-	NetFlow      float64    `json:"net_flow"`
+	Month        string  `json:"month"`
+	TotalIncome  float64 `json:"total_income"`
+	TotalExpense float64 `json:"total_expense"`
+	TotalEMI     float64 `json:"total_emi"`
+	NetFlow      float64 `json:"net_flow"`
 }
 
 type TransactionFilter struct {
-	Entity    *EntityType
 	Nature    *TxNature
 	AccountID *int
 	DateFrom  *string

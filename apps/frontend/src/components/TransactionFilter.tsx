@@ -1,11 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { categoriesApi } from '../api/client';
-import type { Category, EntityType, TxNature } from '../api/types';
-import { ENTITIES } from '../api/types';
+import type { Category, TxNature } from '../api/types';
 
 export interface FilterState {
   search: string;
-  entity: EntityType | '';
   nature: TxNature | '';
   category_id: string;
   sub_category_id: string;
@@ -16,7 +14,6 @@ export interface FilterState {
 
 export const DEFAULT_FILTERS: FilterState = {
   search: '',
-  entity: '',
   nature: '',
   category_id: '',
   sub_category_id: '',
@@ -27,7 +24,7 @@ export const DEFAULT_FILTERS: FilterState = {
 
 export function countActiveFilters(f: FilterState): number {
   const dateActive = f.datePreset && (f.datePreset !== 'custom' || f.date_from || f.date_to) ? 1 : 0;
-  return [f.search, f.entity, f.nature, f.category_id, f.sub_category_id].filter(Boolean).length + dateActive;
+  return [f.search, f.nature, f.category_id, f.sub_category_id].filter(Boolean).length + dateActive;
 }
 
 export const DATE_PRESET_LABELS: Record<string, string> = {
@@ -113,9 +110,6 @@ interface Props {
   onClose: () => void;
 }
 
-// Natures that don't require a category (structural transaction types)
-const STRUCTURAL_NATURES: TxNature[] = ['TRANSFER', 'EMI_PAYMENT', 'LOAN_DISBURSEMENT'];
-
 export default function TransactionFilter({ isOpen, filters, onApply, onClose }: Props) {
   const [draft, setDraft] = useState<FilterState>(filters);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -142,11 +136,6 @@ export default function TransactionFilter({ isOpen, filters, onApply, onClose }:
     setDraft((prev) => {
       const next = { ...prev, [key]: value };
       // Cascade resets downstream
-      if (key === 'entity') {
-        next.nature = '';
-        next.category_id = '';
-        next.sub_category_id = '';
-      }
       if (key === 'nature') {
         next.category_id = '';
         next.sub_category_id = '';
@@ -168,21 +157,10 @@ export default function TransactionFilter({ isOpen, filters, onApply, onClose }:
     });
   };
 
-  // Natures available for the selected entity (from categories + always show structural types)
-  const availableNatures: TxNature[] = draft.entity
-    ? [
-        ...new Set([
-          ...categories
-            .filter((c) => c.entity === draft.entity)
-            .map((c) => c.nature),
-          ...STRUCTURAL_NATURES,
-        ]),
-      ]
-    : TX_NATURES.map((n) => n.value);
+  const availableNatures: TxNature[] = TX_NATURES.map((n) => n.value);
 
-  // Categories filtered by entity and nature
+  // Categories filtered by nature
   const filteredCategories = categories.filter((c) => {
-    if (draft.entity && c.entity !== draft.entity) return false;
     if (draft.nature && c.nature !== draft.nature) return false;
     return true;
   });
@@ -259,28 +237,6 @@ export default function TransactionFilter({ isOpen, filters, onApply, onClose }:
             </div>
           </div>
 
-          {/* Entity */}
-          <div>
-            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Entity</label>
-            <div className="flex gap-2 flex-wrap">
-              <button
-                onClick={() => set('entity', '')}
-                className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${draft.entity === '' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-600'}`}
-              >
-                All
-              </button>
-              {ENTITIES.map((e) => (
-                <button
-                  key={e}
-                  onClick={() => set('entity', e)}
-                  className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${draft.entity === e ? 'bg-blue-600 text-white border-blue-600' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-600'}`}
-                >
-                  {e}
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* Transaction Type */}
           <div>
             <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Transaction Type</label>
@@ -313,7 +269,7 @@ export default function TransactionFilter({ isOpen, filters, onApply, onClose }:
                 </option>
                 {filteredCategories.map((c) => (
                   <option key={c.id} value={String(c.id)}>
-                    {c.name}{!draft.entity || !draft.nature ? ` (${c.entity} · ${c.nature})` : ''}
+                    {c.name}{!draft.nature ? ` (${c.nature})` : ''}
                   </option>
                 ))}
               </select>

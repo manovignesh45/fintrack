@@ -35,7 +35,6 @@ export default function TransactionsPage() {
     setLoading(true);
     try {
       const params: Record<string, string> = {};
-      if (f.entity) params.entity = f.entity;
       if (f.nature) params.nature = f.nature;
       if (f.category_id) params.category_id = f.category_id;
       if (f.sub_category_id) params.sub_category_id = f.sub_category_id;
@@ -78,7 +77,6 @@ export default function TransactionsPage() {
 
   const handleExport = async (format: 'csv' | 'excel') => {
     const params = new URLSearchParams();
-    if (filters.entity) params.set('entity', filters.entity);
     if (filters.nature) params.set('nature', filters.nature);
     if (filters.category_id) params.set('category_id', filters.category_id);
     if (filters.sub_category_id) params.set('sub_category_id', filters.sub_category_id);
@@ -170,9 +168,6 @@ export default function TransactionsPage() {
           {filters.search && (
             <FilterPill label={`"${filters.search}"`} onRemove={() => setFilters((f) => ({ ...f, search: '' }))} />
           )}
-          {filters.entity && (
-            <FilterPill label={filters.entity} onRemove={() => setFilters((f) => ({ ...f, entity: '' }))} />
-          )}
           {filters.nature && (
             <FilterPill label={filters.nature.replace('_', ' ')} onRemove={() => setFilters((f) => ({ ...f, nature: '' }))} />
           )}
@@ -232,7 +227,7 @@ export default function TransactionsPage() {
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-gray-800 dark:text-gray-200 truncate">{t.title}</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {t.transaction_date} · {natureLabels[t.nature]} · {t.entity}
+                    {t.transaction_date} · {natureLabels[t.nature]}
                     {t.payment_method && ` · ${t.payment_method}`}
                   </p>
                   {t.nature === 'EMI_PAYMENT' && (

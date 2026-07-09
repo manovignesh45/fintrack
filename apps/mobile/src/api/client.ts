@@ -4,9 +4,14 @@ import * as SecureStore from 'expo-secure-store';
 const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:8080/api';
 
 let onUnauthorizedCallback: (() => void) | null = null;
+let currentLedgerId: string | null = null;
 
 export function setOnUnauthorized(cb: () => void) {
   onUnauthorizedCallback = cb;
+}
+
+export function setApiLedgerId(id: string | null) {
+  currentLedgerId = id;
 }
 
 const client = createApiClient({
@@ -16,8 +21,10 @@ const client = createApiClient({
     // We cache the token in memory after loading from SecureStore.
     return tokenCache.get();
   },
+  getLedgerId: () => currentLedgerId,
   onUnauthorized: () => {
     tokenCache.clear();
+    currentLedgerId = null;
     onUnauthorizedCallback?.();
   },
 });
@@ -66,3 +73,4 @@ export const transactionsApi = client.transactionsApi;
 export const templatesApi = client.templatesApi;
 export const tallyApi = client.tallyApi;
 export const summaryApi = client.summaryApi;
+export const ledgersApi = client.ledgersApi;

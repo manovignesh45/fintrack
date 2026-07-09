@@ -62,7 +62,7 @@ func main() {
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   allowedOrigins,
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Content-Type", "Authorization"},
+		AllowedHeaders:   []string{"Content-Type", "Authorization", "X-Ledger-Id"},
 		AllowCredentials: true,
 		MaxAge:           300,
 	}))
@@ -77,10 +77,19 @@ func main() {
 		r.Group(func(r chi.Router) {
 			r.Use(accountH.AuthMiddleware)
 
-			// Accounts
-			r.Route("/accounts", func(r chi.Router) {
-				r.Get("/", accountH.List)
-				r.Post("/", accountH.Create)
+			// Ledgers & Import (requires auth, but not ledger context)
+			r.Get("/ledgers", accountH.GetLedgers)
+			r.Post("/ledgers", accountH.CreateLedger)
+			r.Post("/import/csv", accountH.ImportCSV)
+
+			// Ledger-scoped routes
+			r.Group(func(r chi.Router) {
+				r.Use(accountH.LedgerMiddleware)
+
+				// Accounts
+				r.Route("/accounts", func(r chi.Router) {
+					r.Get("/", accountH.List)
+					r.Post("/", accountH.Create)
 				r.Get("/{id}", accountH.Get)
 				r.Put("/{id}", accountH.Update)
 				r.Delete("/{id}", accountH.Delete)
@@ -119,6 +128,7 @@ func main() {
 			r.Get("/tally/{id}", tallyH.GetTally)
 			r.Post("/tally/{id}", tallyH.CheckTally)
 			r.Get("/summary", tallyH.Summary)
+			})
 		})
 	})
 

@@ -32,7 +32,7 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
   }, []);
 
   useEffect(() => {
-    categoriesApi.list({ entity: form.entity, nature: form.nature }).then((data) => setCategories(data || [])).catch(() => setCategories([]));
+    categoriesApi.list({  nature: form.nature }).then((data) => setCategories(data || [])).catch(() => setCategories([]));
     setForm((f) => {
       if (initial?.sub_category_id === f.sub_category_id && f.sub_category_id !== '') {
         return f;

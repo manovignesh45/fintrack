@@ -64,7 +64,6 @@ export default function CreateSubCategoryPage() {
         <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold mb-1 uppercase tracking-wider">Parent Category</p>
         <p className="text-sm font-bold text-blue-800">{category.name}</p>
         <div className="flex gap-2 mt-2">
-            <span className="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold uppercase">{category.entity}</span>
             <span className="text-[10px] bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-bold uppercase">{category.nature}</span>
         </div>
       </div>

@@ -3,7 +3,7 @@ PRAGMA journal_mode = WAL;
 
 CREATE TABLE IF NOT EXISTS accounts (
   id INTEGER PRIMARY KEY,
-  user_id INTEGER NOT NULL,
+  ledger_id INTEGER NOT NULL,
   name TEXT NOT NULL,
   type TEXT NOT NULL,
   initial_balance REAL NOT NULL DEFAULT 0,
@@ -16,9 +16,9 @@ CREATE TABLE IF NOT EXISTS accounts (
 
 CREATE TABLE IF NOT EXISTS categories (
   id INTEGER PRIMARY KEY,
-  user_id INTEGER NOT NULL,
+  ledger_id INTEGER NOT NULL,
   name TEXT NOT NULL,
-  entity TEXT NOT NULL,
+  
   nature TEXT NOT NULL,
   created_at TEXT NOT NULL,
   synced_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS categories (
 CREATE TABLE IF NOT EXISTS sub_categories (
   id INTEGER PRIMARY KEY,
   category_id INTEGER NOT NULL,
-  user_id INTEGER NOT NULL,
+  ledger_id INTEGER NOT NULL,
   name TEXT NOT NULL,
   created_at TEXT NOT NULL
 );
@@ -35,14 +35,14 @@ CREATE TABLE IF NOT EXISTS sub_categories (
 CREATE TABLE IF NOT EXISTS transactions (
   id INTEGER,
   local_id TEXT NOT NULL UNIQUE,
-  user_id INTEGER,
+  ledger_id INTEGER,
   title TEXT NOT NULL,
   amount REAL NOT NULL,
   nature TEXT NOT NULL,
   source_account_id INTEGER NOT NULL,
   target_account_id INTEGER,
   sub_category_id INTEGER,
-  entity TEXT NOT NULL,
+  
   payment_method TEXT,
   notes TEXT,
   principal_amount REAL NOT NULL DEFAULT 0,

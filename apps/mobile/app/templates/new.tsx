@@ -16,7 +16,7 @@ export default function CreateTemplateScreen() {
       source_account_id: parseInt(form.source_account_id),
       target_account_id: form.target_account_id ? parseInt(form.target_account_id) : undefined,
       sub_category_id: form.sub_category_id ? parseInt(form.sub_category_id) : undefined,
-      entity: form.entity,
+      
       payment_method: form.payment_method || undefined,
       principal_amount: parseFloat(form.principal_amount) || 0,
       interest_amount: parseFloat(form.interest_amount) || 0,

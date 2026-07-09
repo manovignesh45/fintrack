@@ -4,13 +4,11 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { categoriesApi } from '@/src/api/client';
 import { useAuth } from '@/src/context/AuthContext';
-import type { Category, EntityType, TxNature } from '@fintrack/shared';
-import { ENTITIES } from '@fintrack/shared';
+import type { Category, TxNature } from '@fintrack/shared';
 
 export default function CategoriesScreen() {
   const router = useRouter();
   const { editMode, setEditMode } = useAuth();
-  const [selectedEntity, setSelectedEntity] = useState<EntityType>('PERSONAL');
   const [selectedNature, setSelectedNature] = useState<TxNature>('EXPENSE');
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -20,13 +18,13 @@ export default function CategoriesScreen() {
 
   const load = () => {
     setLoading(true);
-    categoriesApi.list({ entity: selectedEntity, nature: selectedNature })
+    categoriesApi.list({ nature: selectedNature })
       .then((data) => setCategories(data || []))
       .catch(() => setCategories([]))
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(); }, [selectedEntity, selectedNature]);
+  useEffect(() => { load(); }, [selectedNature]);
 
   const deleteCategory = (id: number) => {
     Alert.alert('Delete', 'Delete category and all its sub-categories?', [
@@ -84,20 +82,7 @@ export default function CategoriesScreen() {
           </View>
         </View>
 
-        {/* Entity tabs */}
-        <View className="flex-row gap-2 mb-3">
-          {ENTITIES.map((e) => (
-            <TouchableOpacity
-              key={e}
-              onPress={() => setSelectedEntity(e)}
-              className={`flex-1 py-1.5 rounded-lg items-center ${
-                selectedEntity === e ? 'bg-blue-600 dark:bg-blue-500' : 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600'
-              }`}
-            >
-              <Text className={`text-sm font-medium ${selectedEntity === e ? 'text-white' : 'text-gray-600 dark:text-gray-300'}`}>{e}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+
 
         {/* Nature tabs */}
         <View className="flex-row gap-2 mb-4">
@@ -191,7 +176,7 @@ export default function CategoriesScreen() {
         <TouchableOpacity
           onPress={() => router.push({
             pathname: '/categories/new',
-            params: { entity: selectedEntity, nature: selectedNature },
+            params: { nature: selectedNature },
           })}
           className="absolute bottom-6 right-6 w-14 h-14 bg-blue-600 dark:bg-blue-500 rounded-full shadow-lg items-center justify-center"
           activeOpacity={0.8}

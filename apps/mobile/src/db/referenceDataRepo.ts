@@ -17,11 +17,11 @@ export const accountRepo = {
       for (const a of accounts) {
         await db.runAsync(
           `INSERT INTO accounts
-            (id, user_id, name, type, initial_balance, current_balance, interest_rate, is_active, created_at)
+            (id, ledger_id, name, type, initial_balance, current_balance, interest_rate, is_active, created_at)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             a.id,
-            a.user_id,
+            a.ledger_id,
             a.name,
             a.type,
             a.initial_balance,
@@ -39,7 +39,7 @@ export const accountRepo = {
     const rows = await db.getAllAsync<Record<string, unknown>>('SELECT * FROM accounts ORDER BY name ASC');
     return rows.map((r) => ({
       id: r.id as number,
-      user_id: r.user_id as number,
+      ledger_id: r.ledger_id as number,
       name: r.name as string,
       type: r.type as Account['type'],
       initial_balance: r.initial_balance as number,
@@ -58,7 +58,7 @@ export const accountRepo = {
     if (!r) return null;
     return {
       id: r.id as number,
-      user_id: r.user_id as number,
+      ledger_id: r.ledger_id as number,
       name: r.name as string,
       type: r.type as Account['type'],
       initial_balance: r.initial_balance as number,
@@ -85,15 +85,15 @@ export const categoryRepo = {
       await db.runAsync('DELETE FROM categories');
       for (const cat of categories) {
         await db.runAsync(
-          `INSERT INTO categories (id, user_id, name, entity, nature, created_at)
-           VALUES (?, ?, ?, ?, ?, ?)`,
-          [cat.id, cat.user_id, cat.name, cat.entity, cat.nature, cat.created_at],
+          `INSERT INTO categories (id, ledger_id, name, nature, created_at)
+           VALUES (?, ?, ?, ?, ?)`,
+          [cat.id, cat.ledger_id, cat.name, cat.nature, cat.created_at],
         );
         for (const sub of cat.sub_categories ?? []) {
           await db.runAsync(
-            `INSERT INTO sub_categories (id, category_id, user_id, name, created_at)
+            `INSERT INTO sub_categories (id, category_id, ledger_id, name, created_at)
              VALUES (?, ?, ?, ?, ?)`,
-            [sub.id, cat.id, sub.user_id, sub.name, sub.created_at],
+            [sub.id, cat.id, sub.ledger_id, sub.name, sub.created_at],
           );
         }
       }
@@ -102,7 +102,7 @@ export const categoryRepo = {
 
   async getAll(db: SQLiteDatabase): Promise<Category[]> {
     const cats = await db.getAllAsync<Record<string, unknown>>(
-      'SELECT * FROM categories ORDER BY entity, nature, name',
+      'SELECT * FROM categories ORDER BY nature, name',
     );
     const subs = await db.getAllAsync<Record<string, unknown>>(
       'SELECT * FROM sub_categories ORDER BY name',
@@ -110,9 +110,8 @@ export const categoryRepo = {
 
     return cats.map((c) => ({
       id: c.id as number,
-      user_id: c.user_id as number,
+      ledger_id: c.ledger_id as number,
       name: c.name as string,
-      entity: c.entity as Category['entity'],
       nature: c.nature as Category['nature'],
       created_at: c.created_at as string,
       sub_categories: subs
@@ -120,7 +119,7 @@ export const categoryRepo = {
         .map((s) => ({
           id: s.id as number,
           category_id: s.category_id as number,
-          user_id: s.user_id as number,
+          ledger_id: s.ledger_id as number,
           name: s.name as string,
           created_at: s.created_at as string,
         })),

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { accountsApi, categoriesApi } from '../api/client';
-import type { Account, Category, EntityType, TxNature } from '../api/types';
-import { ENTITIES, NATURES, PAYMENT_METHODS } from '../api/types';
+import type { Account, Category, TxNature } from '../api/types';
+import { NATURES, PAYMENT_METHODS } from '../api/types';
 
 export interface TransactionFormData {
   title: string;
@@ -10,7 +10,6 @@ export interface TransactionFormData {
   source_account_id: string;
   target_account_id: string;
   sub_category_id: string;
-  entity: EntityType;
   payment_method: string;
   notes: string;
   principal_amount: string;
@@ -25,7 +24,6 @@ const emptyForm = (): TransactionFormData => ({
   source_account_id: '1',
   target_account_id: '',
   sub_category_id: '',
-  entity: 'PERSONAL',
   payment_method: '',
   notes: '',
   principal_amount: '0',
@@ -54,8 +52,8 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
   }, []);
 
   useEffect(() => {
-    categoriesApi.list({ entity: form.entity, nature: form.nature }).then((data) => setCategories(data || [])).catch(() => setCategories([]));
-    // Reset category and sub-category ONLY if entity actually changes from what was in initial
+    categoriesApi.list({ nature: form.nature }).then((data) => setCategories(data || [])).catch(() => setCategories([]));
+    // Reset category and sub-category ONLY if nature actually changes from what was in initial
     // This allows pre-population of categories when using templates or editing
     setForm((f) => {
       // If we have a sub_category_id but no selectedCategoryId yet (initial load), 
@@ -67,7 +65,7 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
       setSelectedCategoryId('');
       return { ...f, sub_category_id: '' };
     });
-  }, [form.entity, form.nature]);
+  }, [form.nature]);
 
   // Initialize selected category from initial sub_category_id
   useEffect(() => {
@@ -153,25 +151,6 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && <p className="text-red-600 dark:text-red-400 text-sm bg-red-50 dark:bg-red-900/30 p-2 rounded">{error}</p>}
-
-      {/* Entity selector */}
-      <div>
-        <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Entity *</label>
-        <div className="flex gap-2">
-          {ENTITIES.map((e) => (
-            <button
-              key={e}
-              type="button"
-              onClick={() => set('entity', e)}
-              className={`flex-1 py-2 rounded-lg text-sm font-medium ${
-                form.entity === e ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400'
-              }`}
-            >
-              {e}
-            </button>
-          ))}
-        </div>
-      </div>
 
       {/* Nature selector */}
       <div>

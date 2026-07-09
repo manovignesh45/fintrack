@@ -6,14 +6,13 @@ function rowToLocal(row: Record<string, unknown>): LocalTransaction {
   return {
     id: row.id as number | null,
     local_id: row.local_id as string,
-    user_id: row.user_id as number | null,
+    ledger_id: row.ledger_id as number | null,
     title: row.title as string,
     amount: row.amount as number,
     nature: row.nature as LocalTransaction['nature'],
     source_account_id: row.source_account_id as number,
     target_account_id: row.target_account_id as number | undefined,
     sub_category_id: row.sub_category_id as number | undefined,
-    entity: row.entity as LocalTransaction['entity'],
     payment_method: row.payment_method as string | undefined,
     notes: row.notes as string | undefined,
     principal_amount: (row.principal_amount as number) ?? 0,
@@ -35,9 +34,9 @@ export const transactionRepo = {
     await db.runAsync(
       `INSERT INTO transactions
         (local_id, title, amount, nature, source_account_id, target_account_id,
-         sub_category_id, entity, payment_method, notes, principal_amount,
+         sub_category_id, payment_method, notes, principal_amount,
          interest_amount, transaction_date, sync_status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
       [
         localId,
         payload.title,
@@ -46,7 +45,6 @@ export const transactionRepo = {
         payload.source_account_id,
         payload.target_account_id ?? null,
         payload.sub_category_id ?? null,
-        payload.entity,
         payload.payment_method ?? null,
         payload.notes ?? null,
         payload.principal_amount,
@@ -64,20 +62,17 @@ export const transactionRepo = {
   async getAll(
     db: SQLiteDatabase,
     filters: Partial<FilterState> = {},
-    userId?: number,
+    ledgerId?: number,
   ): Promise<LocalTransaction[]> {
     const conditions: string[] = ['deleted_locally = 0'];
     const params: (string | number)[] = [];
 
-    if (userId) {
-      conditions.push('(user_id = ? OR user_id IS NULL)');
-      params.push(userId);
+    if (ledgerId) {
+      conditions.push('(ledger_id = ? OR ledger_id IS NULL)');
+      params.push(ledgerId);
     }
 
-    if (filters.entity) {
-      conditions.push('entity = ?');
-      params.push(filters.entity);
-    }
+
     if (filters.nature) {
       conditions.push('nature = ?');
       params.push(filters.nature);

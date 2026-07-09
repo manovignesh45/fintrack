@@ -70,9 +70,6 @@ export default function CreateSubCategoryScreen() {
         <Text className="text-xs text-blue-600 dark:text-blue-400 font-semibold mb-1 uppercase">Parent Category</Text>
         <Text className="text-sm font-bold text-blue-800">{category.name}</Text>
         <View className="flex-row gap-2 mt-2">
-          <View className="bg-blue-100 px-2 py-0.5 rounded-full">
-            <Text className="text-[10px] text-blue-700 dark:text-blue-300 font-bold uppercase">{category.entity}</Text>
-          </View>
           <View className="bg-orange-100 px-2 py-0.5 rounded-full">
             <Text className="text-[10px] text-orange-700 font-bold uppercase">{category.nature}</Text>
           </View>

@@ -1,7 +1,6 @@
 // Re-export everything from the shared package
 export type {
   AccountType,
-  EntityType,
   TxNature,
   User,
   AuthResponse,
@@ -11,7 +10,6 @@ export type {
   Transaction,
   TransactionTemplate,
   TallyResponse,
-  EntitySummary,
   SummaryResponse,
   LoginReq,
   RegisterReq,
@@ -21,6 +19,5 @@ export type {
 
 export {
   PAYMENT_METHODS,
-  ENTITIES,
   NATURES,
 } from '@fintrack/shared';

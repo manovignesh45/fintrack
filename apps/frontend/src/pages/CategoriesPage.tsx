@@ -1,19 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { categoriesApi } from '../api/client';
-import type { Category, EntityType, TxNature } from '../api/types';
-import { ENTITIES } from '../api/types';
+import type { Category, TxNature } from '../api/types';
 import { useAuth } from '../context/AuthContext';
 
-const STORAGE_ENTITY_KEY = 'cat_filter_entity';
 const STORAGE_NATURE_KEY = 'cat_filter_nature';
 
 export default function CategoriesPage() {
   const navigate = useNavigate();
   const { editMode } = useAuth();
-  const [selectedEntity, setSelectedEntity] = useState<EntityType>(
-    () => (sessionStorage.getItem(STORAGE_ENTITY_KEY) as EntityType) || 'PERSONAL'
-  );
   const [selectedNature, setSelectedNature] = useState<TxNature>(
     () => (sessionStorage.getItem(STORAGE_NATURE_KEY) as TxNature) || 'EXPENSE'
   );
@@ -25,17 +20,16 @@ export default function CategoriesPage() {
 
   const load = () => {
     setLoading(true);
-    categoriesApi.list({ entity: selectedEntity, nature: selectedNature })
+    categoriesApi.list({ nature: selectedNature })
       .then((data) => setCategories(data || []))
       .catch(() => setCategories([]))
       .finally(() => setLoading(false));
   };
 
   useEffect(() => {
-    sessionStorage.setItem(STORAGE_ENTITY_KEY, selectedEntity);
     sessionStorage.setItem(STORAGE_NATURE_KEY, selectedNature);
     load();
-  }, [selectedEntity, selectedNature]);
+  }, [selectedNature]);
 
   const deleteCategory = async (id: number) => {
     if (!confirm('Delete category and all its sub-categories?')) return;
@@ -73,21 +67,6 @@ export default function CategoriesPage() {
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Categories</h2>
-
-      {/* Entity tabs */}
-      <div className="flex gap-2">
-        {ENTITIES.map((e) => (
-          <button
-            key={e}
-            onClick={() => setSelectedEntity(e)}
-            className={`flex-1 py-1.5 rounded-lg text-sm font-medium ${
-              selectedEntity === e ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400'
-            }`}
-          >
-            {e}
-          </button>
-        ))}
-      </div>
 
       {/* Nature tabs */}
       <div className="flex gap-2">
@@ -185,7 +164,7 @@ export default function CategoriesPage() {
       {/* Floating Action Button */}
       {editMode && (
         <button
-          onClick={() => navigate('/categories/new', { state: { entity: selectedEntity, nature: selectedNature } })}
+          onClick={() => navigate('/categories/new', { state: { nature: selectedNature } })}
           className="fixed bottom-20 right-6 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center text-3xl hover:bg-blue-700 transition-all active:scale-95 z-40"
         >
           +

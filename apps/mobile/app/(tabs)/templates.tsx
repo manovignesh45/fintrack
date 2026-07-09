@@ -54,7 +54,6 @@ export default function TemplatesScreen() {
           source_account_id: t.source_account_id.toString(),
           target_account_id: t.target_account_id?.toString() || '',
           sub_category_id: t.sub_category_id?.toString() || '',
-          entity: t.entity,
           payment_method: t.payment_method || '',
           principal_amount: t.principal_amount.toString(),
           interest_amount: t.interest_amount.toString(),
@@ -88,7 +87,7 @@ export default function TemplatesScreen() {
         <View className="flex-1 mr-3">
           <Text className="font-medium text-gray-800 dark:text-gray-100 text-sm">{t.title}</Text>
           <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">
-            {natureLabels[t.nature] ?? t.nature} · {t.entity} · ₹{t.amount.toLocaleString('en-IN')}
+            {natureLabels[t.nature] ?? t.nature} · ₹{t.amount.toLocaleString('en-IN')}
             {t.payment_method ? ` · ${t.payment_method}` : ''}
           </Text>
         </View>
@@ -122,9 +121,9 @@ export default function TemplatesScreen() {
         <SectionList
           sections={Object.entries(
             templates.reduce((acc, t) => {
-              const entity = t.entity || 'OTHER';
-              if (!acc[entity]) acc[entity] = [];
-              acc[entity].push(t);
+              const group = natureLabels[t.nature] || t.nature;
+              if (!acc[group]) acc[group] = [];
+              acc[group].push(t);
               return acc;
             }, {} as Record<string, TransactionTemplate[]>)
           )

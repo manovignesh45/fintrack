@@ -27,7 +27,7 @@ func NewTransactionHandler(db *pgxpool.Pool) *TransactionHandler {
 }
 
 func (h *TransactionHandler) List(w http.ResponseWriter, r *http.Request) {
-	userID, err := GetUserID(r)
+	ledgerID, err := GetLedgerID(r)
 	if err != nil {
 		writeError(w, http.StatusUnauthorized, "Unauthorized")
 		return
@@ -35,18 +35,13 @@ func (h *TransactionHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	q := r.URL.Query()
 
-	query := `SELECT id, user_id, title, amount, nature, source_account_id,
-		target_account_id, sub_category_id, entity, payment_method,
+	query := `SELECT id, ledger_id, title, amount, nature, source_account_id,
+		target_account_id, sub_category_id, payment_method,
 		notes, principal_amount, interest_amount, transaction_date, created_at
-		FROM transactions WHERE user_id = $1`
-	args := []interface{}{userID}
+		FROM transactions WHERE ledger_id = $1`
+	args := []interface{}{ledgerID}
 	argIdx := 2
 
-	if v := q.Get("entity"); v != "" {
-		query += fmt.Sprintf(" AND entity = $%d", argIdx)
-		args = append(args, v)
-		argIdx++
-	}
 	if v := q.Get("nature"); v != "" {
 		query += fmt.Sprintf(" AND nature = $%d", argIdx)
 		args = append(args, v)
@@ -123,7 +118,7 @@ func (h *TransactionHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *TransactionHandler) Export(w http.ResponseWriter, r *http.Request) {
-	userID, err := GetUserID(r)
+	ledgerID, err := GetLedgerID(r)
 	if err != nil {
 		writeError(w, http.StatusUnauthorized, "Unauthorized")
 		return
@@ -132,8 +127,8 @@ func (h *TransactionHandler) Export(w http.ResponseWriter, r *http.Request) {
 	format := chi.URLParam(r, "format")
 	q := r.URL.Query()
 
-	query := `SELECT t.id, t.user_id, t.title, t.amount, t.nature, t.source_account_id,
-		t.target_account_id, t.sub_category_id, t.entity, t.payment_method,
+	query := `SELECT t.id, t.ledger_id, t.title, t.amount, t.nature, t.source_account_id,
+		t.target_account_id, t.sub_category_id, t.payment_method,
 		t.notes, t.principal_amount, t.interest_amount, t.transaction_date, t.created_at,
 		ta.name as target_account_name,
 		sc.name as sub_category_name, c.name as category_name
@@ -141,15 +136,10 @@ func (h *TransactionHandler) Export(w http.ResponseWriter, r *http.Request) {
 		LEFT JOIN accounts ta ON t.target_account_id = ta.id
 		LEFT JOIN sub_categories sc ON t.sub_category_id = sc.id
 		LEFT JOIN categories c ON sc.category_id = c.id
-		WHERE t.user_id = $1`
-	args := []interface{}{userID}
+		WHERE t.ledger_id = $1`
+	args := []interface{}{ledgerID}
 	argIdx := 2
 
-	if v := q.Get("entity"); v != "" {
-		query += fmt.Sprintf(" AND t.entity = $%d", argIdx)
-		args = append(args, v)
-		argIdx++
-	}
 	if v := q.Get("nature"); v != "" {
 		query += fmt.Sprintf(" AND t.nature = $%d", argIdx)
 		args = append(args, v)
@@ -192,8 +182,8 @@ func (h *TransactionHandler) Export(w http.ResponseWriter, r *http.Request) {
 		var er ExportRow
 		var paymentMethod, notes, targetName, subCatName, catName *string
 		var txDate time.Time
-		err := rows.Scan(&er.ID, &er.UserID, &er.Title, &er.Amount, &er.Nature, &er.SourceAccountID,
-			&er.TargetAccountID, &er.SubCategoryID, &er.Entity, &paymentMethod,
+		err := rows.Scan(&er.ID, &er.LedgerID, &er.Title, &er.Amount, &er.Nature, &er.SourceAccountID,
+			&er.TargetAccountID, &er.SubCategoryID, &paymentMethod,
 			&notes, &er.PrincipalAmount, &er.InterestAmount, &txDate, &er.CreatedAt,
 			&targetName, &subCatName, &catName)
 		if err != nil {
@@ -223,7 +213,7 @@ func (h *TransactionHandler) Export(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	headers := []string{"Date", "Title", "Amount", "Nature", "Entity", "Loan Account", "Category", "Sub Category", "Payment Method", "Notes"}
+	headers := []string{"Date", "Title", "Amount", "Nature", "Loan Account", "Category", "Sub Category", "Payment Method", "Notes"}
 
 	if format == "csv" {
 		w.Header().Set("Content-Type", "text/csv")
@@ -256,7 +246,6 @@ func (h *TransactionHandler) Export(w http.ResponseWriter, r *http.Request) {
 				d.Title,
 				fmt.Sprintf("%.2f", d.Amount),
 				string(d.Nature),
-				string(d.Entity),
 				loanAccount,
 				cat,
 				subCat,
@@ -307,12 +296,11 @@ func (h *TransactionHandler) Export(w http.ResponseWriter, r *http.Request) {
 			f.SetCellValue(sheet, fmt.Sprintf("B%d", rowIdx), d.Title)
 			f.SetCellValue(sheet, fmt.Sprintf("C%d", rowIdx), d.Amount)
 			f.SetCellValue(sheet, fmt.Sprintf("D%d", rowIdx), string(d.Nature))
-			f.SetCellValue(sheet, fmt.Sprintf("E%d", rowIdx), string(d.Entity))
-			f.SetCellValue(sheet, fmt.Sprintf("F%d", rowIdx), loanAccount)
-			f.SetCellValue(sheet, fmt.Sprintf("G%d", rowIdx), cat)
-			f.SetCellValue(sheet, fmt.Sprintf("H%d", rowIdx), subCat)
-			f.SetCellValue(sheet, fmt.Sprintf("I%d", rowIdx), d.PaymentMethod)
-			f.SetCellValue(sheet, fmt.Sprintf("J%d", rowIdx), d.Notes)
+			f.SetCellValue(sheet, fmt.Sprintf("E%d", rowIdx), loanAccount)
+			f.SetCellValue(sheet, fmt.Sprintf("F%d", rowIdx), cat)
+			f.SetCellValue(sheet, fmt.Sprintf("G%d", rowIdx), subCat)
+			f.SetCellValue(sheet, fmt.Sprintf("H%d", rowIdx), d.PaymentMethod)
+			f.SetCellValue(sheet, fmt.Sprintf("I%d", rowIdx), d.Notes)
 		}
 
 		w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
@@ -327,7 +315,7 @@ func (h *TransactionHandler) Export(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *TransactionHandler) Get(w http.ResponseWriter, r *http.Request) {
-	userID, err := GetUserID(r)
+	ledgerID, err := GetLedgerID(r)
 	if err != nil {
 		writeError(w, http.StatusUnauthorized, "Unauthorized")
 		return
@@ -340,10 +328,10 @@ func (h *TransactionHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	row := h.db.QueryRow(r.Context(),
-		`SELECT id, user_id, title, amount, nature, source_account_id,
-			target_account_id, sub_category_id, entity, payment_method,
+		`SELECT id, ledger_id, title, amount, nature, source_account_id,
+			target_account_id, sub_category_id, payment_method,
 			notes, principal_amount, interest_amount, transaction_date, created_at
-		 FROM transactions WHERE id = $1 AND user_id = $2`, id, userID)
+		 FROM transactions WHERE id = $1 AND ledger_id = $2`, id, ledgerID)
 
 	t, err := scanTransactionRow(row)
 	if err != nil {
@@ -355,7 +343,7 @@ func (h *TransactionHandler) Get(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *TransactionHandler) Create(w http.ResponseWriter, r *http.Request) {
-	userID, err := GetUserID(r)
+	ledgerID, err := GetLedgerID(r)
 	if err != nil {
 		writeError(w, http.StatusUnauthorized, "Unauthorized")
 		return
@@ -369,7 +357,7 @@ func (h *TransactionHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	// Default source_account_id to the user's primary asset account when not provided
 	if req.SourceAccountID == 0 {
-		primaryID, err := h.getPrimaryAssetAccountID(r.Context(), userID)
+		primaryID, err := h.getPrimaryAssetAccountID(r.Context(), ledgerID)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, "source_account_id not provided and no primary asset account found")
 			return
@@ -391,14 +379,14 @@ func (h *TransactionHandler) Create(w http.ResponseWriter, r *http.Request) {
 	// Insert the transaction
 	var t models.Transaction
 	row := tx.QueryRow(r.Context(),
-		`INSERT INTO transactions (user_id, title, amount, nature, source_account_id, target_account_id,
-			sub_category_id, entity, payment_method, notes, principal_amount, interest_amount, transaction_date)
-		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
-		 RETURNING id, user_id, title, amount, nature, source_account_id, target_account_id,
-			sub_category_id, entity, payment_method, notes, principal_amount, interest_amount,
+		`INSERT INTO transactions (ledger_id, title, amount, nature, source_account_id, target_account_id,
+			sub_category_id, payment_method, notes, principal_amount, interest_amount, transaction_date)
+		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+		 RETURNING id, ledger_id, title, amount, nature, source_account_id, target_account_id,
+			sub_category_id, payment_method, notes, principal_amount, interest_amount,
 			transaction_date, created_at`,
-		userID, req.Title, req.Amount, req.Nature, req.SourceAccountID, req.TargetAccountID,
-		req.SubCategoryID, req.Entity, nilIfEmpty(req.PaymentMethod), nilIfEmpty(req.Notes),
+		ledgerID, req.Title, req.Amount, req.Nature, req.SourceAccountID, req.TargetAccountID,
+		req.SubCategoryID, nilIfEmpty(req.PaymentMethod), nilIfEmpty(req.Notes),
 		req.PrincipalAmount, req.InterestAmount, req.TransactionDate,
 	)
 	t, err = scanTransactionRow(row)
@@ -408,7 +396,7 @@ func (h *TransactionHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Apply balance changes
-	if err := applyBalanceChange(r.Context(), tx, userID, req.Nature, req.SourceAccountID, req.TargetAccountID, req.Amount, req.PrincipalAmount); err != nil {
+	if err := applyBalanceChange(r.Context(), tx, ledgerID, req.Nature, req.SourceAccountID, req.TargetAccountID, req.Amount, req.PrincipalAmount); err != nil {
 		writeError(w, http.StatusInternalServerError, "Failed to update account balances")
 		return
 	}
@@ -422,7 +410,7 @@ func (h *TransactionHandler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *TransactionHandler) Update(w http.ResponseWriter, r *http.Request) {
-	userID, err := GetUserID(r)
+	ledgerID, err := GetLedgerID(r)
 	if err != nil {
 		writeError(w, http.StatusUnauthorized, "Unauthorized")
 		return
@@ -442,7 +430,7 @@ func (h *TransactionHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	// Default source_account_id to the user's primary asset account when not provided
 	if req.SourceAccountID == 0 {
-		primaryID, err := h.getPrimaryAssetAccountID(r.Context(), userID)
+		primaryID, err := h.getPrimaryAssetAccountID(r.Context(), ledgerID)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, "source_account_id not provided and no primary asset account found")
 			return
@@ -463,10 +451,10 @@ func (h *TransactionHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	// Get existing transaction to reverse its balance impact
 	row := tx.QueryRow(r.Context(),
-		`SELECT id, user_id, title, amount, nature, source_account_id,
-			target_account_id, sub_category_id, entity, payment_method,
+		`SELECT id, ledger_id, title, amount, nature, source_account_id,
+			target_account_id, sub_category_id, payment_method,
 			notes, principal_amount, interest_amount, transaction_date, created_at
-		 FROM transactions WHERE id = $1 AND user_id = $2 FOR UPDATE`, id, userID)
+		 FROM transactions WHERE id = $1 AND ledger_id = $2 FOR UPDATE`, id, ledgerID)
 	old, err := scanTransactionRow(row)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "Transaction not found")
@@ -474,7 +462,7 @@ func (h *TransactionHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Reverse old balance impact
-	if err := reverseBalanceChange(r.Context(), tx, userID, old.Nature, old.SourceAccountID, old.TargetAccountID, old.Amount, old.PrincipalAmount); err != nil {
+	if err := reverseBalanceChange(r.Context(), tx, ledgerID, old.Nature, old.SourceAccountID, old.TargetAccountID, old.Amount, old.PrincipalAmount); err != nil {
 		writeError(w, http.StatusInternalServerError, "Failed to reverse old balance")
 		return
 	}
@@ -483,15 +471,15 @@ func (h *TransactionHandler) Update(w http.ResponseWriter, r *http.Request) {
 	var t models.Transaction
 	updateRow := tx.QueryRow(r.Context(),
 		`UPDATE transactions SET title=$1, amount=$2, nature=$3, source_account_id=$4,
-			target_account_id=$5, sub_category_id=$6, entity=$7, payment_method=$8,
-			notes=$9, principal_amount=$10, interest_amount=$11, transaction_date=$12
-		 WHERE id=$13 AND user_id=$14
-		 RETURNING id, user_id, title, amount, nature, source_account_id, target_account_id,
-			sub_category_id, entity, payment_method, notes, principal_amount, interest_amount,
+			target_account_id=$5, sub_category_id=$6, payment_method=$7,
+			notes=$8, principal_amount=$9, interest_amount=$10, transaction_date=$11
+		 WHERE id=$12 AND ledger_id=$13
+		 RETURNING id, ledger_id, title, amount, nature, source_account_id, target_account_id,
+			sub_category_id, payment_method, notes, principal_amount, interest_amount,
 			transaction_date, created_at`,
 		req.Title, req.Amount, req.Nature, req.SourceAccountID, req.TargetAccountID,
-		req.SubCategoryID, req.Entity, nilIfEmpty(req.PaymentMethod), nilIfEmpty(req.Notes),
-		req.PrincipalAmount, req.InterestAmount, req.TransactionDate, id, userID,
+		req.SubCategoryID, nilIfEmpty(req.PaymentMethod), nilIfEmpty(req.Notes),
+		req.PrincipalAmount, req.InterestAmount, req.TransactionDate, id, ledgerID,
 	)
 	t, err = scanTransactionRow(updateRow)
 	if err != nil {
@@ -500,7 +488,7 @@ func (h *TransactionHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Apply new balance changes
-	if err := applyBalanceChange(r.Context(), tx, userID, req.Nature, req.SourceAccountID, req.TargetAccountID, req.Amount, req.PrincipalAmount); err != nil {
+	if err := applyBalanceChange(r.Context(), tx, ledgerID, req.Nature, req.SourceAccountID, req.TargetAccountID, req.Amount, req.PrincipalAmount); err != nil {
 		writeError(w, http.StatusInternalServerError, "Failed to update account balances")
 		return
 	}
@@ -514,7 +502,7 @@ func (h *TransactionHandler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *TransactionHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	userID, err := GetUserID(r)
+	ledgerID, err := GetLedgerID(r)
 	if err != nil {
 		writeError(w, http.StatusUnauthorized, "Unauthorized")
 		return
@@ -535,10 +523,10 @@ func (h *TransactionHandler) Delete(w http.ResponseWriter, r *http.Request) {
 
 	// Get existing transaction to reverse its balance
 	row := tx.QueryRow(r.Context(),
-		`SELECT id, user_id, title, amount, nature, source_account_id,
-			target_account_id, sub_category_id, entity, payment_method,
+		`SELECT id, ledger_id, title, amount, nature, source_account_id,
+			target_account_id, sub_category_id, payment_method,
 			notes, principal_amount, interest_amount, transaction_date, created_at
-		 FROM transactions WHERE id = $1 AND user_id = $2 FOR UPDATE`, id, userID)
+		 FROM transactions WHERE id = $1 AND ledger_id = $2 FOR UPDATE`, id, ledgerID)
 	old, err := scanTransactionRow(row)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "Transaction not found")
@@ -546,13 +534,13 @@ func (h *TransactionHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Reverse balance impact
-	if err := reverseBalanceChange(r.Context(), tx, userID, old.Nature, old.SourceAccountID, old.TargetAccountID, old.Amount, old.PrincipalAmount); err != nil {
+	if err := reverseBalanceChange(r.Context(), tx, ledgerID, old.Nature, old.SourceAccountID, old.TargetAccountID, old.Amount, old.PrincipalAmount); err != nil {
 		writeError(w, http.StatusInternalServerError, "Failed to reverse balance")
 		return
 	}
 
 	// Delete the transaction
-	_, err = tx.Exec(r.Context(), "DELETE FROM transactions WHERE id = $1 AND user_id = $2", id, userID)
+	_, err = tx.Exec(r.Context(), "DELETE FROM transactions WHERE id = $1 AND ledger_id = $2", id, ledgerID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "Failed to delete transaction")
 		return
@@ -568,79 +556,79 @@ func (h *TransactionHandler) Delete(w http.ResponseWriter, r *http.Request) {
 
 // --- Balance Logic ---
 
-func applyBalanceChange(ctx context.Context, tx pgx.Tx, userID int, nature models.TxNature, sourceID int, targetID *int, amount, principalAmount float64) error {
+func applyBalanceChange(ctx context.Context, tx pgx.Tx, ledgerID int, nature models.TxNature, sourceID int, targetID *int, amount, principalAmount float64) error {
 	switch nature {
 	case models.NatureIncome:
-		_, err := tx.Exec(ctx, "UPDATE accounts SET current_balance = current_balance + $1 WHERE id = $2 AND user_id = $3", amount, sourceID, userID)
+		_, err := tx.Exec(ctx, "UPDATE accounts SET current_balance = current_balance + $1 WHERE id = $2 AND ledger_id = $3", amount, sourceID, ledgerID)
 		return err
 	case models.NatureExpense:
-		_, err := tx.Exec(ctx, "UPDATE accounts SET current_balance = current_balance - $1 WHERE id = $2 AND user_id = $3", amount, sourceID, userID)
+		_, err := tx.Exec(ctx, "UPDATE accounts SET current_balance = current_balance - $1 WHERE id = $2 AND ledger_id = $3", amount, sourceID, ledgerID)
 		return err
 	case models.NatureTransfer:
 		if targetID == nil {
 			return fmt.Errorf("target account required for transfer")
 		}
-		if _, err := tx.Exec(ctx, "UPDATE accounts SET current_balance = current_balance - $1 WHERE id = $2 AND user_id = $3", amount, sourceID, userID); err != nil {
+		if _, err := tx.Exec(ctx, "UPDATE accounts SET current_balance = current_balance - $1 WHERE id = $2 AND ledger_id = $3", amount, sourceID, ledgerID); err != nil {
 			return err
 		}
-		_, err := tx.Exec(ctx, "UPDATE accounts SET current_balance = current_balance + $1 WHERE id = $2 AND user_id = $3", amount, *targetID, userID)
+		_, err := tx.Exec(ctx, "UPDATE accounts SET current_balance = current_balance + $1 WHERE id = $2 AND ledger_id = $3", amount, *targetID, ledgerID)
 		return err
 	case models.NatureEMIPayment:
 		if targetID == nil {
 			return fmt.Errorf("target loan account required for EMI payment")
 		}
 		// Source (bank) decreases by total amount (principal + interest)
-		if _, err := tx.Exec(ctx, "UPDATE accounts SET current_balance = current_balance - $1 WHERE id = $2 AND user_id = $3", amount, sourceID, userID); err != nil {
+		if _, err := tx.Exec(ctx, "UPDATE accounts SET current_balance = current_balance - $1 WHERE id = $2 AND ledger_id = $3", amount, sourceID, ledgerID); err != nil {
 			return err
 		}
 		// Target (loan) balance decreases by principal_amount only (interest is just a cost)
 		// Subtract principal from loan balance to reduce the amount owed
 		if principalAmount > 0 {
-			_, err := tx.Exec(ctx, "UPDATE accounts SET current_balance = current_balance - $1 WHERE id = $2 AND user_id = $3", principalAmount, *targetID, userID)
+			_, err := tx.Exec(ctx, "UPDATE accounts SET current_balance = current_balance - $1 WHERE id = $2 AND ledger_id = $3", principalAmount, *targetID, ledgerID)
 			return err
 		}
 		return nil
 	case models.NatureLoanDisbursement:
 		// Source (loan) increases by amount (you owe more); bank account not tracked
-		_, err := tx.Exec(ctx, "UPDATE accounts SET current_balance = current_balance + $1 WHERE id = $2 AND user_id = $3", amount, sourceID, userID)
+		_, err := tx.Exec(ctx, "UPDATE accounts SET current_balance = current_balance + $1 WHERE id = $2 AND ledger_id = $3", amount, sourceID, ledgerID)
 		return err
 	}
 	return fmt.Errorf("unknown nature: %s", nature)
 }
 
-func reverseBalanceChange(ctx context.Context, tx pgx.Tx, userID int, nature models.TxNature, sourceID int, targetID *int, amount, principalAmount float64) error {
+func reverseBalanceChange(ctx context.Context, tx pgx.Tx, ledgerID int, nature models.TxNature, sourceID int, targetID *int, amount, principalAmount float64) error {
 	switch nature {
 	case models.NatureIncome:
-		_, err := tx.Exec(ctx, "UPDATE accounts SET current_balance = current_balance - $1 WHERE id = $2 AND user_id = $3", amount, sourceID, userID)
+		_, err := tx.Exec(ctx, "UPDATE accounts SET current_balance = current_balance - $1 WHERE id = $2 AND ledger_id = $3", amount, sourceID, ledgerID)
 		return err
 	case models.NatureExpense:
-		_, err := tx.Exec(ctx, "UPDATE accounts SET current_balance = current_balance + $1 WHERE id = $2 AND user_id = $3", amount, sourceID, userID)
+		_, err := tx.Exec(ctx, "UPDATE accounts SET current_balance = current_balance + $1 WHERE id = $2 AND ledger_id = $3", amount, sourceID, ledgerID)
 		return err
 	case models.NatureTransfer:
 		if targetID == nil {
 			return nil
 		}
-		if _, err := tx.Exec(ctx, "UPDATE accounts SET current_balance = current_balance + $1 WHERE id = $2 AND user_id = $3", amount, sourceID, userID); err != nil {
+		if _, err := tx.Exec(ctx, "UPDATE accounts SET current_balance = current_balance + $1 WHERE id = $2 AND ledger_id = $3", amount, sourceID, ledgerID); err != nil {
 			return err
 		}
-		_, err := tx.Exec(ctx, "UPDATE accounts SET current_balance = current_balance - $1 WHERE id = $2 AND user_id = $3", amount, *targetID, userID)
+		_, err := tx.Exec(ctx, "UPDATE accounts SET current_balance = current_balance - $1 WHERE id = $2 AND ledger_id = $3", amount, *targetID, ledgerID)
 		return err
 	case models.NatureEMIPayment:
-		if _, err := tx.Exec(ctx, "UPDATE accounts SET current_balance = current_balance + $1 WHERE id = $2 AND user_id = $3", amount, sourceID, userID); err != nil {
+		if _, err := tx.Exec(ctx, "UPDATE accounts SET current_balance = current_balance + $1 WHERE id = $2 AND ledger_id = $3", amount, sourceID, ledgerID); err != nil {
 			return err
 		}
 		if targetID != nil && principalAmount > 0 {
-			_, err := tx.Exec(ctx, "UPDATE accounts SET current_balance = current_balance + $1 WHERE id = $2 AND user_id = $3", principalAmount, *targetID, userID)
+			_, err := tx.Exec(ctx, "UPDATE accounts SET current_balance = current_balance + $1 WHERE id = $2 AND ledger_id = $3", principalAmount, *targetID, ledgerID)
 			return err
 		}
 		return nil
 	case models.NatureLoanDisbursement:
 		// Reverse: decrease loan, decrease bank
-		if _, err := tx.Exec(ctx, "UPDATE accounts SET current_balance = current_balance - $1 WHERE id = $2 AND user_id = $3", amount, sourceID, userID); err != nil {
+		if _, err := tx.Exec(ctx, "UPDATE accounts SET current_balance = current_balance - $1 WHERE id = $2 AND ledger_id = $3", amount, sourceID, ledgerID); err != nil {
 			return err
 		}
 		if targetID != nil {
-			_, err := tx.Exec(ctx, "UPDATE accounts SET current_balance = current_balance - $1 WHERE id = $2 AND user_id = $3", amount, *targetID, userID)
+			_, err := tx.Exec(ctx, "UPDATE accounts SET current_balance = current_balance - $1 WHERE id = $2 AND ledger_id = $3", amount, *targetID, ledgerID)
 			return err
 		}
 		return nil
@@ -686,12 +674,6 @@ func validateTransactionReq(req *models.CreateTransactionReq) error {
 		}
 	}
 
-	switch req.Entity {
-	case models.EntityPersonal, models.EntityHome:
-	default:
-		return fmt.Errorf("entity must be PERSONAL or HOME")
-	}
-
 	return nil
 }
 
@@ -699,8 +681,8 @@ func scanTransaction(rows pgx.Rows) (models.Transaction, error) {
 	var t models.Transaction
 	var paymentMethod, notes *string
 	var txDate time.Time
-	err := rows.Scan(&t.ID, &t.UserID, &t.Title, &t.Amount, &t.Nature, &t.SourceAccountID,
-		&t.TargetAccountID, &t.SubCategoryID, &t.Entity, &paymentMethod,
+	err := rows.Scan(&t.ID, &t.LedgerID, &t.Title, &t.Amount, &t.Nature, &t.SourceAccountID,
+		&t.TargetAccountID, &t.SubCategoryID, &paymentMethod,
 		&notes, &t.PrincipalAmount, &t.InterestAmount, &txDate, &t.CreatedAt)
 	if paymentMethod != nil {
 		t.PaymentMethod = *paymentMethod
@@ -716,8 +698,8 @@ func scanTransactionRow(row pgx.Row) (models.Transaction, error) {
 	var t models.Transaction
 	var paymentMethod, notes *string
 	var txDate time.Time
-	err := row.Scan(&t.ID, &t.UserID, &t.Title, &t.Amount, &t.Nature, &t.SourceAccountID,
-		&t.TargetAccountID, &t.SubCategoryID, &t.Entity, &paymentMethod,
+	err := row.Scan(&t.ID, &t.LedgerID, &t.Title, &t.Amount, &t.Nature, &t.SourceAccountID,
+		&t.TargetAccountID, &t.SubCategoryID, &paymentMethod,
 		&notes, &t.PrincipalAmount, &t.InterestAmount, &txDate, &t.CreatedAt)
 	if paymentMethod != nil {
 		t.PaymentMethod = *paymentMethod
@@ -737,10 +719,10 @@ func nilIfEmpty(s string) *string {
 }
 
 // getPrimaryAssetAccountID returns the first active ASSET account ID for the given user.
-func (h *TransactionHandler) getPrimaryAssetAccountID(ctx context.Context, userID int) (int, error) {
+func (h *TransactionHandler) getPrimaryAssetAccountID(ctx context.Context, ledgerID int) (int, error) {
 	var id int
 	err := h.db.QueryRow(ctx,
-		`SELECT id FROM accounts WHERE user_id = $1 AND type = 'ASSET' AND is_active = true ORDER BY id LIMIT 1`,
-		userID).Scan(&id)
+		`SELECT id FROM accounts WHERE ledger_id = $1 AND type = 'ASSET' AND is_active = true ORDER BY id LIMIT 1`,
+		ledgerID).Scan(&id)
 	return id, err
 }

@@ -1,4 +1,4 @@
-import type { EntityType, TxNature, FilterState } from './types';
+import type { TxNature, FilterState } from './types';
 
 export const PAYMENT_METHODS = [
   'GPay',
@@ -8,7 +8,6 @@ export const PAYMENT_METHODS = [
   'Cash',
 ] as const;
 
-export const ENTITIES: EntityType[] = ['PERSONAL', 'HOME'];
 export const NATURES: TxNature[] = ['INCOME', 'EXPENSE', 'EMI_PAYMENT', 'LOAN_DISBURSEMENT'];
 
 export const DATE_PRESET_LABELS: Record<string, string> = {
@@ -81,7 +80,6 @@ export function getPresetDates(preset: string): { date_from: string; date_to: st
 
 export const DEFAULT_FILTERS: FilterState = {
   search: '',
-  entity: '',
   nature: '',
   category_id: '',
   sub_category_id: '',
@@ -92,7 +90,7 @@ export const DEFAULT_FILTERS: FilterState = {
 
 export function countActiveFilters(f: FilterState): number {
   const dateActive = f.datePreset && (f.datePreset !== 'custom' || f.date_from || f.date_to) ? 1 : 0;
-  return [f.search, f.entity, f.nature, f.category_id, f.sub_category_id].filter(Boolean).length + dateActive;
+  return [f.search, f.nature, f.category_id, f.sub_category_id].filter(Boolean).length + dateActive;
 }
 
 export function emptyTransactionForm(): {
@@ -102,7 +100,6 @@ export function emptyTransactionForm(): {
   source_account_id: string;
   target_account_id: string;
   sub_category_id: string;
-  entity: 'PERSONAL';
   payment_method: string;
   notes: string;
   principal_amount: string;
@@ -116,7 +113,6 @@ export function emptyTransactionForm(): {
     source_account_id: '1',
     target_account_id: '',
     sub_category_id: '',
-    entity: 'PERSONAL',
     payment_method: '',
     notes: '',
     principal_amount: '0',

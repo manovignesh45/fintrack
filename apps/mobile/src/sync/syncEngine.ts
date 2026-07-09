@@ -25,7 +25,6 @@ export async function syncPendingTransactions(db: SQLiteDatabase): Promise<SyncR
         source_account_id: payload.source_account_id,
         target_account_id: payload.target_account_id,
         sub_category_id: payload.sub_category_id,
-        entity: payload.entity,
         payment_method: payload.payment_method,
         notes: payload.notes,
         principal_amount: payload.principal_amount,

@@ -3,14 +3,12 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-nativ
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { categoriesApi } from '@/src/api/client';
-import type { EntityType, TxNature } from '@fintrack/shared';
-import { ENTITIES } from '@fintrack/shared';
+import type { TxNature } from '@fintrack/shared';
 
 export default function CreateCategoryScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ entity?: string; nature?: string }>();
+  const params = useLocalSearchParams<{ nature?: string }>();
   const [name, setName] = useState('');
-  const [entity, setEntity] = useState<EntityType>((params.entity as EntityType) || 'PERSONAL');
   const [nature, setNature] = useState<TxNature>((params.nature as TxNature) || 'EXPENSE');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -20,7 +18,7 @@ export default function CreateCategoryScreen() {
     setSubmitting(true);
     setError('');
     try {
-      await categoriesApi.create({ name: name.trim(), entity, nature });
+      await categoriesApi.create({ name: name.trim(), nature });
       router.back();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create category');
@@ -44,23 +42,6 @@ export default function CreateCategoryScreen() {
         </View>
       ) : null}
 
-      {/* Entity */}
-      <View className="mb-4">
-        <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">Entity *</Text>
-        <View className="flex-row gap-2">
-          {ENTITIES.map((e) => (
-            <TouchableOpacity
-              key={e}
-              onPress={() => setEntity(e)}
-              className={`flex-1 py-2 rounded-lg items-center ${
-                entity === e ? 'bg-blue-600 dark:bg-blue-500' : 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600'
-              }`}
-            >
-              <Text className={`text-sm font-medium ${entity === e ? 'text-white' : 'text-gray-600 dark:text-gray-300'}`}>{e}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
 
       {/* Nature */}
       <View className="mb-4">

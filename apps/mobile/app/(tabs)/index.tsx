@@ -66,15 +66,15 @@ export default function TransactionsScreen() {
     if (!serverTx?.length) return;
     for (const tx of serverTx) {
       await db.runAsync(
-        `INSERT OR IGNORE INTO transactions
+          `INSERT OR IGNORE INTO transactions
           (id, local_id, user_id, title, amount, nature, source_account_id,
-           target_account_id, sub_category_id, entity, payment_method, notes,
+           target_account_id, sub_category_id, payment_method, notes,
            principal_amount, interest_amount, transaction_date, created_at, sync_status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'synced')`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'synced')`,
         [
           tx.id, `server_${tx.id}`, tx.user_id, tx.title, tx.amount, tx.nature,
           tx.source_account_id, tx.target_account_id ?? null, tx.sub_category_id ?? null,
-          tx.entity, tx.payment_method ?? null, tx.notes ?? null,
+          tx.payment_method ?? null, tx.notes ?? null,
           tx.principal_amount, tx.interest_amount, tx.transaction_date, tx.created_at,
         ],
       );
@@ -87,7 +87,6 @@ export default function TransactionsScreen() {
     setRefreshing(true);
     try {
       const params: Record<string, string> = {};
-      if (filters.entity) params.entity = filters.entity;
       if (filters.nature) params.nature = filters.nature;
       if (filters.date_from) params.date_from = filters.date_from;
       if (filters.date_to) params.date_to = filters.date_to;
@@ -179,7 +178,7 @@ export default function TransactionsScreen() {
             )}
           </View>
           <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">
-            {t.transaction_date} · {natureLabels[t.nature]} · {t.entity}
+            {t.transaction_date} · {natureLabels[t.nature]}
             {t.payment_method ? ` · ${t.payment_method}` : ''}
           </Text>
           {t.nature === 'EMI_PAYMENT' && (
@@ -223,7 +222,7 @@ export default function TransactionsScreen() {
 
       {countActiveFilters(filters) > 0 && (
         <View className="flex-row flex-wrap gap-1.5 mb-3">
-          {filters.entity ? <FilterPill label={filters.entity} onRemove={() => setFilters((f) => ({ ...f, entity: '' }))} /> : null}
+
           {filters.nature ? <FilterPill label={filters.nature} onRemove={() => setFilters((f) => ({ ...f, nature: '' }))} /> : null}
           {filters.datePreset && filters.datePreset !== 'custom' ? (
             <FilterPill label={DATE_PRESET_LABELS[filters.datePreset as keyof typeof DATE_PRESET_LABELS] ?? 'Date Range'} onRemove={() => setFilters((f) => ({ ...f, datePreset: '', date_from: '', date_to: '' }))} />

@@ -7,7 +7,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from 'nativewind';
 import type { FilterState, Category, TxNature } from '@fintrack/shared';
 import {
-  ENTITIES,
   DATE_PRESET_LABELS,
   getPresetDates,
   DEFAULT_FILTERS,
@@ -95,11 +94,6 @@ const TransactionFilter = forwardRef<TransactionFilterRef, Props>(({ filters, on
   const set = (field: keyof FilterState, value: string) => {
     setLocal((prev) => {
       const next = { ...prev, [field]: value };
-      if (field === 'entity') {
-        next.nature = '';
-        next.category_id = '';
-        next.sub_category_id = '';
-      }
       if (field === 'nature') {
         next.category_id = '';
         next.sub_category_id = '';
@@ -120,15 +114,9 @@ const TransactionFilter = forwardRef<TransactionFilterRef, Props>(({ filters, on
     });
   };
 
-  const availableNatures = local.entity
-    ? Array.from(new Set([
-        ...categories.filter((c) => c.entity === local.entity).map((c) => c.nature),
-        ...STRUCTURAL_NATURES,
-      ]))
-    : TX_NATURES.map((n) => n.value);
+  const availableNatures = TX_NATURES.map((n) => n.value);
 
   const filteredCategories = categories.filter((c) => {
-    if (local.entity && c.entity !== local.entity) return false;
     if (local.nature && c.nature !== local.nature) return false;
     return true;
   });
@@ -175,27 +163,7 @@ const TransactionFilter = forwardRef<TransactionFilterRef, Props>(({ filters, on
                 />
               </View>
 
-              {/* Entity */}
-              <View className="mb-4">
-                <Text className="text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">Entity</Text>
-                <View className="flex-row flex-wrap gap-2">
-                  <TouchableOpacity
-                    onPress={() => set('entity', '')}
-                    className={`px-3 py-1.5 rounded-full border ${!local.entity ? 'bg-blue-600 dark:bg-blue-500 border-blue-600 dark:border-blue-500' : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600'}`}
-                  >
-                    <Text className={`text-sm ${!local.entity ? 'text-white' : 'text-gray-600 dark:text-gray-300'}`}>All</Text>
-                  </TouchableOpacity>
-                  {ENTITIES.map((e) => (
-                    <TouchableOpacity
-                      key={e}
-                      onPress={() => set('entity', e)}
-                      className={`px-3 py-1.5 rounded-full border ${local.entity === e ? 'bg-blue-600 dark:bg-blue-500 border-blue-600 dark:border-blue-500' : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600'}`}
-                    >
-                      <Text className={`text-sm ${local.entity === e ? 'text-white' : 'text-gray-600 dark:text-gray-300'}`}>{e}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
+
 
               {/* Transaction Type */}
               <View className="mb-4">
@@ -235,7 +203,7 @@ const TransactionFilter = forwardRef<TransactionFilterRef, Props>(({ filters, on
                       {filteredCategories.map((c) => (
                         <Picker.Item 
                           key={c.id} 
-                          label={`${c.name}${!local.entity || !local.nature ? ` (${c.entity} · ${c.nature})` : ''}`} 
+                          label={`${c.name}${!local.nature ? ` (${c.nature})` : ''}`} 
                           value={String(c.id)} 
                         />
                       ))}

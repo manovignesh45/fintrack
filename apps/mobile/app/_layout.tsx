@@ -12,9 +12,76 @@ import 'react-native-reanimated';
 import '../global.css';
 
 import { AuthProvider, useAuth } from '@/src/context/AuthContext';
+import { LedgerProvider, useLedgers } from '@/src/context/LedgerContext';
 import { setupDatabase } from '@/src/db/database';
 import { useNetworkSync } from '@/src/sync/useNetworkSync';
 import { clearAllUserData } from '@/src/db/referenceDataRepo';
+
+function HeaderLeft() {
+  const { ledgers, activeLedger, switchLedger } = useLedgers();
+  const [menuVisible, setMenuVisible] = React.useState(false);
+
+  return (
+    <View className="flex-row items-center ml-4 relative">
+      <Text className="text-lg font-bold text-gray-900 dark:text-white mr-2">FinTrack</Text>
+      {activeLedger && (
+        <TouchableOpacity 
+          onPress={() => setMenuVisible(true)}
+          className="flex-row items-center px-2 py-0.5 bg-blue-100 dark:bg-blue-900/40 rounded-full border border-blue-200 dark:border-blue-800"
+        >
+          <Text className="text-[10px] uppercase font-bold text-blue-700 dark:text-blue-300 mr-1">
+            {activeLedger.name}
+          </Text>
+          <Ionicons name="caret-down" size={10} color="#1d4ed8" className="dark:text-blue-300" />
+        </TouchableOpacity>
+      )}
+
+      {menuVisible && (
+        <Modal transparent animationType="fade" visible={menuVisible} onRequestClose={() => setMenuVisible(false)}>
+          <TouchableOpacity 
+            style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.2)' }} 
+            activeOpacity={1} 
+            onPress={() => setMenuVisible(false)}
+          >
+            <View 
+              className="absolute top-14 left-24 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-hidden border border-gray-200 dark:border-gray-700"
+              onStartShouldSetResponder={() => true}
+            >
+              <View className="px-4 py-2 border-b border-gray-100 dark:border-gray-700">
+                <Text className="text-xs text-gray-500 dark:text-gray-400">Switch Ledger</Text>
+              </View>
+              <View className="py-1 bg-white dark:bg-gray-800">
+                {ledgers.map((l) => (
+                  <TouchableOpacity
+                    key={l.id}
+                    onPress={() => { switchLedger(l.id.toString()); setMenuVisible(false); }}
+                    className="flex-row justify-between items-center px-4 py-2.5"
+                  >
+                    <Text className="text-sm text-gray-700 dark:text-gray-300 capitalize">{l.name}</Text>
+                    {activeLedger?.id === l.id && <Ionicons name="checkmark" size={16} color="#2563eb" />}
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <View className="border-t border-gray-100 dark:border-gray-700 py-1">
+                <TouchableOpacity
+                  onPress={() => {
+                    setMenuVisible(false);
+                    // Note: Create Ledger mobile implementation pending
+                    console.log('Create ledger triggered in mobile');
+                  }}
+                  className="flex-row items-center gap-2 px-4 py-2.5"
+                >
+                  <Ionicons name="add" size={16} color="#2563eb" />
+                  <Text className="text-sm font-medium text-blue-600 dark:text-blue-400">Create Ledger</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </TouchableOpacity>
+        </Modal>
+      )}
+    </View>
+  );
+}
 
 function HeaderRight() {
   const { editMode, setEditMode, user, logout } = useAuth();
@@ -164,9 +231,10 @@ function RootContent() {
   return (
     <SQLiteProvider databaseName="fintrack.db" onInit={setupDatabase}>
       <AuthProvider>
-        <AuthGate>
-          <NetworkSyncListener />
-          <Stack
+        <LedgerProvider>
+          <AuthGate>
+            <NetworkSyncListener />
+            <Stack
             screenOptions={{
               headerStyle: { backgroundColor: colors.headerBg },
               headerTintColor: colors.headerText,
@@ -177,9 +245,9 @@ function RootContent() {
               name="(tabs)" 
               options={{ 
                 headerShown: true,
-                headerTitle: 'FinTrack',
-                headerTitleStyle: { fontWeight: 'bold', fontSize: 18, color: colors.headerText },
+                headerTitle: '',
                 headerStyle: { backgroundColor: colors.headerBg },
+                headerLeft: () => <HeaderLeft />,
                 headerRight: () => <HeaderRight />
               }} 
             />
@@ -195,6 +263,7 @@ function RootContent() {
           </Stack>
         </AuthGate>
         <StatusBar style={theme === 'system' ? 'auto' : theme} />
+        </LedgerProvider>
       </AuthProvider>
     </SQLiteProvider>
   );

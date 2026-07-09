@@ -6,6 +6,7 @@ import (
 	"errors"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/fintrack/backend/internal/models"
@@ -139,4 +140,42 @@ func GetUserID(r *http.Request) (int, error) {
 		return 0, errors.New("user not found in context")
 	}
 	return claims.UserID, nil
+}
+
+const ledgerContextKey contextKey = "ledger"
+
+func (h *AccountHandler) LedgerMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ledgerIDStr := r.Header.Get("X-Ledger-Id")
+		if ledgerIDStr == "" {
+			writeError(w, http.StatusBadRequest, "X-Ledger-Id header required")
+			return
+		}
+
+		// Ensure the user actually owns this ledger
+		userID, err := GetUserID(r)
+		if err != nil {
+			writeError(w, http.StatusUnauthorized, "Unauthorized")
+			return
+		}
+
+		var count int
+		err = h.db.QueryRow(r.Context(), "SELECT COUNT(*) FROM ledgers WHERE id = $1 AND user_id = $2", ledgerIDStr, userID).Scan(&count)
+		if err != nil || count == 0 {
+			writeError(w, http.StatusForbidden, "Forbidden: you do not own this ledger")
+			return
+		}
+
+		ledgerIDInt, _ := strconv.Atoi(ledgerIDStr)
+		ctx := context.WithValue(r.Context(), ledgerContextKey, ledgerIDInt)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func GetLedgerID(r *http.Request) (int, error) {
+	ledgerID, ok := r.Context().Value(ledgerContextKey).(int)
+	if !ok {
+		return 0, errors.New("ledger not found in context")
+	}
+	return ledgerID, nil
 }

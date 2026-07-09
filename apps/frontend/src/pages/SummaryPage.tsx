@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { summaryApi } from '../api/client';
-import type { EntitySummary, SummaryResponse } from '../api/types';
+import type { SummaryResponse } from '../api/types';
 
 function fmt(n: number) {
   return '₹' + Math.abs(n).toLocaleString('en-IN');
@@ -28,57 +28,57 @@ function currentMonth() {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 }
 
-function EntityCard({ e }: { e: EntitySummary }) {
-  const totalOut = e.total_expense + e.total_emi;
-  const isPositive = e.net_flow >= 0;
+function BreakdownCard({ data }: { data: SummaryResponse }) {
+  const totalOut = data.total_expense + data.total_emi;
+  const isPositive = data.net_flow >= 0;
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800">
-        <span className="text-sm font-bold text-gray-700 dark:text-gray-300 tracking-wide">{e.entity}</span>
+        <span className="text-sm font-bold text-gray-700 dark:text-gray-300 tracking-wide">Breakdown</span>
         <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${isPositive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-          {isPositive ? '+' : '-'}{fmt(e.net_flow)}
+          {isPositive ? '+' : '-'}{fmt(data.net_flow)}
         </span>
       </div>
 
       {/* Body */}
       <div className="px-4 py-3 space-y-2">
         {/* Income */}
-        {e.total_income > 0 && (
+        {data.total_income > 0 && (
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-green-500 inline-block"></span>
               <span className="text-sm text-gray-500 dark:text-gray-400">Income</span>
             </div>
-            <span className="text-sm font-semibold text-green-600 dark:text-green-400">{fmt(e.total_income)}</span>
+            <span className="text-sm font-semibold text-green-600 dark:text-green-400">{fmt(data.total_income)}</span>
           </div>
         )}
 
         {/* Expense */}
-        {e.total_expense > 0 && (
+        {data.total_expense > 0 && (
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-red-400 inline-block"></span>
               <span className="text-sm text-gray-500 dark:text-gray-400">Expense</span>
             </div>
-            <span className="text-sm font-semibold text-red-500">{fmt(e.total_expense)}</span>
+            <span className="text-sm font-semibold text-red-500">{fmt(data.total_expense)}</span>
           </div>
         )}
 
         {/* EMI */}
-        {e.total_emi > 0 && (
+        {data.total_emi > 0 && (
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-orange-400 inline-block"></span>
               <span className="text-sm text-gray-500 dark:text-gray-400">EMI Payments</span>
             </div>
-            <span className="text-sm font-semibold text-orange-500">{fmt(e.total_emi)}</span>
+            <span className="text-sm font-semibold text-orange-500">{fmt(data.total_emi)}</span>
           </div>
         )}
 
         {/* Divider + total out */}
-        {totalOut > 0 && e.total_income > 0 && (
+        {totalOut > 0 && data.total_income > 0 && (
           <div className="flex items-center justify-between pt-1 border-t border-gray-100 dark:border-gray-800">
             <span className="text-xs text-gray-400">Total Out</span>
             <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{fmt(totalOut)}</span>
@@ -110,9 +110,10 @@ export default function SummaryPage() {
     load();
   }, [month]);
 
-  const totalIncome = data?.entities.reduce((s, e) => s + e.total_income, 0) ?? 0;
-  const totalExpense = data?.entities.reduce((s, e) => s + e.total_expense + e.total_emi, 0) ?? 0;
+  const totalIncome = data?.total_income ?? 0;
+  const totalExpense = (data?.total_expense ?? 0) + (data?.total_emi ?? 0);
   const totalNet = totalIncome - totalExpense;
+  const hasData = !!data && (data.total_income > 0 || data.total_expense > 0 || data.total_emi > 0);
 
   return (
     <div className="space-y-4">
@@ -147,7 +148,7 @@ export default function SummaryPage() {
 
       {loading ? (
         <p className="text-gray-400 text-center py-12">Loading...</p>
-      ) : !data || data.entities.length === 0 ? (
+      ) : !hasData ? (
         <div className="text-center py-12 text-gray-400">
           <p className="text-3xl mb-2">📭</p>
           <p className="text-sm">No transactions for {monthLabel(month)}</p>
@@ -175,11 +176,9 @@ export default function SummaryPage() {
             </div>
           </div>
 
-          {/* Entity breakdown */}
+          {/* Breakdown */}
           <div className="space-y-3">
-            {data.entities.map((e) => (
-              <EntityCard key={e.entity} e={e} />
-            ))}
+            <BreakdownCard data={data!} />
           </div>
         </>
       )}

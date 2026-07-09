@@ -13,7 +13,9 @@ import TemplatesPage from './pages/TemplatesPage';
 import CreateTemplatePage from './pages/CreateTemplatePage';
 import EditTransactionPage from './pages/EditTransactionPage';
 import LoginPage from './pages/LoginPage';
+import ImportPage from './pages/ImportPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { LedgerProvider, useLedgers } from './context/LedgerContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 
 const navItems = [
@@ -38,9 +40,11 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <ThemeProvider>
-          <AppShell />
-        </ThemeProvider>
+        <LedgerProvider>
+          <ThemeProvider>
+            <AppShell />
+          </ThemeProvider>
+        </LedgerProvider>
       </AuthProvider>
     </BrowserRouter>
   );
@@ -49,9 +53,14 @@ export default function App() {
 function AppShell() {
   const { isAuthenticated, logout, user, editMode, setEditMode } = useAuth();
   const { theme, setTheme } = useTheme();
+  const { ledgers, activeLedger, switchLedger, createLedger } = useLedgers();
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showLedgerDropdown, setShowLedgerDropdown] = useState(false);
   const [menuView, setMenuView] = useState<'main' | 'settings' | 'theme'>('main');
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newLedgerName, setNewLedgerName] = useState('');
   const menuRef = useRef<HTMLDivElement>(null);
+  const ledgerDropdownRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -59,6 +68,9 @@ function AppShell() {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setShowUserMenu(false);
         setTimeout(() => setMenuView('main'), 200);
+      }
+      if (ledgerDropdownRef.current && !ledgerDropdownRef.current.contains(e.target as Node)) {
+        setShowLedgerDropdown(false);
       }
     };
     document.addEventListener('mousedown', handler);
@@ -72,7 +84,53 @@ function AppShell() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-20 transition-colors">
       <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 sticky top-0 z-10 flex justify-between items-center transition-colors">
-        <h1 className="text-lg font-bold text-gray-800 dark:text-white">FinTrack</h1>
+        <div className="flex items-center gap-2 relative" ref={ledgerDropdownRef}>
+          <h1 className="text-lg font-bold text-gray-800 dark:text-white leading-none">FinTrack</h1>
+          {isAuthenticated && activeLedger && (
+            <button
+              onClick={() => setShowLedgerDropdown((v) => !v)}
+              className="px-2 py-0.5 flex items-center gap-1 text-[10px] uppercase tracking-wider font-bold bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/40 dark:text-blue-300 dark:hover:bg-blue-900/60 rounded-full border border-blue-200 dark:border-blue-800 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-1"
+            >
+              <span>{activeLedger.name}</span>
+              <span className="text-blue-500 dark:text-blue-400">▾</span>
+            </button>
+          )}
+          {showLedgerDropdown && (
+            <div className="absolute top-full left-0 mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-50 overflow-hidden py-1">
+              <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-700">
+                <p className="text-xs text-gray-500 dark:text-gray-400">Switch Ledger</p>
+              </div>
+              {ledgers.map((l) => (
+                <button
+                  key={l.id}
+                  onClick={() => {
+                    switchLedger(l.id.toString());
+                    setShowLedgerDropdown(false);
+                  }}
+                  className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex justify-between items-center capitalize"
+                >
+                  <span className="truncate">{l.name}</span>
+                  {activeLedger?.id === l.id && <span className="text-blue-600 dark:text-blue-400 flex-shrink-0">✓</span>}
+                </button>
+              ))}
+              <div className="border-t border-gray-100 dark:border-gray-700 mt-1">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setShowLedgerDropdown(false);
+                    setShowCreateModal(true);
+                  }}
+                  className="w-full text-left px-3 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center gap-1"
+                >
+                  <span className="text-lg leading-none">+</span>
+                  <span>Create Ledger</span>
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
         {isAuthenticated && (
           <div className="flex items-center gap-3">
             {/* Edit mode toggle */}
@@ -185,6 +243,7 @@ function AppShell() {
           <Route path="/tally" element={<ProtectedRoute><TallyPage /></ProtectedRoute>} />
           <Route path="/templates" element={<ProtectedRoute><TemplatesPage /></ProtectedRoute>} />
           <Route path="/templates/new" element={<ProtectedRoute><CreateTemplatePage /></ProtectedRoute>} />
+          <Route path="/import" element={<ProtectedRoute><ImportPage /></ProtectedRoute>} />
           <Route path="/more" element={<ProtectedRoute><MorePage /></ProtectedRoute>} />
         </Routes>
       </main>
@@ -208,6 +267,58 @@ function AppShell() {
           </div>
         </nav>
       )}
+
+      {/* Create Ledger Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Create New Ledger</h3>
+            </div>
+            <div className="p-5">
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                Enter a name for your new workspace (e.g., Office, Vacation).
+              </p>
+              <input
+                type="text"
+                autoFocus
+                value={newLedgerName}
+                onChange={(e) => setNewLedgerName(e.target.value)}
+                placeholder="Ledger Name"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
+              />
+            </div>
+            <div className="px-5 py-4 bg-gray-50 dark:bg-gray-700/50 flex justify-end gap-2 border-t border-gray-100 dark:border-gray-700">
+              <button
+                onClick={() => {
+                  setShowCreateModal(false);
+                  setNewLedgerName('');
+                }}
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-500"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  if (newLedgerName.trim()) {
+                    try {
+                      await createLedger(newLedgerName.trim());
+                      setShowCreateModal(false);
+                      setNewLedgerName('');
+                    } catch (err: any) {
+                      alert(err.message);
+                    }
+                  }
+                }}
+                disabled={!newLedgerName.trim()}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 dark:focus:ring-offset-gray-800"
+              >
+                Create
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -224,6 +335,9 @@ function MorePage() {
       </NavLink>
       <NavLink to="/templates" className="block p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-200">
         📋 Transaction Templates
+      </NavLink>
+      <NavLink to="/import" className="block p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-200">
+        📥 Import CSV
       </NavLink>
     </div>
   );

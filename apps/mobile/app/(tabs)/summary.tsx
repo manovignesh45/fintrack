@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { summaryApi } from '@/src/api/client';
-import type { EntitySummary, SummaryResponse } from '@fintrack/shared';
+import type { SummaryResponse } from '@fintrack/shared';
 
 function fmt(n: number) {
   return '₹' + Math.abs(n).toLocaleString('en-IN');
@@ -30,58 +30,7 @@ function currentMonth() {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 }
 
-function EntityCard({ e }: { e: EntitySummary }) {
-  const totalOut = e.total_expense + e.total_emi;
-  const isPositive = e.net_flow >= 0;
 
-  return (
-    <View className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden mb-3">
-      <View className="flex-row items-center justify-between px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800">
-        <Text className="text-sm font-bold text-gray-700 dark:text-gray-200">{e.entity}</Text>
-        <View className={`px-2 py-0.5 rounded-full ${isPositive ? 'bg-green-100' : 'bg-red-100'}`}>
-          <Text className={`text-xs font-semibold ${isPositive ? 'text-green-700' : 'text-red-700'}`}>
-            {isPositive ? '+' : '-'}{fmt(e.net_flow)}
-          </Text>
-        </View>
-      </View>
-      <View className="px-4 py-3 gap-2">
-        {e.total_income > 0 && (
-          <View className="flex-row items-center justify-between">
-            <View className="flex-row items-center gap-2">
-              <View className="w-2 h-2 rounded-full bg-green-500" />
-              <Text className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">Income</Text>
-            </View>
-            <Text className="text-sm font-semibold text-green-600">{fmt(e.total_income)}</Text>
-          </View>
-        )}
-        {e.total_expense > 0 && (
-          <View className="flex-row items-center justify-between">
-            <View className="flex-row items-center gap-2">
-              <View className="w-2 h-2 rounded-full bg-red-400" />
-              <Text className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">Expense</Text>
-            </View>
-            <Text className="text-sm font-semibold text-red-500">{fmt(e.total_expense)}</Text>
-          </View>
-        )}
-        {e.total_emi > 0 && (
-          <View className="flex-row items-center justify-between">
-            <View className="flex-row items-center gap-2">
-              <View className="w-2 h-2 rounded-full bg-orange-400" />
-              <Text className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">EMI Payments</Text>
-            </View>
-            <Text className="text-sm font-semibold text-orange-500">{fmt(e.total_emi)}</Text>
-          </View>
-        )}
-        {totalOut > 0 && e.total_income > 0 && (
-          <View className="flex-row items-center justify-between pt-1 border-t border-gray-100 dark:border-gray-800">
-            <Text className="text-xs text-gray-400 dark:text-gray-500">Total Out</Text>
-            <Text className="text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500">{fmt(totalOut)}</Text>
-          </View>
-        )}
-      </View>
-    </View>
-  );
-}
 
 export default function SummaryScreen() {
   const [month, setMonth] = useState(currentMonth);
@@ -110,9 +59,11 @@ export default function SummaryScreen() {
     }
   }, [month]);
 
-  const totalIncome = data?.entities.reduce((s, e) => s + e.total_income, 0) ?? 0;
-  const totalExpense = data?.entities.reduce((s, e) => s + e.total_expense + e.total_emi, 0) ?? 0;
-  const totalNet = totalIncome - totalExpense;
+  const totalIncome = data?.total_income ?? 0;
+  const totalExpense = data?.total_expense ?? 0;
+  const totalEmi = data?.total_emi ?? 0;
+  const totalOut = totalExpense + totalEmi;
+  const totalNet = data?.net_flow ?? 0;
 
   return (
     <ScrollView
@@ -149,7 +100,7 @@ export default function SummaryScreen() {
         <View className="items-center justify-center py-12">
           <ActivityIndicator size="large" color="#2563eb" />
         </View>
-      ) : !data || data.entities.length === 0 ? (
+      ) : !data || (data.total_income === 0 && data.total_expense === 0 && data.total_emi === 0) ? (
         <View className="items-center py-12">
           <Text className="text-3xl mb-2">📭</Text>
           <Text className="text-sm text-gray-400 dark:text-gray-500">No transactions for {monthLabel(month)}</Text>
@@ -157,7 +108,7 @@ export default function SummaryScreen() {
       ) : (
         <>
           {/* Grand total banner */}
-          <View className="bg-blue-600 dark:bg-blue-50 dark:bg-blue-900/200 rounded-xl p-4 mb-4">
+          <View className="bg-blue-600 dark:bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 mb-4">
             <Text className="text-xs font-semibold uppercase text-blue-200 mb-3">Grand Total</Text>
             <View className="flex-row">
               <View className="flex-1 items-center">
@@ -165,8 +116,8 @@ export default function SummaryScreen() {
                 <Text className="text-sm font-bold text-green-300">{fmt(totalIncome)}</Text>
               </View>
               <View className="flex-1 items-center border-x border-blue-500">
-                <Text className="text-xs text-blue-200 mb-1">Expense</Text>
-                <Text className="text-sm font-bold text-red-300">{fmt(totalExpense)}</Text>
+                <Text className="text-xs text-blue-200 mb-1">Total Out</Text>
+                <Text className="text-sm font-bold text-red-300">{fmt(totalOut)}</Text>
               </View>
               <View className="flex-1 items-center">
                 <Text className="text-xs text-blue-200 mb-1">Net</Text>
@@ -177,10 +128,41 @@ export default function SummaryScreen() {
             </View>
           </View>
 
-          {/* Entity breakdown */}
-          {data.entities.map((e) => (
-            <EntityCard key={e.entity} e={e} />
-          ))}
+          {/* Breakdown Details */}
+          <View className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden mb-3">
+            <View className="flex-row items-center justify-between px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800">
+              <Text className="text-sm font-bold text-gray-700 dark:text-gray-200">Breakdown</Text>
+            </View>
+            <View className="px-4 py-3 gap-2">
+              {totalIncome > 0 && (
+                <View className="flex-row items-center justify-between">
+                  <View className="flex-row items-center gap-2">
+                    <View className="w-2 h-2 rounded-full bg-green-500" />
+                    <Text className="text-sm text-gray-500 dark:text-gray-400">Income</Text>
+                  </View>
+                  <Text className="text-sm font-semibold text-green-600">{fmt(totalIncome)}</Text>
+                </View>
+              )}
+              {totalExpense > 0 && (
+                <View className="flex-row items-center justify-between">
+                  <View className="flex-row items-center gap-2">
+                    <View className="w-2 h-2 rounded-full bg-red-400" />
+                    <Text className="text-sm text-gray-500 dark:text-gray-400">Expense</Text>
+                  </View>
+                  <Text className="text-sm font-semibold text-red-500">{fmt(totalExpense)}</Text>
+                </View>
+              )}
+              {totalEmi > 0 && (
+                <View className="flex-row items-center justify-between">
+                  <View className="flex-row items-center gap-2">
+                    <View className="w-2 h-2 rounded-full bg-orange-400" />
+                    <Text className="text-sm text-gray-500 dark:text-gray-400">EMI Payments</Text>
+                  </View>
+                  <Text className="text-sm font-semibold text-orange-500">{fmt(totalEmi)}</Text>
+                </View>
+              )}
+            </View>
+          </View>
         </>
       )}
     </ScrollView>

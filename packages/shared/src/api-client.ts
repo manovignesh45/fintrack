@@ -13,20 +13,25 @@ import type {
 export interface ApiClientConfig {
   baseUrl: string;
   getToken: () => string | null;
+  getLedgerId: () => string | null;
   onUnauthorized: () => void;
 }
 
 export function createApiClient(config: ApiClientConfig) {
-  const { baseUrl, getToken, onUnauthorized } = config;
+  const { baseUrl, getToken, getLedgerId, onUnauthorized } = config;
 
   async function request<T>(url: string, options?: RequestInit): Promise<T> {
     const token = getToken();
+    const ledgerId = getLedgerId();
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
 
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
+    }
+    if (ledgerId) {
+      headers['X-Ledger-Id'] = ledgerId;
     }
 
     if (options?.headers) {
@@ -58,6 +63,36 @@ export function createApiClient(config: ApiClientConfig) {
       request<AuthResponse>('/register', { method: 'POST', body: JSON.stringify(data) }),
   };
 
+  const ledgersApi = {
+    list: () => request<import('./types').Ledger[]>('/ledgers'),
+    create: (data: { name: string }) =>
+      request<import('./types').Ledger>('/ledgers', { method: 'POST', body: JSON.stringify(data) }),
+  };
+
+  const importApi = {
+    uploadCsv: (file: File) => {
+      const formData = new FormData();
+      formData.append('file', file);
+      // For FormData, we must delete the content-type header so fetch sets the correct boundary
+      const headers: Record<string, string> = { 'X-Ledger-Id': getLedgerId() || '' };
+      const token = getToken();
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      return fetch(baseUrl + '/import/csv', {
+        method: 'POST',
+        headers,
+        body: formData,
+      }).then(async (res) => {
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ error: res.statusText }));
+          throw new Error(err.error || 'Import failed');
+        }
+        return res.json();
+      });
+    },
+  };
+
   const accountsApi = {
     list: (params?: { type?: 'ASSET' | 'LIABILITY' }) => {
       const qs = params?.type ? `?type=${params.type}` : '';
@@ -83,14 +118,13 @@ export function createApiClient(config: ApiClientConfig) {
   };
 
   const categoriesApi = {
-    list: (params?: { entity?: string; nature?: string }) => {
+    list: (params?: { nature?: string }) => {
       const search = new URLSearchParams();
-      if (params?.entity) search.set('entity', params.entity);
       if (params?.nature) search.set('nature', params.nature);
       const qs = search.toString();
       return request<Category[]>(`/categories${qs ? `?${qs}` : ''}`);
     },
-    create: (data: { name: string; entity: string; nature: string }) =>
+    create: (data: { name: string; nature: string }) =>
       request<Category>('/categories', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: number, data: { name: string }) =>
       request<Category>(`/categories/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
@@ -118,9 +152,9 @@ export function createApiClient(config: ApiClientConfig) {
       return request<Transaction[]>(`/transactions${qs}`);
     },
     get: (id: number) => request<Transaction>(`/transactions/${id}`),
-    create: (data: Omit<Transaction, 'id' | 'created_at' | 'user_id'>) =>
+    create: (data: Omit<Transaction, 'id' | 'created_at' | 'ledger_id'>) =>
       request<Transaction>('/transactions', { method: 'POST', body: JSON.stringify(data) }),
-    update: (id: number, data: Omit<Transaction, 'id' | 'created_at' | 'user_id'>) =>
+    update: (id: number, data: Omit<Transaction, 'id' | 'created_at' | 'ledger_id'>) =>
       request<Transaction>(`/transactions/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: number) =>
       request<void>(`/transactions/${id}`, { method: 'DELETE' }),
@@ -128,7 +162,7 @@ export function createApiClient(config: ApiClientConfig) {
 
   const templatesApi = {
     list: () => request<TransactionTemplate[]>('/templates'),
-    create: (data: Omit<TransactionTemplate, 'id' | 'created_at' | 'user_id'>) =>
+    create: (data: Omit<TransactionTemplate, 'id' | 'created_at' | 'ledger_id'>) =>
       request<TransactionTemplate>('/templates', { method: 'POST', body: JSON.stringify(data) }),
     delete: (id: number) =>
       request<void>(`/templates/${id}`, { method: 'DELETE' }),
@@ -151,6 +185,8 @@ export function createApiClient(config: ApiClientConfig) {
 
   return {
     authApi,
+    ledgersApi,
+    importApi,
     accountsApi,
     categoriesApi,
     transactionsApi,
