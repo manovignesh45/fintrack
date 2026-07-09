@@ -7,23 +7,28 @@ import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import React, { useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { SQLiteProvider, useSQLiteContext } from 'expo-sqlite';
 import 'react-native-reanimated';
 import '../global.css';
 
 import { AuthProvider, useAuth } from '@/src/context/AuthContext';
 import { LedgerProvider, useLedgers } from '@/src/context/LedgerContext';
-import { setupDatabase } from '@/src/db/database';
-import { useNetworkSync } from '@/src/sync/useNetworkSync';
-import { clearAllUserData } from '@/src/db/referenceDataRepo';
-
 function HeaderLeft() {
   const { ledgers, activeLedger, switchLedger } = useLedgers();
   const [menuVisible, setMenuVisible] = React.useState(false);
+  const router = useRouter();
+  const segments = useSegments();
+  
+  // Show back button if we are not on the root tabs screen
+  const canGoBack = segments.length > 1 && segments[0] !== '(tabs)';
 
   return (
     <View className="flex-row items-center ml-4 relative">
-      <Text className="text-lg font-bold text-gray-900 dark:text-white mr-2">FinTrack</Text>
+      {canGoBack && (
+        <TouchableOpacity onPress={() => router.back()} className="mr-3">
+          <Ionicons name="arrow-back" size={24} className="text-gray-900 dark:text-white" color="currentColor" />
+        </TouchableOpacity>
+      )}
+      {!canGoBack && <Text className="text-lg font-bold text-gray-900 dark:text-white mr-2">FinTrack</Text>}
       {activeLedger && (
         <TouchableOpacity 
           onPress={() => setMenuVisible(true)}
@@ -197,14 +202,13 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
-  const db = useSQLiteContext();
   const prevAuthRef = useRef<boolean | null>(null);
 
   useEffect(() => {
     if (loading) return;
 
     if (prevAuthRef.current === true && !isAuthenticated) {
-      clearAllUserData(db).catch(() => {});
+      // Offline DB is removed, so no local data to clear.
     }
     prevAuthRef.current = isAuthenticated;
 
@@ -219,53 +223,44 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-function NetworkSyncListener() {
-  useNetworkSync();
-  return null;
-}
+
 
 function RootContent() {
   const { theme } = useTheme();
   const colors = useThemeColors();
 
   return (
-    <SQLiteProvider databaseName="fintrack.db" onInit={setupDatabase}>
       <AuthProvider>
         <LedgerProvider>
           <AuthGate>
-            <NetworkSyncListener />
             <Stack
             screenOptions={{
               headerStyle: { backgroundColor: colors.headerBg },
               headerTintColor: colors.headerText,
               headerTitleStyle: { fontWeight: 'bold' },
+              headerLeft: () => <HeaderLeft />,
+              headerRight: () => <HeaderRight />,
+              headerTitle: '',
             }}
           >
             <Stack.Screen 
               name="(tabs)" 
-              options={{ 
-                headerShown: true,
-                headerTitle: '',
-                headerStyle: { backgroundColor: colors.headerBg },
-                headerLeft: () => <HeaderLeft />,
-                headerRight: () => <HeaderRight />
-              }} 
+              options={{ headerShown: true }} 
             />
             <Stack.Screen name="login" options={{ headerShown: false }} />
-            <Stack.Screen name="add" options={{ title: 'Add Transaction', headerShown: false }} />
-            <Stack.Screen name="edit/[id]" options={{ title: 'Edit Transaction' }} />
-            <Stack.Screen name="accounts/[id]" options={{ title: 'Account Details' }} />
-            <Stack.Screen name="categories/index" options={{ title: 'Categories' }} />
-            <Stack.Screen name="categories/new" options={{ title: 'Create Category' }} />
-            <Stack.Screen name="categories/[catId]/sub/new" options={{ title: 'Create Sub-category' }} />
-            <Stack.Screen name="templates/new" options={{ title: 'Create Template' }} />
-            <Stack.Screen name="tally" options={{ title: 'Loan Reconciliation' }} />
+            <Stack.Screen name="add" options={{ headerShown: false }} />
+            <Stack.Screen name="edit/[id]" options={{ headerShown: false }} />
+            <Stack.Screen name="accounts/[id]" options={{ headerShown: true }} />
+            <Stack.Screen name="categories/index" options={{ headerShown: true }} />
+            <Stack.Screen name="categories/new" options={{ headerShown: true }} />
+            <Stack.Screen name="categories/[catId]/sub/new" options={{ headerShown: true }} />
+            <Stack.Screen name="templates/new" options={{ headerShown: true }} />
+            <Stack.Screen name="tally" options={{ headerShown: true }} />
           </Stack>
         </AuthGate>
         <StatusBar style={theme === 'system' ? 'auto' : theme} />
         </LedgerProvider>
       </AuthProvider>
-    </SQLiteProvider>
   );
 }
 

@@ -4,7 +4,7 @@ import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { accountsApi, categoriesApi } from '@/src/api/client';
 import type { Account, Category, TransactionFormData } from '@fintrack/shared';
-import { ENTITIES, NATURES, PAYMENT_METHODS, emptyTransactionForm } from '@fintrack/shared';
+import { NATURES, PAYMENT_METHODS, emptyTransactionForm } from '@fintrack/shared';
 import { useColorScheme } from 'nativewind';
 
 interface Props {
@@ -40,7 +40,7 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
       setSelectedCategoryId('');
       return { ...f, sub_category_id: '' };
     });
-  }, [form.entity, form.nature]);
+  }, [form.nature]);
 
   useEffect(() => {
     if (form.sub_category_id && categories.length > 0) {
@@ -114,25 +114,7 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
         </View>
       ) : null}
 
-      {/* Entity selector */}
-      <View className="mb-4">
-        <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">Entity *</Text>
-        <View className="flex-row gap-2">
-          {ENTITIES.map((e) => (
-            <TouchableOpacity
-              key={e}
-              onPress={() => set('entity', e)}
-              className={`flex-1 py-2.5 rounded-lg items-center ${
-                form.entity === e ? 'bg-blue-600 dark:bg-blue-500' : 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600'
-              }`}
-            >
-              <Text className={`text-sm font-medium ${form.entity === e ? 'text-white' : 'text-gray-600 dark:text-gray-300'}`}>
-                {e}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
+
 
       {/* Nature selector */}
       <View className="mb-4">

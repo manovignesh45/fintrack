@@ -1,19 +1,11 @@
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useSQLiteContext } from 'expo-sqlite';
-import NetInfo from '@react-native-community/netinfo';
-import { transactionRepo, syncQueue } from '@/src/db/transactionRepo';
-import { useSyncStore } from '@/src/store/syncStore';
+import { transactionsApi } from '@/src/api/client';
 import type { TransactionFormData } from '@fintrack/shared';
-import type { CreateTransactionPayload } from '@/src/db/localTypes';
 import TransactionForm from '@/src/components/TransactionForm';
 
-function generateLocalId(): string {
-  return `local_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-}
-
-function formToPayload(form: TransactionFormData): CreateTransactionPayload {
+function formToPayload(form: TransactionFormData) {
   return {
     title: form.title,
     amount: parseFloat(form.amount),
@@ -32,38 +24,12 @@ function formToPayload(form: TransactionFormData): CreateTransactionPayload {
 
 export default function AddTransactionScreen() {
   const router = useRouter();
-  const db = useSQLiteContext();
   const params = useLocalSearchParams<{ template?: string }>();
   const initialData = params.template ? JSON.parse(params.template) as TransactionFormData : undefined;
 
   const handleSubmit = async (form: TransactionFormData) => {
-    const localId = generateLocalId();
     const payload = formToPayload(form);
-
-    // Always write to SQLite first — works offline
-    await transactionRepo.insertPending(db, localId, payload);
-    await syncQueue.enqueue(db, localId, 'CREATE', payload);
-
-    // Attempt immediate sync if online (fire-and-forget)
-    const netState = await NetInfo.fetch();
-    if (netState.isConnected) {
-      useSyncStore.getState().setIsSyncing(true);
-      import('@/src/sync/syncEngine').then(({ syncPendingTransactions }) => {
-        syncPendingTransactions(db)
-          .then((result) => {
-            useSyncStore.getState().setPendingCount(result.remaining);
-            useSyncStore.getState().setLastSyncAt(new Date());
-          })
-          .catch(() => {})
-          .finally(() => {
-            useSyncStore.getState().setIsSyncing(false);
-          });
-      });
-    } else {
-      const pending = await syncQueue.countPending(db);
-      useSyncStore.getState().setPendingCount(pending);
-    }
-
+    await transactionsApi.create(payload);
     router.back();
   };
 

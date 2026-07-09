@@ -3,8 +3,6 @@ import type { Ledger } from '@fintrack/shared';
 import { ledgersApi, setApiLedgerId } from '@/src/api/client';
 import { useAuth } from './AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { clearAllUserData } from '@/src/db/referenceDataRepo';
-import { useSQLiteContext } from 'expo-sqlite';
 
 interface LedgerContextType {
   ledgers: Ledger[];
@@ -20,7 +18,6 @@ const LedgerContext = createContext<LedgerContextType | undefined>(undefined);
 
 export const LedgerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated } = useAuth();
-  const db = useSQLiteContext();
   const [ledgers, setLedgers] = useState<Ledger[]>([]);
   const [activeLedgerId, setActiveLedgerId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -63,8 +60,6 @@ export const LedgerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setActiveLedgerId(id);
     setApiLedgerId(id);
     await AsyncStorage.setItem('fintrack_ledger_id', id);
-    // Clear local database to force a fresh sync for the new ledger
-    await clearAllUserData(db);
     // Trigger a full app reload or navigation reset if possible, 
     // for now resetting the state and forcing a new network sync handles it
   };

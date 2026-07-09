@@ -1,0 +1,13 @@
+app/(tabs)/index.tsx(31,28): error TS2304: Cannot find name 'TransactionFilterRef'.
+app/(tabs)/index.tsx(33,24): error TS2304: Cannot find name 'useAuth'.
+app/(tabs)/index.tsx(34,30): error TS2304: Cannot find name 'useLedgers'.
+app/(tabs)/index.tsx(48,26): error TS2552: Cannot find name 'transactionsApi'. Did you mean 'transactions'?
+app/(tabs)/index.tsx(82,21): error TS2552: Cannot find name 'transactionsApi'. Did you mean 'transactions'?
+app/(tabs)/index.tsx(147,10): error TS2304: Cannot find name 'TransactionFilter'.
+src/components/TransactionForm.tsx(7,10): error TS2305: Module '"@fintrack/shared"' has no exported member 'ENTITIES'.
+src/components/TransactionForm.tsx(43,12): error TS2339: Property 'entity' does not exist on type 'TransactionFormData'.
+src/components/TransactionForm.tsx(121,26): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/components/TransactionForm.tsx(124,34): error TS2345: Argument of type '"entity"' is not assignable to parameter of type 'keyof TransactionFormData'.
+src/components/TransactionForm.tsx(126,22): error TS2339: Property 'entity' does not exist on type 'TransactionFormData'.
+src/components/TransactionForm.tsx(129,60): error TS2339: Property 'entity' does not exist on type 'TransactionFormData'.
+src/hooks/useReferenceData.ts(6,43): error TS2307: Cannot find module '@/src/db/referenceDataRepo' or its corresponding type declarations.

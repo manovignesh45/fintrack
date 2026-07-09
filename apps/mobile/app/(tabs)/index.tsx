@@ -4,16 +4,11 @@ import { View, Text, TouchableOpacity, Alert, ActivityIndicator, RefreshControl 
 import { Gesture, GestureDetector, Directions, FlatList } from 'react-native-gesture-handler';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useSQLiteContext } from 'expo-sqlite';
-import { transactionsApi, accountsApi } from '@/src/api/client';
-import { transactionRepo } from '@/src/db/transactionRepo';
-import { accountRepo } from '@/src/db/referenceDataRepo';
+import { transactionsApi } from '@/src/api/client';
 import { useAuth } from '@/src/context/AuthContext';
-import { useSyncStore } from '@/src/store/syncStore';
-import { SyncStatusBar } from '@/src/components/SyncStatusBar';
+import { useLedgers } from '@/src/context/LedgerContext';
 import TransactionFilter, { TransactionFilterRef } from '@/src/components/TransactionFilter';
-import type { TxNature, FilterState } from '@fintrack/shared';
-import type { LocalTransaction } from '@/src/db/localTypes';
+import type { TxNature, FilterState, Transaction } from '@fintrack/shared';
 import { DEFAULT_FILTERS, countActiveFilters, DATE_PRESET_LABELS } from '@fintrack/shared';
 
 const natureColors: Record<TxNature, string> = {
@@ -33,108 +28,53 @@ const natureLabels: Record<TxNature, string> = {
 };
 
 export default function TransactionsScreen() {
-  const [transactions, setTransactions] = useState<LocalTransaction[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const filterRef = useRef<TransactionFilterRef>(null);
   const router = useRouter();
-  const db = useSQLiteContext();
-  const { editMode, user } = useAuth();
-  const { setPendingCount } = useSyncStore();
+  const { editMode } = useAuth();
+  const { activeLedgerId } = useLedgers();
 
-  const loadFromDb = useCallback(async (f: FilterState = filters) => {
-    try {
-      const data = await transactionRepo.getAll(db, f, user?.id);
-      setTransactions(data);
-      const pending = await transactionRepo.countPending(db);
-      setPendingCount(pending);
-    } catch {
-      setTransactions([]);
-    }
-  }, [db, filters, user?.id]);
-
-  // Silently reload from SQLite on focus (returning from add screen, switching tabs)
-  // Does not touch loading state — spinner is controlled by the login effect below
-  useFocusEffect(
-    useCallback(() => {
-      loadFromDb(filters);
-    }, [filters, loadFromDb])
-  );
-
-  const seedTransactions = useCallback(async (serverTx: Awaited<ReturnType<typeof transactionsApi.list>>) => {
-    if (!serverTx?.length) return;
-    for (const tx of serverTx) {
-      await db.runAsync(
-          `INSERT OR IGNORE INTO transactions
-          (id, local_id, user_id, title, amount, nature, source_account_id,
-           target_account_id, sub_category_id, payment_method, notes,
-           principal_amount, interest_amount, transaction_date, created_at, sync_status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'synced')`,
-        [
-          tx.id, `server_${tx.id}`, tx.user_id, tx.title, tx.amount, tx.nature,
-          tx.source_account_id, tx.target_account_id ?? null, tx.sub_category_id ?? null,
-          tx.payment_method ?? null, tx.notes ?? null,
-          tx.principal_amount, tx.interest_amount, tx.transaction_date, tx.created_at,
-        ],
-      );
-    }
-  }, [db]);
-
-  // Pull-to-refresh: fetch filtered page from server → seed SQLite → reload list
-  // Network calls happen BEFORE any DB writes to avoid holding a write lock during I/O
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
+  const loadTransactions = useCallback(async (f: FilterState = filters, showSpinner = false) => {
+    if (!activeLedgerId) return;
+    if (showSpinner) setLoading(true);
     try {
       const params: Record<string, string> = {};
-      if (filters.nature) params.nature = filters.nature;
-      if (filters.date_from) params.date_from = filters.date_from;
-      if (filters.date_to) params.date_to = filters.date_to;
-      if (filters.search) params.search = filters.search;
-      if (filters.category_id) params.category_id = filters.category_id;
-      if (filters.sub_category_id) params.sub_category_id = filters.sub_category_id;
+      if (f.nature) params.nature = f.nature;
+      if (f.date_from) params.date_from = f.date_from;
+      if (f.date_to) params.date_to = f.date_to;
+      if (f.search) params.search = f.search;
+      if (f.category_id) params.category_id = f.category_id;
+      if (f.sub_category_id) params.sub_category_id = f.sub_category_id;
 
-      const [serverTx, accts] = await Promise.all([
-        transactionsApi.list(params),
-        accountsApi.list(),
-      ]);
-      await seedTransactions(serverTx);
-      if (accts) await accountRepo.upsertAll(db, accts);
+      const data = await transactionsApi.list(params);
+      setTransactions(data || []);
     } catch {
-      // Network unavailable — just reload from SQLite
+      setTransactions([]);
+    } finally {
+      if (showSpinner) setLoading(false);
     }
+  }, [activeLedgerId, filters]);
 
-    const { syncPendingTransactions } = await import('@/src/sync/syncEngine');
-    syncPendingTransactions(db).catch(() => {});
+  useFocusEffect(
+    useCallback(() => {
+      loadTransactions(filters, false);
+    }, [filters, loadTransactions])
+  );
 
-    await loadFromDb(filters);
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadTransactions(filters, false);
     setRefreshing(false);
-  }, [db, filters, loadFromDb, seedTransactions]);
+  }, [filters, loadTransactions]);
 
-  // On login: fetch ALL transactions (no date filter) + accounts, seed SQLite, then show list.
-  // Separate from onRefresh because onRefresh uses current filters (date-limited).
-  // Data was wiped on logout, so we need a full re-seed from the server here.
   useEffect(() => {
-    if (!user?.id) return;
-    const loginSync = async () => {
-      setLoading(true);
-      try {
-        const [serverTx, accts] = await Promise.all([
-          transactionsApi.list({}),
-          accountsApi.list(),
-        ]);
-        await seedTransactions(serverTx);
-        if (accts) await accountRepo.upsertAll(db, accts);
-      } catch {
-        // Network unavailable on login — show whatever is in SQLite
-      }
-      await loadFromDb(filters);
-      setLoading(false);
-    };
-    loginSync();
-  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+    loadTransactions(filters, true);
+  }, [activeLedgerId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleDelete = async (item: LocalTransaction) => {
+  const handleDelete = async (item: Transaction) => {
     Alert.alert('Delete', 'Delete this transaction?', [
       { text: 'Cancel', style: 'cancel' },
       {
@@ -144,9 +84,8 @@ export default function TransactionsScreen() {
           try {
             if (item.id) {
               await transactionsApi.delete(item.id);
+              await loadTransactions(filters, true);
             }
-            await transactionRepo.softDelete(db, item.local_id);
-            await loadFromDb(filters);
           } catch {
             Alert.alert('Error', 'Failed to delete');
           }
@@ -164,18 +103,12 @@ export default function TransactionsScreen() {
     { income: 0, expense: 0 },
   );
 
-  const renderItem = ({ item: t }: { item: LocalTransaction }) => (
-    <View className={`bg-white dark:bg-gray-800 rounded-lg border p-3 mb-2 mx-4 ${t.sync_status === 'failed' ? 'border-red-300' : 'border-gray-200 dark:border-gray-700'}`}>
+  const renderItem = ({ item: t }: { item: Transaction }) => (
+    <View className="bg-white dark:bg-gray-800 rounded-lg border p-3 mb-2 mx-4 border-gray-200 dark:border-gray-700">
       <View className="flex-row justify-between items-start">
         <View className="flex-1 mr-3">
           <View className="flex-row items-center gap-1.5">
             <Text className="font-medium text-gray-800 dark:text-gray-100" numberOfLines={1}>{t.title}</Text>
-            {t.sync_status === 'pending' && (
-              <Ionicons name="time-outline" size={12} color="#9ca3af" />
-            )}
-            {t.sync_status === 'failed' && (
-              <Ionicons name="alert-circle-outline" size={12} color="#ef4444" />
-            )}
           </View>
           <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">
             {t.transaction_date} · {natureLabels[t.nature]}
@@ -186,9 +119,7 @@ export default function TransactionsScreen() {
               P: ₹{t.principal_amount.toLocaleString('en-IN')} + I: ₹{t.interest_amount.toLocaleString('en-IN')}
             </Text>
           )}
-          {t.sync_error ? (
-            <Text className="text-xs text-red-500 mt-0.5">{t.sync_error}</Text>
-          ) : t.notes ? (
+          {t.notes ? (
             <Text className="text-xs text-gray-400 dark:text-gray-500 mt-1">{t.notes}</Text>
           ) : null}
         </View>
@@ -267,7 +198,6 @@ export default function TransactionsScreen() {
   return (
     <GestureDetector gesture={flingUp}>
       <View className="flex-1 bg-gray-50 dark:bg-gray-900">
-      <SyncStatusBar />
       {loading ? (
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color="#2563eb" />
@@ -275,7 +205,7 @@ export default function TransactionsScreen() {
       ) : (
         <FlatList
           data={transactions}
-          keyExtractor={(t) => t.local_id}
+          keyExtractor={(t) => t.id.toString()}
           renderItem={renderItem}
           ListHeaderComponent={ListHeader}
           ListEmptyComponent={<Text className="text-gray-400 dark:text-gray-500 text-center py-8">No transactions yet</Text>}
