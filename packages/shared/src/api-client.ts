@@ -25,6 +25,10 @@ export function createApiClient(config: ApiClientConfig) {
     const ledgerId = getLedgerId();
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+      'User-Agent': 'FintrackMobileApp/1.0.0',
     };
 
     if (token) {
@@ -101,11 +105,12 @@ export function createApiClient(config: ApiClientConfig) {
     get: (id: number, params?: { date_before?: string; date_to?: string }) => {
       let url = `/accounts/${id}`;
       if (params) {
-        const search = new URLSearchParams();
-        if (params.date_before) search.set('date_before', params.date_before);
-        if (params.date_to) search.set('date_to', params.date_to);
-        const qs = search.toString();
-        if (qs) url += `?${qs}`;
+        const parts: string[] = [];
+        if (params.date_before) parts.push(`date_before=${encodeURIComponent(params.date_before)}`);
+        if (params.date_to) parts.push(`date_to=${encodeURIComponent(params.date_to)}`);
+        if (parts.length > 0) {
+          url += `?${parts.join('&')}`;
+        }
       }
       return request<Account>(url);
     },
@@ -119,10 +124,11 @@ export function createApiClient(config: ApiClientConfig) {
 
   const categoriesApi = {
     list: (params?: { nature?: string }) => {
-      const search = new URLSearchParams();
-      if (params?.nature) search.set('nature', params.nature);
-      const qs = search.toString();
-      return request<Category[]>(`/categories${qs ? `?${qs}` : ''}`);
+      let url = '/categories';
+      if (params?.nature) {
+        url += `?nature=${encodeURIComponent(params.nature)}`;
+      }
+      return request<Category[]>(url);
     },
     create: (data: { name: string; nature: string }) =>
       request<Category>('/categories', { method: 'POST', body: JSON.stringify(data) }),
@@ -148,7 +154,12 @@ export function createApiClient(config: ApiClientConfig) {
 
   const transactionsApi = {
     list: (params?: Record<string, string>) => {
-      const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+      let qs = '';
+      if (params && Object.keys(params).length > 0) {
+        qs = '?' + Object.entries(params)
+          .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+          .join('&');
+      }
       return request<Transaction[]>(`/transactions${qs}`);
     },
     get: (id: number) => request<Transaction>(`/transactions/${id}`),

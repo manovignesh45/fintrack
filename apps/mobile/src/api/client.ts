@@ -1,7 +1,7 @@
 import { createApiClient } from '@fintrack/shared';
 import * as SecureStore from 'expo-secure-store';
 
-const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:8080/api';
+const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://fintrack-seg6.onrender.com/api';
 
 let onUnauthorizedCallback: (() => void) | null = null;
 let currentLedgerId: string | null = null;

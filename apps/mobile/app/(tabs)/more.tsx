@@ -1,6 +1,7 @@
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import Constants from 'expo-constants';
 import { useAuth } from '@/src/context/AuthContext';
 
 export default function MoreScreen() {
@@ -56,6 +57,13 @@ export default function MoreScreen() {
         <Ionicons name="log-out-outline" size={18} color="#dc2626" />
         <Text className="text-sm font-medium text-red-600">Log Out</Text>
       </TouchableOpacity>
+
+      {/* App Version Info */}
+      <View className="mt-8 mb-4 items-center">
+        <Text className="text-xs text-gray-400 dark:text-gray-500">
+          FinTrack Version {Constants.expoConfig?.version || '2.0.0'}
+        </Text>
+      </View>
     </ScrollView>
   );
 }

@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { templatesApi } from '@/src/api/client';
 import { useAuth } from '@/src/context/AuthContext';
+import { useLedgers } from '@/src/context/LedgerContext';
 import type { TransactionTemplate } from '@fintrack/shared';
 
 const natureLabels: Record<string, string> = {
@@ -21,6 +22,8 @@ export default function TemplatesScreen() {
   const router = useRouter();
   const { editMode } = useAuth();
 
+  const { activeLedgerId, refreshLedgers } = useLedgers();
+
   const load = () => {
     setLoading(true);
     templatesApi.list()
@@ -32,6 +35,9 @@ export default function TemplatesScreen() {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
+      if (!activeLedgerId) {
+        await refreshLedgers();
+      }
       const data = await templatesApi.list();
       setTemplates(data || []);
     } catch {
@@ -39,7 +45,7 @@ export default function TemplatesScreen() {
     } finally {
       setRefreshing(false);
     }
-  }, []);
+  }, [activeLedgerId, refreshLedgers]);
 
   useEffect(() => { load(); }, []);
 

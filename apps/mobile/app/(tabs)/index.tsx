@@ -35,7 +35,7 @@ export default function TransactionsScreen() {
   const filterRef = useRef<TransactionFilterRef>(null);
   const router = useRouter();
   const { editMode } = useAuth();
-  const { activeLedgerId } = useLedgers();
+  const { activeLedgerId, refreshLedgers } = useLedgers();
 
   const loadTransactions = useCallback(async (f: FilterState = filters, showSpinner = false) => {
     if (!activeLedgerId) return;
@@ -51,7 +51,9 @@ export default function TransactionsScreen() {
 
       const data = await transactionsApi.list(params);
       setTransactions(data || []);
-    } catch {
+    } catch (err: any) {
+      console.error("Transactions load error:", err);
+      Alert.alert("API Error", err?.message || "Failed to load transactions");
       setTransactions([]);
     } finally {
       if (showSpinner) setLoading(false);
@@ -66,9 +68,12 @@ export default function TransactionsScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
+    if (!activeLedgerId) {
+      await refreshLedgers();
+    }
     await loadTransactions(filters, false);
     setRefreshing(false);
-  }, [filters, loadTransactions]);
+  }, [filters, loadTransactions, activeLedgerId, refreshLedgers]);
 
   useEffect(() => {
     loadTransactions(filters, true);

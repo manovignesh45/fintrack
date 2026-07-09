@@ -47,6 +47,13 @@ export const LedgerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
     } catch (error) {
       console.error('Failed to fetch ledgers', error);
+      if (!activeLedgerId) {
+        const savedId = await AsyncStorage.getItem('fintrack_ledger_id');
+        if (savedId) {
+          setActiveLedgerId(savedId);
+          setApiLedgerId(savedId);
+        }
+      }
     } finally {
       setLoading(false);
     }
