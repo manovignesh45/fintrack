@@ -85,6 +85,15 @@ func (h *AccountHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Auto-create default ledger
+	var ledgerID int
+	err = h.db.QueryRow(r.Context(), 
+		"INSERT INTO ledgers (user_id, name, created_at, updated_at) VALUES ($1, 'Personal', NOW(), NOW()) RETURNING id", 
+		user.ID).Scan(&ledgerID)
+	if err == nil {
+		_ = SeedDefaultCategories(r.Context(), h.db, ledgerID)
+	}
+
 	writeJSON(w, http.StatusCreated, user)
 }
 
