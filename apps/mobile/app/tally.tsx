@@ -74,7 +74,7 @@ export default function TallyScreen() {
         <TouchableOpacity
           onPress={handleCheck}
           disabled={loading}
-          className={`w-full py-3 rounded-lg items-center ${loading ? 'bg-blue-400' : 'bg-blue-600 dark:bg-blue-50 dark:bg-blue-900/200'}`}
+          className={`w-full py-3 rounded-lg items-center ${loading ? 'bg-blue-400' : 'bg-blue-600 dark:bg-blue-50 dark:bg-blue-900/20'}`}
         >
           <Text className="text-white font-medium">{loading ? 'Checking...' : 'Check Tally'}</Text>
         </TouchableOpacity>

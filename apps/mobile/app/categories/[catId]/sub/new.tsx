@@ -96,7 +96,7 @@ export default function CreateSubCategoryScreen() {
       <TouchableOpacity
         onPress={handleSubmit}
         disabled={submitting}
-        className={`w-full py-3 rounded-lg items-center ${submitting ? 'bg-blue-400' : 'bg-blue-600 dark:bg-blue-50 dark:bg-blue-900/200'}`}
+        className={`w-full py-3 rounded-lg items-center ${submitting ? 'bg-blue-400' : 'bg-blue-600 dark:bg-blue-50 dark:bg-blue-900/20'}`}
       >
         <Text className="text-white font-semibold">{submitting ? 'Creating...' : 'Create Sub-category'}</Text>
       </TouchableOpacity>

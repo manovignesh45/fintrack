@@ -179,7 +179,7 @@ export default function AccountsScreen() {
                   <TouchableOpacity
                     onPress={handleAdd}
                     disabled={saving}
-                    className={`w-full py-2 rounded items-center ${saving ? 'bg-blue-400' : 'bg-blue-600 dark:bg-blue-50 dark:bg-blue-900/200'}`}
+                    className={`w-full py-2 rounded items-center ${saving ? 'bg-blue-400' : 'bg-blue-600 dark:bg-blue-50 dark:bg-blue-900/20'}`}
                   >
                     <Text className="text-white text-sm font-medium">{saving ? 'Adding...' : 'Add Loan Account'}</Text>
                   </TouchableOpacity>
@@ -204,7 +204,7 @@ export default function AccountsScreen() {
       {editMode && (
         <TouchableOpacity
           onPress={() => setShowAdd(true)}
-          className="absolute bottom-6 right-6 w-14 h-14 bg-blue-600 dark:bg-blue-50 dark:bg-blue-900/200 rounded-full shadow-lg items-center justify-center"
+          className="absolute bottom-6 right-6 w-14 h-14 bg-blue-600 dark:bg-blue-50 dark:bg-blue-900/20 rounded-full shadow-lg items-center justify-center"
           activeOpacity={0.8}
         >
           <Ionicons name="add" size={28} color="white" />

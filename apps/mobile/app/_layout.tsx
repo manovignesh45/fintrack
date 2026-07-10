@@ -24,12 +24,7 @@ function HeaderLeft() {
 
   return (
     <View className="flex-row items-center ml-4 relative">
-      {canGoBack && (
-        <TouchableOpacity onPress={() => router.back()} className="mr-3">
-          <Ionicons name="arrow-back" size={24} className="text-gray-900 dark:text-white" color="currentColor" />
-        </TouchableOpacity>
-      )}
-      {!canGoBack && <Text className="text-lg font-bold text-gray-900 dark:text-white mr-2">FinTrack</Text>}
+      <Text className="text-lg font-bold text-gray-900 dark:text-white mr-2">FinTrack</Text>
       {activeLedger && (
         <TouchableOpacity 
           onPress={() => setMenuVisible(true)}
@@ -270,8 +265,8 @@ function RootContent() {
               options={{ headerShown: true }} 
             />
             <Stack.Screen name="login" options={{ headerShown: false }} />
-            <Stack.Screen name="add" options={{ headerShown: false }} />
-            <Stack.Screen name="edit/[id]" options={{ headerShown: false }} />
+            <Stack.Screen name="add" options={{ headerShown: true }} />
+            <Stack.Screen name="edit/[id]" options={{ headerShown: true }} />
             <Stack.Screen name="accounts/[id]" options={{ headerShown: true }} />
             <Stack.Screen name="categories/index" options={{ headerShown: true }} />
             <Stack.Screen name="categories/new" options={{ headerShown: true }} />

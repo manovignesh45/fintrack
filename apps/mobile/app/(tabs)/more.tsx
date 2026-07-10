@@ -20,7 +20,7 @@ export default function MoreScreen() {
 
       {/* User info */}
       <View className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 mb-4 flex-row items-center gap-3">
-        <View className="w-10 h-10 bg-blue-600 dark:bg-blue-50 dark:bg-blue-900/200 rounded-full items-center justify-center">
+        <View className="w-10 h-10 bg-blue-600 dark:bg-blue-50 dark:bg-blue-900/20 rounded-full items-center justify-center">
           <Text className="text-white font-bold text-lg">
             {(user?.username ?? '?')[0].toUpperCase()}
           </Text>
