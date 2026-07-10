@@ -1,12 +1,17 @@
-import { View, Text, TouchableOpacity } from 'react-native';
+import { useRef } from 'react';
+import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { templatesApi } from '@/src/api/client';
 import TransactionForm from '@/src/components/TransactionForm';
+import { FormScreen } from '@/src/components/ui/FormScreen';
+import { useToast } from '@/src/context/ToastContext';
 import type { TransactionFormData } from '@fintrack/shared';
 
 export default function CreateTemplateScreen() {
   const router = useRouter();
+  const { showToast } = useToast();
+  const scrollRef = useRef<ScrollView>(null);
 
   const handleSubmit = async (form: TransactionFormData) => {
     await templatesApi.create({
@@ -21,18 +26,23 @@ export default function CreateTemplateScreen() {
       principal_amount: parseFloat(form.principal_amount) || 0,
       interest_amount: parseFloat(form.interest_amount) || 0,
     });
+    showToast('Template saved');
     router.back();
   };
 
   return (
-    <View className="flex-1 bg-gray-50 dark:bg-gray-900">
-      <View className="flex-row items-center gap-3 px-4 pt-2 pb-2">
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={22} color="#4b5563" />
-        </TouchableOpacity>
-        <Text className="text-lg font-semibold text-gray-800 dark:text-gray-100">Create Template</Text>
-      </View>
-      <TransactionForm onSubmit={handleSubmit} submitLabel="Save Template" />
-    </View>
+    <FormScreen
+      ref={scrollRef}
+      header={
+        <View className="flex-row items-center gap-3 px-4 pt-2 pb-2">
+          <TouchableOpacity onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={22} color="#4b5563" />
+          </TouchableOpacity>
+          <Text className="text-lg font-semibold text-gray-800 dark:text-gray-100">Create Template</Text>
+        </View>
+      }
+    >
+      <TransactionForm scrollRef={scrollRef} onSubmit={handleSubmit} submitLabel="Save Template" />
+    </FormScreen>
   );
 }

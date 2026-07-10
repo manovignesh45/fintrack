@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { View, Text, SectionList, TouchableOpacity, Alert, ActivityIndicator, RefreshControl } from 'react-native';
+import { FAB } from '@/src/components/ui/FAB';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { templatesApi } from '@/src/api/client';
 import { useAuth } from '@/src/context/AuthContext';
 import { useLedgers } from '@/src/context/LedgerContext';
@@ -156,15 +156,7 @@ export default function TemplatesScreen() {
         />
       )}
 
-      {editMode && (
-        <TouchableOpacity
-          onPress={() => router.push('/templates/new')}
-          className="absolute bottom-6 right-6 w-14 h-14 bg-blue-600 dark:bg-blue-500 rounded-full shadow-lg items-center justify-center"
-          activeOpacity={0.8}
-        >
-          <Ionicons name="add" size={28} color="white" />
-        </TouchableOpacity>
-      )}
+      {editMode && <FAB onPress={() => router.push('/templates/new')} accessibilityLabel="Add template" />}
     </View>
   );
 }

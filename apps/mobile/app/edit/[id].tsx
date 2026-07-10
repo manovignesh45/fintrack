@@ -1,14 +1,18 @@
-import { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { View, Text, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { transactionsApi } from '@/src/api/client';
 import TransactionForm from '@/src/components/TransactionForm';
+import { FormScreen } from '@/src/components/ui/FormScreen';
+import { useToast } from '@/src/context/ToastContext';
 import type { Transaction, TransactionFormData } from '@fintrack/shared';
 
 export default function EditTransactionScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { showToast } = useToast();
+  const scrollRef = useRef<ScrollView>(null);
   const [initial, setInitial] = useState<TransactionFormData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -51,6 +55,7 @@ export default function EditTransactionScreen() {
       interest_amount: parseFloat(form.interest_amount) || 0,
       transaction_date: form.transaction_date,
     });
+    showToast('Transaction updated');
     router.back();
   };
 
@@ -71,14 +76,18 @@ export default function EditTransactionScreen() {
   }
 
   return (
-    <View className="flex-1 bg-gray-50 dark:bg-gray-900">
-      <View className="flex-row items-center gap-3 px-4 pt-2 pb-2">
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={22} color="#4b5563" />
-        </TouchableOpacity>
-        <Text className="text-lg font-semibold text-gray-800 dark:text-gray-100">Edit Transaction</Text>
-      </View>
-      <TransactionForm initial={initial} onSubmit={handleSubmit} submitLabel="Update Transaction" />
-    </View>
+    <FormScreen
+      ref={scrollRef}
+      header={
+        <View className="flex-row items-center gap-3 px-4 pt-2 pb-2">
+          <TouchableOpacity onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={22} color="#4b5563" />
+          </TouchableOpacity>
+          <Text className="text-lg font-semibold text-gray-800 dark:text-gray-100">Edit Transaction</Text>
+        </View>
+      }
+    >
+      <TransactionForm scrollRef={scrollRef} initial={initial} onSubmit={handleSubmit} submitLabel="Update Transaction" />
+    </FormScreen>
   );
 }

@@ -1,12 +1,16 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { categoriesApi } from '@/src/api/client';
+import { FormScreen } from '@/src/components/ui/FormScreen';
+import { Button } from '@/src/components/ui/Button';
+import { useToast } from '@/src/context/ToastContext';
 import type { TxNature } from '@fintrack/shared';
 
 export default function CreateCategoryScreen() {
   const router = useRouter();
+  const { showToast } = useToast();
   const params = useLocalSearchParams<{ nature?: string }>();
   const [name, setName] = useState('');
   const [nature, setNature] = useState<TxNature>((params.nature as TxNature) || 'EXPENSE');
@@ -19,6 +23,7 @@ export default function CreateCategoryScreen() {
     setError('');
     try {
       await categoriesApi.create({ name: name.trim(), nature });
+      showToast('Category created');
       router.back();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create category');
@@ -28,14 +33,17 @@ export default function CreateCategoryScreen() {
   };
 
   return (
-    <ScrollView className="flex-1 bg-gray-50 dark:bg-gray-900" contentContainerClassName="p-4" keyboardShouldPersistTaps="handled">
-      <View className="flex-row items-center gap-3 mb-6">
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={22} color="#4b5563" />
-        </TouchableOpacity>
-        <Text className="text-lg font-semibold text-gray-800 dark:text-gray-100">Create Category</Text>
-      </View>
-
+    <FormScreen
+      contentContainerClassName="p-4"
+      header={
+        <View className="flex-row items-center gap-3 px-4 pt-2 pb-2">
+          <TouchableOpacity onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={22} color="#4b5563" />
+          </TouchableOpacity>
+          <Text className="text-lg font-semibold text-gray-800 dark:text-gray-100">Create Category</Text>
+        </View>
+      }
+    >
       {error ? (
         <View className="bg-red-50 p-3 rounded-lg mb-4">
           <Text className="text-red-600 text-sm">{error}</Text>
@@ -68,18 +76,15 @@ export default function CreateCategoryScreen() {
           value={name}
           onChangeText={setName}
           placeholder="e.g. Groceries, Shopping"
+          placeholderTextColor="#9ca3af"
           autoFocus
-          className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm"
+          returnKeyType="done"
+          onSubmitEditing={handleSubmit}
+          className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-gray-100"
         />
       </View>
 
-      <TouchableOpacity
-        onPress={handleSubmit}
-        disabled={submitting}
-        className={`w-full py-3 rounded-lg items-center ${submitting ? 'bg-blue-400' : 'bg-blue-600 dark:bg-blue-500'}`}
-      >
-        <Text className="text-white font-semibold">{submitting ? 'Creating...' : 'Create Category'}</Text>
-      </TouchableOpacity>
-    </ScrollView>
+      <Button title={submitting ? 'Creating...' : 'Create Category'} onPress={handleSubmit} loading={submitting} />
+    </FormScreen>
   );
 }

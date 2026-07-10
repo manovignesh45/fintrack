@@ -1,26 +1,36 @@
 import { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { paymentMethodsApi } from '@/src/api/client';
 import { useAuth } from '@/src/context/AuthContext';
+import { KeyboardScreen } from '@/src/components/ui/FormScreen';
+import { FAB } from '@/src/components/ui/FAB';
+import { EditToggle } from '@/src/components/ui/EditToggle';
+import { EmptyState } from '@/src/components/ui/EmptyState';
+import { ErrorState } from '@/src/components/ui/ErrorState';
+import { useToast } from '@/src/context/ToastContext';
 import type { PaymentMethod } from '@fintrack/shared';
 
 export default function PaymentMethodsScreen() {
   const router = useRouter();
+  const { showToast } = useToast();
   const { editMode, setEditMode } = useAuth();
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [newName, setNewName] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const load = () => {
-    setLoading(true);
+  const load = (mode: 'load' | 'refresh' = 'load') => {
+    mode === 'refresh' ? setRefreshing(true) : setLoading(true);
+    setError(null);
     paymentMethodsApi.list()
       .then((data) => setPaymentMethods(data || []))
-      .catch(() => setPaymentMethods([]))
-      .finally(() => setLoading(false));
+      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load payment methods'))
+      .finally(() => (mode === 'refresh' ? setRefreshing(false) : setLoading(false)));
   };
 
   useEffect(() => { load(); }, []);
@@ -29,7 +39,7 @@ export default function PaymentMethodsScreen() {
     Alert.alert('Delete', 'Delete this payment method?', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delete', style: 'destructive', onPress: async () => {
-        try { await paymentMethodsApi.delete(id); load(); }
+        try { await paymentMethodsApi.delete(id); showToast('Payment method deleted'); load(); }
         catch { Alert.alert('Error', 'Failed to delete. It might be in use.'); }
       }},
     ]);
@@ -40,6 +50,7 @@ export default function PaymentMethodsScreen() {
     setSubmitting(true);
     try {
       await paymentMethodsApi.create({ name: newName.trim() });
+      showToast('Payment method added');
       setIsAdding(false);
       setNewName('');
       load();
@@ -51,8 +62,12 @@ export default function PaymentMethodsScreen() {
   };
 
   return (
-    <View className="flex-1 bg-gray-50 dark:bg-gray-900">
-      <ScrollView contentContainerClassName="p-4 pb-24">
+    <KeyboardScreen>
+      <ScrollView
+        contentContainerClassName="p-4 pb-24"
+        keyboardShouldPersistTaps="handled"
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load('refresh')} />}
+      >
         <View className="flex-row items-center justify-between mb-4">
           <View className="flex-row items-center gap-2">
             <TouchableOpacity onPress={() => router.back()} className="flex-row items-center">
@@ -62,19 +77,13 @@ export default function PaymentMethodsScreen() {
             <Text className="text-lg font-semibold text-gray-400 dark:text-gray-500">›</Text>
             <Text className="text-lg font-semibold text-gray-800 dark:text-gray-100">Payment Methods</Text>
           </View>
-          <View className="flex-row items-center gap-1.5">
-            <Text className="text-xs text-gray-500 dark:text-gray-400">Edit</Text>
-            <TouchableOpacity
-              onPress={() => setEditMode(!editMode)}
-              className={`w-9 h-5 rounded-full justify-center ${editMode ? 'bg-blue-600 dark:bg-blue-500' : 'bg-gray-300'}`}
-            >
-              <View className={`w-4 h-4 bg-white dark:bg-gray-800 rounded-full ${editMode ? 'ml-[18px]' : 'ml-0.5'}`} />
-            </TouchableOpacity>
-          </View>
+          <EditToggle value={editMode} onValueChange={setEditMode} />
         </View>
 
         {loading ? (
           <ActivityIndicator size="large" color="#2563eb" className="py-4" />
+        ) : error ? (
+          <ErrorState message={error} onRetry={() => load()} />
         ) : (
           <View className="gap-3">
             {paymentMethods.map((pm) => (
@@ -89,7 +98,7 @@ export default function PaymentMethodsScreen() {
             ))}
 
             {paymentMethods.length === 0 && !isAdding && (
-              <Text className="text-gray-400 dark:text-gray-500 text-center py-4">No payment methods yet</Text>
+              <EmptyState icon="card-outline" title="No payment methods yet" subtitle={editMode ? 'Tap + to add one' : undefined} />
             )}
 
             {isAdding && (
@@ -100,6 +109,8 @@ export default function PaymentMethodsScreen() {
                   placeholder="Method Name (e.g. Credit Card)"
                   placeholderTextColor="#9ca3af"
                   autoFocus
+                  returnKeyType="done"
+                  onSubmitEditing={handleAddSubmit}
                   className="flex-1 px-2.5 py-1.5 border border-blue-300 rounded-md text-sm bg-white dark:bg-gray-800 dark:text-white"
                 />
                 <TouchableOpacity
@@ -120,14 +131,8 @@ export default function PaymentMethodsScreen() {
 
       {/* FAB */}
       {editMode && !isAdding && (
-        <TouchableOpacity
-          onPress={() => { setIsAdding(true); setNewName(''); }}
-          className="absolute bottom-6 right-6 w-14 h-14 bg-blue-600 dark:bg-blue-500 rounded-full shadow-lg items-center justify-center"
-          activeOpacity={0.8}
-        >
-          <Ionicons name="add" size={28} color="white" />
-        </TouchableOpacity>
+        <FAB onPress={() => { setIsAdding(true); setNewName(''); }} accessibilityLabel="Add payment method" />
       )}
-    </View>
+    </KeyboardScreen>
   );
 }

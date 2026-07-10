@@ -12,6 +12,7 @@ import '../global.css';
 
 import { AuthProvider, useAuth } from '@/src/context/AuthContext';
 import { LedgerProvider, useLedgers } from '@/src/context/LedgerContext';
+import { EditToggle } from '@/src/components/ui/EditToggle';
 function HeaderLeft() {
   const { ledgers, activeLedger, switchLedger } = useLedgers();
   const { editMode } = useAuth();
@@ -96,17 +97,7 @@ function HeaderRight() {
 
   return (
     <View className="flex-row items-center gap-3 mr-4">
-      <View className="flex-row items-center gap-1.5">
-        <Text className="text-xs text-gray-500">Edit</Text>
-        <TouchableOpacity
-          onPress={() => setEditMode(!editMode)}
-          className={`w-9 h-5 rounded-full justify-center ${editMode ? 'bg-blue-600' : 'bg-gray-300'}`}
-        >
-          <View
-            className={`w-4 h-4 bg-white rounded-full ${editMode ? 'ml-[18px]' : 'ml-0.5'}`}
-          />
-        </TouchableOpacity>
-      </View>
+      <EditToggle value={editMode} onValueChange={setEditMode} />
       <TouchableOpacity
         onPress={() => setMenuVisible(true)}
         className="w-8 h-8 rounded-full bg-blue-600 items-center justify-center"
@@ -265,13 +256,16 @@ function RootContent() {
               options={{ headerShown: true }} 
             />
             <Stack.Screen name="login" options={{ headerShown: false }} />
-            <Stack.Screen name="add" options={{ headerShown: true }} />
-            <Stack.Screen name="edit/[id]" options={{ headerShown: true }} />
+            {/* Form/sub screens render their own inline header, so the global
+                Stack header is hidden to avoid the double-header stack. */}
+            <Stack.Screen name="add" options={{ headerShown: false }} />
+            <Stack.Screen name="edit/[id]" options={{ headerShown: false }} />
             <Stack.Screen name="accounts/[id]" options={{ headerShown: true }} />
-            <Stack.Screen name="categories/index" options={{ headerShown: true }} />
-            <Stack.Screen name="categories/new" options={{ headerShown: true }} />
-            <Stack.Screen name="categories/[catId]/sub/new" options={{ headerShown: true }} />
-            <Stack.Screen name="templates/new" options={{ headerShown: true }} />
+            <Stack.Screen name="categories/index" options={{ headerShown: false }} />
+            <Stack.Screen name="categories/new" options={{ headerShown: false }} />
+            <Stack.Screen name="categories/[catId]/sub/new" options={{ headerShown: false }} />
+            <Stack.Screen name="templates/new" options={{ headerShown: false }} />
+            <Stack.Screen name="payment-methods/index" options={{ headerShown: false }} />
             <Stack.Screen name="tally" options={{ headerShown: true }} />
           </Stack>
         </AuthGate>
@@ -282,15 +276,21 @@ function RootContent() {
 }
 
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { ToastProvider } from '@/src/context/ToastContext';
 
 export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <ThemeProvider>
-        <BottomSheetModalProvider>
-          <RootContent />
-        </BottomSheetModalProvider>
-      </ThemeProvider>
+      <SafeAreaProvider>
+        <ThemeProvider>
+          <ToastProvider>
+            <BottomSheetModalProvider>
+              <RootContent />
+            </BottomSheetModalProvider>
+          </ToastProvider>
+        </ThemeProvider>
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }

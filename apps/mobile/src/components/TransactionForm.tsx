@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Platform, Pressable } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
+import { useEffect, useRef, useState, type RefObject } from 'react';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Platform, Pressable, Modal, KeyboardAvoidingView } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
 import { accountsApi, categoriesApi, paymentMethodsApi } from '@/src/api/client';
@@ -8,15 +7,23 @@ import type { Account, Category, TransactionFormData, PaymentMethod } from '@fin
 import { NATURES, emptyTransactionForm } from '@fintrack/shared';
 import { useColorScheme } from 'nativewind';
 import { useAuth } from '@/src/context/AuthContext';
+import { Button } from '@/src/components/ui/Button';
+import { SelectField } from '@/src/components/ui/SelectField';
 
 interface Props {
   initial?: TransactionFormData;
   onSubmit: (data: TransactionFormData) => Promise<void>;
   submitLabel: string;
+  /** ScrollView ref from the enclosing FormScreen, used to scroll bottom fields into view. */
+  scrollRef?: RefObject<ScrollView | null>;
 }
 
-export default function TransactionForm({ initial, onSubmit, submitLabel }: Props) {
+export default function TransactionForm({ initial, onSubmit, submitLabel, scrollRef }: Props) {
   const { editMode } = useAuth();
+  const amountRef = useRef<TextInput>(null);
+  const principalRef = useRef<TextInput>(null);
+  const interestRef = useRef<TextInput>(null);
+  const notesRef = useRef<TextInput>(null);
   const [form, setForm] = useState<TransactionFormData>(initial ?? emptyTransactionForm());
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -40,7 +47,6 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
   const { colorScheme } = useColorScheme();
   const router = useRouter();
   const isDark = colorScheme === 'dark';
-  const pickerColor = isDark ? '#f3f4f6' : '#1f2937';
   const placeholderColor = isDark ? '#9ca3af' : '#6b7280';
 
   useEffect(() => {
@@ -170,7 +176,6 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
 
   return (
     <>
-    <ScrollView className="flex-1" contentContainerClassName="p-4 pb-8" keyboardShouldPersistTaps="handled">
       {error ? (
         <View className="bg-red-50 p-2 rounded mb-3">
           <Text className="text-red-600 text-sm">{error}</Text>
@@ -207,39 +212,27 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
           placeholderTextColor={placeholderColor}
           value={form.title}
           onChangeText={(v) => set('title', v)}
+          returnKeyType="next"
+          submitBehavior="submit"
+          onSubmitEditing={() =>
+            (form.nature === 'EMI_PAYMENT' ? principalRef : amountRef).current?.focus()
+          }
           className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-gray-100"
         />
       </View>
 
       {/* Loan Account */}
       {(form.nature === 'EMI_PAYMENT' || form.nature === 'LOAN_DISBURSEMENT') && (
-        <View className="mb-4">
-          <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">Loan Account *</Text>
-          <View className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden bg-white dark:bg-gray-800">
-            <Picker
-              mode="dropdown"
-              style={{ color: pickerColor, backgroundColor: isDark ? '#1f2937' : '#ffffff' }}
-              dropdownIconColor={pickerColor}
-              selectedValue={form.nature === 'LOAN_DISBURSEMENT' ? form.source_account_id : form.target_account_id}
-              onValueChange={(v) => {
-                if (form.nature === 'LOAN_DISBURSEMENT') {
-                  set('source_account_id', v);
-                } else {
-                  set('target_account_id', v);
-                }
-              }}
-            >
-              <Picker.Item label="Select loan account" value="" />
-              {liabilityAccounts.map((a) => (
-                <Picker.Item
-                  key={a.id}
-                  label={`${a.name} — ₹${a.current_balance.toLocaleString('en-IN')} outstanding${a.interest_rate > 0 ? ` · ${a.interest_rate}% p.a.` : ''}`}
-                  value={a.id.toString()}
-                />
-              ))}
-            </Picker>
-          </View>
-        </View>
+        <SelectField
+          label="Loan Account *"
+          selectedValue={form.nature === 'LOAN_DISBURSEMENT' ? form.source_account_id : form.target_account_id}
+          onValueChange={(v) => set(form.nature === 'LOAN_DISBURSEMENT' ? 'source_account_id' : 'target_account_id', v)}
+          placeholder={{ label: 'Select loan account', value: '' }}
+          items={liabilityAccounts.map((a) => ({
+            label: `${a.name} — ₹${a.current_balance.toLocaleString('en-IN')} outstanding${a.interest_rate > 0 ? ` · ${a.interest_rate}% p.a.` : ''}`,
+            value: a.id.toString(),
+          }))}
+        />
       )}
 
       {/* Amount */}
@@ -247,11 +240,15 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
         <View className="mb-4">
           <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">Amount (₹) *</Text>
           <TextInput
+            ref={amountRef}
             placeholder="e.g. 1500.00"
             placeholderTextColor={placeholderColor}
             value={form.amount}
             onChangeText={(v) => set('amount', v)}
             keyboardType="decimal-pad"
+            returnKeyType="next"
+            submitBehavior="submit"
+            onSubmitEditing={() => notesRef.current?.focus()}
             className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-gray-100"
           />
         </View>
@@ -269,9 +266,13 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
               <View className="flex-1">
                 <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">Principal (₹)</Text>
                 <TextInput
+                  ref={principalRef}
                   value={form.principal_amount}
                   onChangeText={(v) => set('principal_amount', v)}
                   keyboardType="decimal-pad"
+                  returnKeyType="next"
+                  submitBehavior="submit"
+                  onSubmitEditing={() => interestRef.current?.focus()}
                   className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-gray-100"
                 />
               </View>
@@ -280,9 +281,13 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
                   Interest (₹){suggestedInterest !== null ? ` · ${selectedLoan!.interest_rate}% p.a.` : ''}
                 </Text>
                 <TextInput
+                  ref={interestRef}
                   value={form.interest_amount}
                   onChangeText={(v) => set('interest_amount', v)}
                   keyboardType="decimal-pad"
+                  returnKeyType="next"
+                  submitBehavior="submit"
+                  onSubmitEditing={() => notesRef.current?.focus()}
                   className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-gray-100"
                 />
                 {suggestedInterest !== null && (
@@ -302,84 +307,50 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
       {/* Category / Sub-category */}
       {(form.nature === 'INCOME' || form.nature === 'EXPENSE') && (
         <View className="mb-4 flex-row gap-2">
-          <View className="flex-1">
-            <View className="flex-row justify-between items-center mb-1">
-              <Text className="text-xs text-gray-500 dark:text-gray-400">Category *</Text>
-              {editMode && (
-                <TouchableOpacity onPress={handleCreateCategory}>
-                  <Text className="text-xs font-semibold text-blue-600 dark:text-blue-400">+ Add</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-            <View className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden bg-white dark:bg-gray-800">
-              <Picker
-                mode="dropdown"
-                style={{ color: pickerColor, backgroundColor: isDark ? '#1f2937' : '#ffffff' }}
-                dropdownIconColor={pickerColor}
-                selectedValue={selectedCategoryId}
-                onValueChange={handleCategoryChange}
-              >
-                <Picker.Item label="Select category" value="" />
-                {categories.map((c) => (
-                  <Picker.Item key={c.id} label={c.name} value={c.id.toString()} />
-                ))}
-              </Picker>
-            </View>
-          </View>
-          <View className="flex-1">
-            <View className="flex-row justify-between items-center mb-1">
-              <Text className="text-xs text-gray-500 dark:text-gray-400">Sub-category</Text>
-              {selectedCategoryId && editMode ? (
-                <TouchableOpacity onPress={handleCreateSubCategory}>
-                  <Text className="text-xs font-semibold text-blue-600 dark:text-blue-400">+ Add</Text>
-                </TouchableOpacity>
-              ) : null}
-            </View>
-            <View className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden bg-white dark:bg-gray-800">
-              <Picker
-                mode="dropdown"
-                style={{ color: pickerColor, backgroundColor: isDark ? '#1f2937' : '#ffffff' }}
-                dropdownIconColor={pickerColor}
-                selectedValue={form.sub_category_id}
-                onValueChange={(v) => set('sub_category_id', v)}
-                enabled={!!selectedCategoryId}
-              >
-                <Picker.Item label={selectedCategoryId ? 'Select sub-category' : 'Choose category first'} value="" />
-                {availableSubCategories.map((sc) => (
-                  <Picker.Item key={sc.id} label={sc.name} value={sc.id.toString()} />
-                ))}
-              </Picker>
-            </View>
-          </View>
+          <SelectField
+            containerClassName="flex-1"
+            label="Category *"
+            action={editMode ? (
+              <TouchableOpacity onPress={handleCreateCategory}>
+                <Text className="text-xs font-semibold text-blue-600 dark:text-blue-400">+ Add</Text>
+              </TouchableOpacity>
+            ) : undefined}
+            selectedValue={selectedCategoryId}
+            onValueChange={handleCategoryChange}
+            placeholder={{ label: 'Select category', value: '' }}
+            items={categories.map((c) => ({ label: c.name, value: c.id.toString() }))}
+          />
+          <SelectField
+            containerClassName="flex-1"
+            label="Sub-category"
+            action={selectedCategoryId && editMode ? (
+              <TouchableOpacity onPress={handleCreateSubCategory}>
+                <Text className="text-xs font-semibold text-blue-600 dark:text-blue-400">+ Add</Text>
+              </TouchableOpacity>
+            ) : undefined}
+            selectedValue={form.sub_category_id}
+            onValueChange={(v) => set('sub_category_id', v)}
+            enabled={!!selectedCategoryId}
+            placeholder={{ label: selectedCategoryId ? 'Select sub-category' : 'Choose category first', value: '' }}
+            items={availableSubCategories.map((sc) => ({ label: sc.name, value: sc.id.toString() }))}
+          />
         </View>
       )}
 
       {/* Payment method */}
       {(form.nature === 'EXPENSE' || form.nature === 'EMI_PAYMENT') && (
-        <View className="mb-4">
-          <View className="flex-row justify-between items-center mb-1">
-            <Text className="text-xs text-gray-500 dark:text-gray-400">Payment Method</Text>
-            {editMode && (
-              <TouchableOpacity onPress={handleCreatePaymentMethod}>
-                <Text className="text-xs font-semibold text-blue-600 dark:text-blue-400">+ Add</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-          <View className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden bg-white dark:bg-gray-800">
-            <Picker
-              mode="dropdown"
-              style={{ color: pickerColor, backgroundColor: isDark ? '#1f2937' : '#ffffff' }}
-              dropdownIconColor={pickerColor}
-              selectedValue={form.payment_method_id}
-              onValueChange={(v) => set('payment_method_id', v)}
-            >
-              <Picker.Item label="No payment method" value="" />
-              {paymentMethods.map((pm) => (
-                <Picker.Item key={pm.id} label={pm.name} value={pm.id.toString()} />
-              ))}
-            </Picker>
-          </View>
-        </View>
+        <SelectField
+          label="Payment Method"
+          action={editMode ? (
+            <TouchableOpacity onPress={handleCreatePaymentMethod}>
+              <Text className="text-xs font-semibold text-blue-600 dark:text-blue-400">+ Add</Text>
+            </TouchableOpacity>
+          ) : undefined}
+          selectedValue={form.payment_method_id}
+          onValueChange={(v) => set('payment_method_id', v)}
+          placeholder={{ label: 'No payment method', value: '' }}
+          items={paymentMethods.map((pm) => ({ label: pm.name, value: pm.id.toString() }))}
+        />
       )}
 
       {/* Date */}
@@ -414,48 +385,68 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
       <View className="mb-4">
         <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">Notes</Text>
         <TextInput
+          ref={notesRef}
           placeholder="Additional notes (optional)"
           placeholderTextColor={placeholderColor}
           value={form.notes}
           onChangeText={(v) => set('notes', v)}
+          onFocus={() => setTimeout(() => scrollRef?.current?.scrollToEnd({ animated: true }), 100)}
           multiline
           numberOfLines={2}
           className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
         />
       </View>
 
-      <TouchableOpacity
-        onPress={handleSubmit}
-        disabled={submitting}
-        className={`w-full py-3 rounded-lg items-center ${submitting ? 'bg-blue-400' : 'bg-blue-600 dark:bg-blue-500'}`}
-      >
-        <Text className="text-white font-medium">{submitting ? 'Saving...' : submitLabel}</Text>
-      </TouchableOpacity>
-    </ScrollView>
+      <Button title={submitting ? 'Saving...' : submitLabel} onPress={handleSubmit} loading={submitting} />
 
     {/* Custom Prompt Modal */}
-    {promptConfig?.visible && (
-      <Pressable 
+    <Modal
+      transparent
+      animationType="fade"
+      statusBarTranslucent
+      navigationBarTranslucent
+      visible={!!promptConfig?.visible}
+      onRequestClose={() => {
+        setPromptConfig(null);
+        setPromptValue('');
+      }}
+    >
+      <KeyboardAvoidingView behavior="padding" className="flex-1">
+      <Pressable
         onPress={() => {
           setPromptConfig(null);
           setPromptValue('');
         }}
-        className="absolute inset-0 bg-black/50 justify-center p-4 z-50"
+        className="flex-1 bg-black/50 justify-center p-4"
       >
-        <Pressable 
+        <Pressable
           className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-xl border border-gray-200 dark:border-gray-700"
         >
-          <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-3">{promptConfig.title}</Text>
+          <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-3">{promptConfig?.title}</Text>
           <TextInput
             value={promptValue}
             onChangeText={setPromptValue}
-            placeholder={promptConfig.placeholder}
+            placeholder={promptConfig?.placeholder}
             placeholderTextColor={placeholderColor}
             autoFocus
+            returnKeyType="done"
+            onSubmitEditing={async () => {
+              if (!promptValue.trim() || !promptConfig) return;
+              setPromptSubmitting(true);
+              try {
+                await promptConfig.onSubmit(promptValue.trim());
+                setPromptConfig(null);
+                setPromptValue('');
+              } catch (err: any) {
+                setError(err.message || 'Failed to create');
+              } finally {
+                setPromptSubmitting(false);
+              }
+            }}
             className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white mb-4"
           />
           <View className="flex-row justify-between items-center">
-            {promptConfig.configurePath ? (
+            {promptConfig?.configurePath ? (
               <TouchableOpacity onPress={() => router.push(promptConfig.configurePath!)}>
                 <Text className="text-xs font-medium text-blue-600 dark:text-blue-400">Configure more</Text>
               </TouchableOpacity>
@@ -472,7 +463,7 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={async () => {
-                  if (!promptValue.trim()) return;
+                  if (!promptValue.trim() || !promptConfig) return;
                   setPromptSubmitting(true);
                   try {
                     await promptConfig.onSubmit(promptValue.trim());
@@ -493,7 +484,8 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
           </View>
         </Pressable>
       </Pressable>
-    )}
+      </KeyboardAvoidingView>
+    </Modal>
     </>
   );
 }

@@ -8,6 +8,7 @@ import { transactionsApi } from '@/src/api/client';
 import { useAuth } from '@/src/context/AuthContext';
 import { useLedgers } from '@/src/context/LedgerContext';
 import TransactionFilter, { TransactionFilterRef } from '@/src/components/TransactionFilter';
+import { FAB } from '@/src/components/ui/FAB';
 import type { TxNature, FilterState, Transaction } from '@fintrack/shared';
 import { DEFAULT_FILTERS, countActiveFilters, DATE_PRESET_LABELS } from '@fintrack/shared';
 
@@ -218,13 +219,7 @@ export default function TransactionsScreen() {
         />
       )}
 
-      <TouchableOpacity
-        onPress={() => router.push('/add')}
-        className="absolute bottom-6 right-6 w-14 h-14 bg-blue-600 dark:bg-blue-500 rounded-full shadow-lg items-center justify-center"
-        activeOpacity={0.8}
-      >
-        <Ionicons name="add" size={28} color="white" />
-      </TouchableOpacity>
+      <FAB onPress={() => router.push('/add')} accessibilityLabel="Add transaction" />
     </View>
     </GestureDetector>
   );

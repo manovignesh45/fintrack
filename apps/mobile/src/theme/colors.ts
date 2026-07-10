@@ -5,6 +5,7 @@ export function useThemeColors() {
   const isDark = colorScheme === 'dark';
 
   return {
+    background: isDark ? '#111827' : '#f9fafb',
     icon: isDark ? '#d1d5db' : '#4b5563',
     iconActive: isDark ? '#60a5fa' : '#2563eb',
     iconMuted: isDark ? '#9ca3af' : '#6b7280',

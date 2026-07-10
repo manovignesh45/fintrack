@@ -1,5 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { View, Text, FlatList, TouchableOpacity, TextInput, Alert, ActivityIndicator, Switch, RefreshControl } from 'react-native';
+import { FAB } from '@/src/components/ui/FAB';
+import { Button } from '@/src/components/ui/Button';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { accountsApi } from '@/src/api/client';
@@ -152,43 +154,35 @@ export default function AccountsScreen() {
                 <View className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 mt-3 gap-2">
                   <TextInput
                     placeholder="Loan name (e.g. SBI Home Loan)"
+                    placeholderTextColor="#9ca3af"
                     value={newName}
                     onChangeText={setNewName}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm text-gray-900 dark:text-gray-100"
                   />
                   <View>
                     <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">Total Loan Amount (₹)</Text>
                     <TextInput
                       placeholder="e.g. 200000"
+                      placeholderTextColor="#9ca3af"
                       value={newBalance}
                       onChangeText={setNewBalance}
                       keyboardType="decimal-pad"
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm text-gray-900 dark:text-gray-100"
                     />
                   </View>
                   <View>
                     <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">Interest Rate (% per year)</Text>
                     <TextInput
                       placeholder="e.g. 12.5"
+                      placeholderTextColor="#9ca3af"
                       value={newInterestRate}
                       onChangeText={setNewInterestRate}
                       keyboardType="decimal-pad"
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm text-gray-900 dark:text-gray-100"
                     />
                   </View>
-                  <TouchableOpacity
-                    onPress={handleAdd}
-                    disabled={saving}
-                    className={`w-full py-2 rounded items-center ${saving ? 'bg-blue-400' : 'bg-blue-600 dark:bg-blue-50 dark:bg-blue-900/20'}`}
-                  >
-                    <Text className="text-white text-sm font-medium">{saving ? 'Adding...' : 'Add Loan Account'}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => setShowAdd(false)}
-                    className="w-full py-2 border border-gray-300 dark:border-gray-600 rounded items-center"
-                  >
-                    <Text className="text-gray-600 dark:text-gray-300 text-sm font-medium">Cancel</Text>
-                  </TouchableOpacity>
+                  <Button title={saving ? 'Adding...' : 'Add Loan Account'} onPress={handleAdd} loading={saving} />
+                  <Button title="Cancel" variant="secondary" onPress={() => setShowAdd(false)} />
                 </View>
               )}
             </View>
@@ -201,15 +195,7 @@ export default function AccountsScreen() {
         />
       )}
 
-      {editMode && (
-        <TouchableOpacity
-          onPress={() => setShowAdd(true)}
-          className="absolute bottom-6 right-6 w-14 h-14 bg-blue-600 dark:bg-blue-50 dark:bg-blue-900/20 rounded-full shadow-lg items-center justify-center"
-          activeOpacity={0.8}
-        >
-          <Ionicons name="add" size={28} color="white" />
-        </TouchableOpacity>
-      )}
+      {editMode && <FAB onPress={() => setShowAdd(true)} accessibilityLabel="Add loan account" />}
     </View>
   );
 }

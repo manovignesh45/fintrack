@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, ScrollView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { authApi } from '@/src/api/client';
 import { useAuth } from '@/src/context/AuthContext';
@@ -27,7 +27,7 @@ export default function LoginScreen() {
         setPassword('');
         setTempPassword('');
         setNewPassword('');
-        alert('Password reset successfully. You can now login.');
+        Alert.alert('Success', 'Password reset successfully. You can now login.');
       } else if (isRegistering) {
         await authApi.register({ username, password });
         const loginRes = await authApi.login({ username, password });
@@ -45,7 +45,7 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior="padding"
       className="flex-1 bg-gray-100 dark:bg-gray-900"
     >
       <ScrollView contentContainerClassName="flex-1 justify-center p-4">

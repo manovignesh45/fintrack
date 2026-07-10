@@ -1,12 +1,16 @@
 import { useEffect, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { categoriesApi } from '@/src/api/client';
+import { FormScreen } from '@/src/components/ui/FormScreen';
+import { Button } from '@/src/components/ui/Button';
+import { useToast } from '@/src/context/ToastContext';
 import type { Category } from '@fintrack/shared';
 
 export default function CreateSubCategoryScreen() {
   const router = useRouter();
+  const { showToast } = useToast();
   const { catId } = useLocalSearchParams<{ catId: string }>();
   const [category, setCategory] = useState<Category | null>(null);
   const [name, setName] = useState('');
@@ -32,6 +36,7 @@ export default function CreateSubCategoryScreen() {
     setError('');
     try {
       await categoriesApi.createSub(parseInt(catId), { name: name.trim() });
+      showToast('Sub-category created');
       router.back();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create sub-category');
@@ -57,14 +62,17 @@ export default function CreateSubCategoryScreen() {
   }
 
   return (
-    <ScrollView className="flex-1 bg-gray-50 dark:bg-gray-900" contentContainerClassName="p-4" keyboardShouldPersistTaps="handled">
-      <View className="flex-row items-center gap-3 mb-6">
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={22} color="#4b5563" />
-        </TouchableOpacity>
-        <Text className="text-lg font-semibold text-gray-800 dark:text-gray-100">Create Sub-category</Text>
-      </View>
-
+    <FormScreen
+      contentContainerClassName="p-4"
+      header={
+        <View className="flex-row items-center gap-3 px-4 pt-2 pb-2">
+          <TouchableOpacity onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={22} color="#4b5563" />
+          </TouchableOpacity>
+          <Text className="text-lg font-semibold text-gray-800 dark:text-gray-100">Create Sub-category</Text>
+        </View>
+      }
+    >
       {/* Parent category info */}
       <View className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 mb-4">
         <Text className="text-xs text-blue-600 dark:text-blue-400 font-semibold mb-1 uppercase">Parent Category</Text>
@@ -88,18 +96,15 @@ export default function CreateSubCategoryScreen() {
           value={name}
           onChangeText={setName}
           placeholder="e.g. Milk, Fruits, Clothes"
+          placeholderTextColor="#9ca3af"
           autoFocus
-          className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm"
+          returnKeyType="done"
+          onSubmitEditing={handleSubmit}
+          className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-gray-100"
         />
       </View>
 
-      <TouchableOpacity
-        onPress={handleSubmit}
-        disabled={submitting}
-        className={`w-full py-3 rounded-lg items-center ${submitting ? 'bg-blue-400' : 'bg-blue-600 dark:bg-blue-50 dark:bg-blue-900/20'}`}
-      >
-        <Text className="text-white font-semibold">{submitting ? 'Creating...' : 'Create Sub-category'}</Text>
-      </TouchableOpacity>
-    </ScrollView>
+      <Button title={submitting ? 'Creating...' : 'Create Sub-category'} onPress={handleSubmit} loading={submitting} />
+    </FormScreen>
   );
 }

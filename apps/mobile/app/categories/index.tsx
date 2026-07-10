@@ -1,9 +1,14 @@
 import { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, Alert, ActivityIndicator, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { categoriesApi } from '@/src/api/client';
 import { useAuth } from '@/src/context/AuthContext';
+import { KeyboardScreen } from '@/src/components/ui/FormScreen';
+import { FAB } from '@/src/components/ui/FAB';
+import { EditToggle } from '@/src/components/ui/EditToggle';
+import { EmptyState } from '@/src/components/ui/EmptyState';
+import { ErrorState } from '@/src/components/ui/ErrorState';
 import type { Category, TxNature } from '@fintrack/shared';
 
 export default function CategoriesScreen() {
@@ -12,16 +17,19 @@ export default function CategoriesScreen() {
   const [selectedNature, setSelectedNature] = useState<TxNature>('EXPENSE');
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [addingSubFor, setAddingSubFor] = useState<number | null>(null);
   const [newSubName, setNewSubName] = useState('');
   const [subSubmitting, setSubSubmitting] = useState(false);
 
-  const load = () => {
-    setLoading(true);
+  const load = (mode: 'load' | 'refresh' = 'load') => {
+    mode === 'refresh' ? setRefreshing(true) : setLoading(true);
+    setError(null);
     categoriesApi.list({ nature: selectedNature })
       .then((data) => setCategories(data || []))
-      .catch(() => setCategories([]))
-      .finally(() => setLoading(false));
+      .catch((err) => setError(err instanceof Error ? err.message : 'Failed to load categories'))
+      .finally(() => (mode === 'refresh' ? setRefreshing(false) : setLoading(false)));
   };
 
   useEffect(() => { load(); }, [selectedNature]);
@@ -62,8 +70,12 @@ export default function CategoriesScreen() {
   };
 
   return (
-    <View className="flex-1 bg-gray-50 dark:bg-gray-900">
-      <ScrollView contentContainerClassName="p-4 pb-24">
+    <KeyboardScreen>
+      <ScrollView
+        contentContainerClassName="p-4 pb-24"
+        keyboardShouldPersistTaps="handled"
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load('refresh')} />}
+      >
         <View className="flex-row items-center justify-between mb-4">
           <View className="flex-row items-center gap-2">
             <TouchableOpacity onPress={() => router.back()} className="flex-row items-center">
@@ -73,15 +85,7 @@ export default function CategoriesScreen() {
             <Text className="text-lg font-semibold text-gray-400 dark:text-gray-500">›</Text>
             <Text className="text-lg font-semibold text-gray-800 dark:text-gray-100">Categories</Text>
           </View>
-          <View className="flex-row items-center gap-1.5">
-            <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">Edit</Text>
-            <TouchableOpacity
-              onPress={() => setEditMode(!editMode)}
-              className={`w-9 h-5 rounded-full justify-center ${editMode ? 'bg-blue-600 dark:bg-blue-500' : 'bg-gray-300'}`}
-            >
-              <View className={`w-4 h-4 bg-white dark:bg-gray-800 rounded-full ${editMode ? 'ml-[18px]' : 'ml-0.5'}`} />
-            </TouchableOpacity>
-          </View>
+          <EditToggle value={editMode} onValueChange={setEditMode} />
         </View>
 
 
@@ -103,8 +107,10 @@ export default function CategoriesScreen() {
 
         {loading ? (
           <ActivityIndicator size="large" color="#2563eb" className="py-4" />
+        ) : error ? (
+          <ErrorState message={error} onRetry={() => load()} />
         ) : categories.length === 0 ? (
-          <Text className="text-gray-400 dark:text-gray-500 text-center py-4">No categories yet</Text>
+          <EmptyState icon="pricetags-outline" title="No categories yet" subtitle={editMode ? 'Tap + to add one' : undefined} />
         ) : (
           <View className="gap-3">
             {categories.map((cat) => (
@@ -152,8 +158,11 @@ export default function CategoriesScreen() {
                       value={newSubName}
                       onChangeText={setNewSubName}
                       placeholder="Sub-category name"
+                      placeholderTextColor="#9ca3af"
                       autoFocus
-                      className="flex-1 px-2.5 py-1.5 border border-blue-300 rounded-md text-sm bg-white dark:bg-gray-800"
+                      returnKeyType="done"
+                      onSubmitEditing={() => handleSubSubmit(cat.id)}
+                      className="flex-1 px-2.5 py-1.5 border border-blue-300 rounded-md text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                     />
                     <TouchableOpacity
                       onPress={() => handleSubSubmit(cat.id)}
@@ -175,17 +184,11 @@ export default function CategoriesScreen() {
 
       {/* FAB */}
       {editMode && (
-        <TouchableOpacity
-          onPress={() => router.push({
-            pathname: '/categories/new',
-            params: { nature: selectedNature },
-          })}
-          className="absolute bottom-6 right-6 w-14 h-14 bg-blue-600 dark:bg-blue-500 rounded-full shadow-lg items-center justify-center"
-          activeOpacity={0.8}
-        >
-          <Ionicons name="add" size={28} color="white" />
-        </TouchableOpacity>
+        <FAB
+          onPress={() => router.push({ pathname: '/categories/new', params: { nature: selectedNature } })}
+          accessibilityLabel="Add category"
+        />
       )}
-    </View>
+    </KeyboardScreen>
   );
 }
