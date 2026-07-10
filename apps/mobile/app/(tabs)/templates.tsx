@@ -60,7 +60,7 @@ export default function TemplatesScreen() {
           source_account_id: t.source_account_id.toString(),
           target_account_id: t.target_account_id?.toString() || '',
           sub_category_id: t.sub_category_id?.toString() || '',
-          payment_method: t.payment_method || '',
+          payment_method_id: t.payment_method_id?.toString() || '',
           principal_amount: t.principal_amount.toString(),
           interest_amount: t.interest_amount.toString(),
           transaction_date: new Date().toISOString().split('T')[0],
@@ -94,7 +94,6 @@ export default function TemplatesScreen() {
           <Text className="font-medium text-gray-800 dark:text-gray-100 text-sm">{t.title}</Text>
           <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">
             {natureLabels[t.nature] ?? t.nature} · ₹{t.amount.toLocaleString('en-IN')}
-            {t.payment_method ? ` · ${t.payment_method}` : ''}
           </Text>
         </View>
         <View className="flex-row gap-2 ml-3">

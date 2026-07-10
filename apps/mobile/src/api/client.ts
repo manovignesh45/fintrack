@@ -74,3 +74,4 @@ export const templatesApi = client.templatesApi;
 export const tallyApi = client.tallyApi;
 export const summaryApi = client.summaryApi;
 export const ledgersApi = client.ledgersApi;
+export const paymentMethodsApi = client.paymentMethodsApi;

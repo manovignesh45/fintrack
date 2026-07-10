@@ -15,9 +15,9 @@ export type {
   RegisterReq,
   TransactionFormData,
   FilterState,
+  PaymentMethod,
 } from '@fintrack/shared';
 
 export {
-  PAYMENT_METHODS,
   NATURES,
 } from '@fintrack/shared';

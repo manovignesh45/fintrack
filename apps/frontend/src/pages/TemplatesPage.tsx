@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { templatesApi } from '../api/client';
-import type { TransactionTemplate } from '../api/types';
+import { useNavigate, Link } from 'react-router-dom';
+import { templatesApi, paymentMethodsApi } from '../api/client';
+import type { TransactionTemplate, PaymentMethod } from '../api/types';
 import { useAuth } from '../context/AuthContext';
 
 const natureLabels: Record<string, string> = {
@@ -10,6 +10,7 @@ const natureLabels: Record<string, string> = {
 
 export default function TemplatesPage() {
   const [templates, setTemplates] = useState<TransactionTemplate[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { editMode } = useAuth();
@@ -22,7 +23,10 @@ export default function TemplatesPage() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { 
+    load(); 
+    paymentMethodsApi.list().then(setPaymentMethods).catch(() => {});
+  }, []);
 
   const handleUse = (t: TransactionTemplate) => {
     navigate('/add', {
@@ -34,7 +38,7 @@ export default function TemplatesPage() {
           source_account_id: t.source_account_id.toString(),
           target_account_id: t.target_account_id?.toString() || '',
           sub_category_id: t.sub_category_id?.toString() || '',
-          payment_method: t.payment_method || '',
+          payment_method_id: t.payment_method_id?.toString() || '',
           principal_amount: t.principal_amount.toString(),
           interest_amount: t.interest_amount.toString(),
           transaction_date: new Date().toISOString().split('T')[0],
@@ -54,7 +58,11 @@ export default function TemplatesPage() {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Templates</h2>
+        <div className="flex items-center gap-1.5">
+          <Link to="/more" className="text-lg font-semibold text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">More</Link>
+          <span className="text-lg font-semibold text-gray-400 dark:text-gray-500">›</span>
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Templates</h2>
+        </div>
       </div>
 
       {loading ? (
@@ -72,7 +80,7 @@ export default function TemplatesPage() {
                   <p className="font-medium text-gray-800 dark:text-gray-200 text-sm">{t.title}</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                     {natureLabels[t.nature]} · ₹{t.amount.toLocaleString('en-IN')}
-                    {t.payment_method && ` · ${t.payment_method}`}
+                    {t.payment_method_id && ` · ${paymentMethods.find(p => p.id === t.payment_method_id)?.name || `Payment #${t.payment_method_id}`}`}
                   </p>
                 </div>
                 <div className="flex gap-2 ml-3">

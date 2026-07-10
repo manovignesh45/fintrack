@@ -10,6 +10,7 @@ export default function MoreScreen() {
 
   const links = [
     { label: 'Categories', icon: 'folder-outline' as const, href: '/categories' as const },
+    { label: 'Payment Methods', icon: 'card-outline' as const, href: '/payment-methods' as const },
     { label: 'Loan Reconciliation', icon: 'calculator-outline' as const, href: '/tally' as const },
   ];
 
@@ -35,7 +36,7 @@ export default function MoreScreen() {
         {links.map((link) => (
           <TouchableOpacity
             key={link.label}
-            onPress={() => router.push(link.href)}
+            onPress={() => router.push(link.href as any)}
             className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 flex-row items-center justify-between"
             activeOpacity={0.7}
           >

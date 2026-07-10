@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { categoriesApi } from '../api/client';
 import type { Category, TxNature } from '../api/types';
 import { useAuth } from '../context/AuthContext';
@@ -66,7 +66,11 @@ export default function CategoriesPage() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Categories</h2>
+      <div className="flex items-center gap-1.5 mb-2">
+        <Link to="/more" className="text-lg font-semibold text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">More</Link>
+        <span className="text-lg font-semibold text-gray-400 dark:text-gray-500">›</span>
+        <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Categories</h2>
+      </div>
 
       {/* Nature tabs */}
       <div className="flex gap-2">

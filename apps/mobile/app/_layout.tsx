@@ -67,19 +67,21 @@ function HeaderLeft() {
                   </TouchableOpacity>
                 ))}
               </View>
-              <View className="border-t border-gray-100 dark:border-gray-700 py-1">
-                <TouchableOpacity
-                  onPress={() => {
-                    setMenuVisible(false);
-                    // Note: Create Ledger mobile implementation pending
-                    console.log('Create ledger triggered in mobile');
-                  }}
-                  className="flex-row items-center gap-2 px-4 py-2.5"
-                >
-                  <Ionicons name="add" size={16} color="#2563eb" />
-                  <Text className="text-sm font-medium text-blue-600 dark:text-blue-400">Create Ledger</Text>
-                </TouchableOpacity>
-              </View>
+              {editMode && (
+                <View className="border-t border-gray-100 dark:border-gray-700 py-1">
+                  <TouchableOpacity
+                    onPress={() => {
+                      setMenuVisible(false);
+                      // Note: Create Ledger mobile implementation pending
+                      console.log('Create ledger triggered in mobile');
+                    }}
+                    className="flex-row items-center gap-2 px-4 py-2.5"
+                  >
+                    <Ionicons name="add" size={16} color="#2563eb" />
+                    <Text className="text-sm font-medium text-blue-600 dark:text-blue-400">Create Ledger</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           </TouchableOpacity>
         </Modal>

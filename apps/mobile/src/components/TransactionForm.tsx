@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Platform, Pressable } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { accountsApi, categoriesApi } from '@/src/api/client';
-import type { Account, Category, TransactionFormData } from '@fintrack/shared';
-import { NATURES, PAYMENT_METHODS, emptyTransactionForm } from '@fintrack/shared';
+import { useRouter } from 'expo-router';
+import { accountsApi, categoriesApi, paymentMethodsApi } from '@/src/api/client';
+import type { Account, Category, TransactionFormData, PaymentMethod } from '@fintrack/shared';
+import { NATURES, emptyTransactionForm } from '@fintrack/shared';
 import { useColorScheme } from 'nativewind';
+import { useAuth } from '@/src/context/AuthContext';
 
 interface Props {
   initial?: TransactionFormData;
@@ -14,21 +16,36 @@ interface Props {
 }
 
 export default function TransactionForm({ initial, onSubmit, submitLabel }: Props) {
+  const { editMode } = useAuth();
   const [form, setForm] = useState<TransactionFormData>(initial ?? emptyTransactionForm());
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
   
+  // Custom Modal State
+  const [promptConfig, setPromptConfig] = useState<{
+    visible: boolean;
+    title: string;
+    placeholder: string;
+    configurePath?: '/categories' | '/payment-methods';
+    onSubmit: (val: string) => Promise<void>;
+  } | null>(null);
+  const [promptValue, setPromptValue] = useState('');
+  const [promptSubmitting, setPromptSubmitting] = useState(false);
+  
   const { colorScheme } = useColorScheme();
+  const router = useRouter();
   const isDark = colorScheme === 'dark';
   const pickerColor = isDark ? '#f3f4f6' : '#1f2937';
   const placeholderColor = isDark ? '#9ca3af' : '#6b7280';
 
   useEffect(() => {
     accountsApi.list({ type: 'LIABILITY' }).then((data) => setAccounts(data || [])).catch(() => setAccounts([]));
+    paymentMethodsApi.list().then((data) => setPaymentMethods(data || [])).catch(() => setPaymentMethods([]));
   }, []);
 
   useEffect(() => {
@@ -78,7 +95,7 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
       setForm((f) => ({ ...f, sub_category_id: '' }));
     }
     if (form.nature === 'INCOME' || form.nature === 'TRANSFER' || form.nature === 'LOAN_DISBURSEMENT') {
-      setForm((f) => ({ ...f, payment_method: '' }));
+      setForm((f) => ({ ...f, payment_method_id: '' }));
     }
   }, [form.nature]);
 
@@ -106,7 +123,53 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
     set('sub_category_id', '');
   };
 
+  const handleCreateCategory = () => {
+    setPromptConfig({
+      visible: true,
+      title: `New ${form.nature.toLowerCase()} category`,
+      placeholder: 'Category Name',
+      configurePath: '/categories',
+      onSubmit: async (val) => {
+        const newCat = await categoriesApi.create({ name: val, nature: form.nature });
+        setCategories([...categories, newCat]);
+        handleCategoryChange(newCat.id.toString());
+      },
+    });
+  };
+
+  const handleCreateSubCategory = () => {
+    if (!selectedCategoryId) return;
+    setPromptConfig({
+      visible: true,
+      title: 'New sub-category',
+      placeholder: 'Sub-category Name',
+      configurePath: '/categories',
+      onSubmit: async (val) => {
+        await categoriesApi.createSub(parseInt(selectedCategoryId), { name: val });
+        const updatedCats = await categoriesApi.list({ nature: form.nature });
+        setCategories(updatedCats || []);
+        const newSc = updatedCats.find(c => c.id.toString() === selectedCategoryId)?.sub_categories?.find(sc => sc.name.toLowerCase() === val.toLowerCase());
+        if (newSc) set('sub_category_id', newSc.id.toString());
+      },
+    });
+  };
+
+  const handleCreatePaymentMethod = () => {
+    setPromptConfig({
+      visible: true,
+      title: 'New payment method',
+      placeholder: 'Method Name (e.g. Credit Card)',
+      configurePath: '/payment-methods',
+      onSubmit: async (val) => {
+        const newPm = await paymentMethodsApi.create({ name: val });
+        setPaymentMethods([...paymentMethods, newPm]);
+        set('payment_method_id', newPm.id.toString());
+      },
+    });
+  };
+
   return (
+    <>
     <ScrollView className="flex-1" contentContainerClassName="p-4 pb-8" keyboardShouldPersistTaps="handled">
       {error ? (
         <View className="bg-red-50 p-2 rounded mb-3">
@@ -240,7 +303,14 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
       {(form.nature === 'INCOME' || form.nature === 'EXPENSE') && (
         <View className="mb-4 flex-row gap-2">
           <View className="flex-1">
-            <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">Category</Text>
+            <View className="flex-row justify-between items-center mb-1">
+              <Text className="text-xs text-gray-500 dark:text-gray-400">Category *</Text>
+              {editMode && (
+                <TouchableOpacity onPress={handleCreateCategory}>
+                  <Text className="text-xs font-semibold text-blue-600 dark:text-blue-400">+ Add</Text>
+                </TouchableOpacity>
+              )}
+            </View>
             <View className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden bg-white dark:bg-gray-800">
               <Picker
                 mode="dropdown"
@@ -257,7 +327,14 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
             </View>
           </View>
           <View className="flex-1">
-            <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">Sub-category</Text>
+            <View className="flex-row justify-between items-center mb-1">
+              <Text className="text-xs text-gray-500 dark:text-gray-400">Sub-category</Text>
+              {selectedCategoryId && editMode ? (
+                <TouchableOpacity onPress={handleCreateSubCategory}>
+                  <Text className="text-xs font-semibold text-blue-600 dark:text-blue-400">+ Add</Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
             <View className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden bg-white dark:bg-gray-800">
               <Picker
                 mode="dropdown"
@@ -280,18 +357,25 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
       {/* Payment method */}
       {(form.nature === 'EXPENSE' || form.nature === 'EMI_PAYMENT') && (
         <View className="mb-4">
-          <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">Payment Method</Text>
+          <View className="flex-row justify-between items-center mb-1">
+            <Text className="text-xs text-gray-500 dark:text-gray-400">Payment Method</Text>
+            {editMode && (
+              <TouchableOpacity onPress={handleCreatePaymentMethod}>
+                <Text className="text-xs font-semibold text-blue-600 dark:text-blue-400">+ Add</Text>
+              </TouchableOpacity>
+            )}
+          </View>
           <View className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden bg-white dark:bg-gray-800">
             <Picker
               mode="dropdown"
               style={{ color: pickerColor, backgroundColor: isDark ? '#1f2937' : '#ffffff' }}
               dropdownIconColor={pickerColor}
-              selectedValue={form.payment_method}
-              onValueChange={(v) => set('payment_method', v)}
+              selectedValue={form.payment_method_id}
+              onValueChange={(v) => set('payment_method_id', v)}
             >
               <Picker.Item label="No payment method" value="" />
-              {PAYMENT_METHODS.map((pm) => (
-                <Picker.Item key={pm} label={pm} value={pm} />
+              {paymentMethods.map((pm) => (
+                <Picker.Item key={pm.id} label={pm.name} value={pm.id.toString()} />
               ))}
             </Picker>
           </View>
@@ -348,5 +432,68 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
         <Text className="text-white font-medium">{submitting ? 'Saving...' : submitLabel}</Text>
       </TouchableOpacity>
     </ScrollView>
+
+    {/* Custom Prompt Modal */}
+    {promptConfig?.visible && (
+      <Pressable 
+        onPress={() => {
+          setPromptConfig(null);
+          setPromptValue('');
+        }}
+        className="absolute inset-0 bg-black/50 justify-center p-4 z-50"
+      >
+        <Pressable 
+          className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-xl border border-gray-200 dark:border-gray-700"
+        >
+          <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-3">{promptConfig.title}</Text>
+          <TextInput
+            value={promptValue}
+            onChangeText={setPromptValue}
+            placeholder={promptConfig.placeholder}
+            placeholderTextColor={placeholderColor}
+            autoFocus
+            className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white mb-4"
+          />
+          <View className="flex-row justify-between items-center">
+            {promptConfig.configurePath ? (
+              <TouchableOpacity onPress={() => router.push(promptConfig.configurePath!)}>
+                <Text className="text-xs font-medium text-blue-600 dark:text-blue-400">Configure more</Text>
+              </TouchableOpacity>
+            ) : <View />}
+            <View className="flex-row gap-2">
+              <TouchableOpacity
+                onPress={() => {
+                  setPromptConfig(null);
+                  setPromptValue('');
+                }}
+                className="px-4 py-2 rounded-lg"
+              >
+                <Text className="text-sm font-medium text-gray-600 dark:text-gray-400">Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={async () => {
+                  if (!promptValue.trim()) return;
+                  setPromptSubmitting(true);
+                  try {
+                    await promptConfig.onSubmit(promptValue.trim());
+                    setPromptConfig(null);
+                    setPromptValue('');
+                  } catch (err: any) {
+                    setError(err.message || 'Failed to create');
+                  } finally {
+                    setPromptSubmitting(false);
+                  }
+                }}
+                disabled={promptSubmitting || !promptValue.trim()}
+                className={`px-4 py-2 rounded-lg ${promptSubmitting || !promptValue.trim() ? 'bg-blue-400' : 'bg-blue-600'}`}
+              >
+                <Text className="text-sm font-medium text-white">{promptSubmitting ? '...' : 'Add'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Pressable>
+      </Pressable>
+    )}
+    </>
   );
 }

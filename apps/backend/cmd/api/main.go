@@ -45,6 +45,7 @@ func main() {
 	// Create handlers
 	accountH := handlers.NewAccountHandler(pool)
 	categoryH := handlers.NewCategoryHandler(pool)
+	paymentMethodH := handlers.NewPaymentMethodHandler(pool)
 	transactionH := handlers.NewTransactionHandler(pool)
 	templateH := handlers.NewTemplateHandler(pool)
 	tallyH := handlers.NewTallyHandler(pool)
@@ -118,6 +119,14 @@ func main() {
 				r.Post("/{id}/subcategories", categoryH.CreateSubCategory)
 				r.Put("/{id}/subcategories/{subId}", categoryH.UpdateSubCategory)
 				r.Delete("/{id}/subcategories/{subId}", categoryH.DeleteSubCategory)
+			})
+
+			// Payment Methods
+			r.Route("/payment-methods", func(r chi.Router) {
+				r.Get("/", paymentMethodH.List)
+				r.Post("/", paymentMethodH.Create)
+				r.Put("/{id}", paymentMethodH.Update)
+				r.Delete("/{id}", paymentMethodH.Delete)
 			})
 
 			// Transactions

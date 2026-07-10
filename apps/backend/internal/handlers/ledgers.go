@@ -104,5 +104,14 @@ func SeedDefaultCategories(ctx context.Context, db *pgxpool.Pool, ledgerID int) 
 			}
 		}
 	}
+
+	paymentMethods := []string{"GPay", "Amazon Pay", "HDFC UPI", "Bank Transfer", "Cash"}
+	for _, pm := range paymentMethods {
+		_, err := db.Exec(ctx, "INSERT INTO payment_methods (ledger_id, name) VALUES ($1, $2)", ledgerID, pm)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }

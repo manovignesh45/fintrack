@@ -51,6 +51,13 @@ export interface SubCategory {
   created_at: string;
 }
 
+export interface PaymentMethod {
+  id: number;
+  ledger_id: number;
+  name: string;
+  created_at: string;
+}
+
 export interface Transaction {
   id: number;
   ledger_id: number;
@@ -60,7 +67,7 @@ export interface Transaction {
   source_account_id: number;
   target_account_id?: number;
   sub_category_id?: number;
-  payment_method?: string;
+  payment_method_id?: number;
   notes?: string;
   principal_amount: number;
   interest_amount: number;
@@ -77,7 +84,7 @@ export interface TransactionTemplate {
   source_account_id: number;
   target_account_id?: number;
   sub_category_id?: number;
-  payment_method?: string;
+  payment_method_id?: number;
   principal_amount: number;
   interest_amount: number;
   created_at: string;
@@ -116,7 +123,7 @@ export interface TransactionFormData {
   source_account_id: string;
   target_account_id: string;
   sub_category_id: string;
-  payment_method: string;
+  payment_method_id: string;
   notes: string;
   principal_amount: string;
   interest_amount: string;

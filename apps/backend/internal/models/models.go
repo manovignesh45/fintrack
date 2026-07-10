@@ -45,6 +45,13 @@ type SubCategory struct {
 	CreatedAt  time.Time `json:"created_at"`
 }
 
+type PaymentMethod struct {
+	ID        int       `json:"id"`
+	LedgerID  int       `json:"ledger_id"`
+	Name      string    `json:"name"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
 type Transaction struct {
 	ID              int        `json:"id"`
 	LedgerID        int        `json:"ledger_id"`
@@ -54,7 +61,7 @@ type Transaction struct {
 	SourceAccountID int        `json:"source_account_id"`
 	TargetAccountID *int       `json:"target_account_id,omitempty"`
 	SubCategoryID   *int       `json:"sub_category_id,omitempty"`
-	PaymentMethod   string     `json:"payment_method,omitempty"`
+	PaymentMethodID *int       `json:"payment_method_id,omitempty"`
 	Notes           string     `json:"notes,omitempty"`
 	PrincipalAmount float64    `json:"principal_amount"`
 	InterestAmount  float64    `json:"interest_amount"`
@@ -71,7 +78,7 @@ type TransactionTemplate struct {
 	SourceAccountID int        `json:"source_account_id"`
 	TargetAccountID *int       `json:"target_account_id,omitempty"`
 	SubCategoryID   *int       `json:"sub_category_id,omitempty"`
-	PaymentMethod   string     `json:"payment_method,omitempty"`
+	PaymentMethodID *int       `json:"payment_method_id,omitempty"`
 	PrincipalAmount float64    `json:"principal_amount"`
 	InterestAmount  float64    `json:"interest_amount"`
 	CreatedAt       time.Time  `json:"created_at"`
@@ -145,6 +152,14 @@ type UpdateSubCategoryReq struct {
 	Name string `json:"name"`
 }
 
+type CreatePaymentMethodReq struct {
+	Name string `json:"name"`
+}
+
+type UpdatePaymentMethodReq struct {
+	Name string `json:"name"`
+}
+
 type CreateTransactionReq struct {
 	Title           string     `json:"title"`
 	Amount          float64    `json:"amount"`
@@ -152,7 +167,7 @@ type CreateTransactionReq struct {
 	SourceAccountID int        `json:"source_account_id"`
 	TargetAccountID *int       `json:"target_account_id,omitempty"`
 	SubCategoryID   *int       `json:"sub_category_id,omitempty"`
-	PaymentMethod   string     `json:"payment_method,omitempty"`
+	PaymentMethodID *int       `json:"payment_method_id,omitempty"`
 	Notes           string     `json:"notes,omitempty"`
 	PrincipalAmount float64    `json:"principal_amount"`
 	InterestAmount  float64    `json:"interest_amount"`
@@ -168,7 +183,7 @@ type CreateTemplateReq struct {
 	SourceAccountID int        `json:"source_account_id"`
 	TargetAccountID *int       `json:"target_account_id,omitempty"`
 	SubCategoryID   *int       `json:"sub_category_id,omitempty"`
-	PaymentMethod   string     `json:"payment_method,omitempty"`
+	PaymentMethodID *int       `json:"payment_method_id,omitempty"`
 	PrincipalAmount float64    `json:"principal_amount"`
 	InterestAmount  float64    `json:"interest_amount"`
 }

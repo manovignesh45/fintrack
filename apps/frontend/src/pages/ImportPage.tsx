@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { importApi } from '../api/client';
 import { useLedgers } from '../context/LedgerContext';
 
@@ -37,7 +38,11 @@ export default function ImportPage() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-bold text-gray-800 dark:text-white">Import CSV Data</h2>
+      <div className="flex items-center gap-1.5">
+        <Link to="/more" className="text-xl font-bold text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">More</Link>
+        <span className="text-xl font-bold text-gray-400 dark:text-gray-500">›</span>
+        <h2 className="text-xl font-bold text-gray-800 dark:text-white">Import CSV Data</h2>
+      </div>
       
       <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 space-y-4">
         <p className="text-sm text-gray-600 dark:text-gray-300">

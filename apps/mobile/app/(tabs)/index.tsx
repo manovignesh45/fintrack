@@ -117,7 +117,6 @@ export default function TransactionsScreen() {
           </View>
           <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">
             {t.transaction_date} · {natureLabels[t.nature]}
-            {t.payment_method ? ` · ${t.payment_method}` : ''}
           </Text>
           {t.nature === 'EMI_PAYMENT' && (
             <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">

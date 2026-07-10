@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { transactionsApi } from '../api/client';
-import type { Transaction, TxNature } from '../api/types';
+import { transactionsApi, paymentMethodsApi } from '../api/client';
+import type { Transaction, TxNature, PaymentMethod } from '../api/types';
 import { useAuth } from '../context/AuthContext';
 import TransactionFilter, { DEFAULT_FILTERS, countActiveFilters, DATE_PRESET_LABELS } from '../components/TransactionFilter';
 import type { FilterState } from '../components/TransactionFilter';
@@ -24,6 +24,7 @@ const natureLabels: Record<TxNature, string> = {
 
 export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -51,7 +52,10 @@ export default function TransactionsPage() {
     }
   };
 
-  useEffect(() => { load(); }, [filters]);
+  useEffect(() => { 
+    load(); 
+    paymentMethodsApi.list().then(setPaymentMethods).catch(() => {});
+  }, [filters]);
 
   const summary = transactions.reduce(
     (acc, t) => {
@@ -228,7 +232,7 @@ export default function TransactionsPage() {
                   <p className="font-medium text-gray-800 dark:text-gray-200 truncate">{t.title}</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
                     {t.transaction_date} · {natureLabels[t.nature]}
-                    {t.payment_method && ` · ${t.payment_method}`}
+                    {t.payment_method_id && ` · ${paymentMethods.find(p => p.id === t.payment_method_id)?.name || `Payment #${t.payment_method_id}`}`}
                   </p>
                   {t.nature === 'EMI_PAYMENT' && (
                     <p className="text-xs text-gray-500 dark:text-gray-400">

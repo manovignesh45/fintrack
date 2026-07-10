@@ -1,13 +1,5 @@
 import type { TxNature, FilterState } from './types';
 
-export const PAYMENT_METHODS = [
-  'GPay',
-  'Amazon Pay',
-  'HDFC UPI',
-  'Bank Transfer',
-  'Cash',
-] as const;
-
 export const NATURES: TxNature[] = ['INCOME', 'EXPENSE', 'EMI_PAYMENT', 'LOAN_DISBURSEMENT'];
 
 export const DATE_PRESET_LABELS: Record<string, string> = {
@@ -100,7 +92,7 @@ export function emptyTransactionForm(): {
   source_account_id: string;
   target_account_id: string;
   sub_category_id: string;
-  payment_method: string;
+  payment_method_id: string;
   notes: string;
   principal_amount: string;
   interest_amount: string;
@@ -113,7 +105,7 @@ export function emptyTransactionForm(): {
     source_account_id: '1',
     target_account_id: '',
     sub_category_id: '',
-    payment_method: '',
+    payment_method_id: '',
     notes: '',
     principal_amount: '0',
     interest_amount: '0',

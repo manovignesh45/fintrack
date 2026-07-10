@@ -36,7 +36,7 @@ func (h *TransactionHandler) List(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 
 	query := `SELECT id, ledger_id, title, amount, nature, source_account_id,
-		target_account_id, sub_category_id, payment_method,
+		target_account_id, sub_category_id, payment_method_id,
 		notes, principal_amount, interest_amount, transaction_date, created_at
 		FROM transactions WHERE ledger_id = $1`
 	args := []interface{}{ledgerID}
@@ -128,7 +128,7 @@ func (h *TransactionHandler) Export(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 
 	query := `SELECT t.id, t.ledger_id, t.title, t.amount, t.nature, t.source_account_id,
-		t.target_account_id, t.sub_category_id, t.payment_method,
+		t.target_account_id, t.sub_category_id, t.payment_method_id,
 		t.notes, t.principal_amount, t.interest_amount, t.transaction_date, t.created_at,
 		ta.name as target_account_name,
 		sc.name as sub_category_name, c.name as category_name
@@ -180,18 +180,19 @@ func (h *TransactionHandler) Export(w http.ResponseWriter, r *http.Request) {
 	var data []ExportRow
 	for rows.Next() {
 		var er ExportRow
-		var paymentMethod, notes, targetName, subCatName, catName *string
+		var paymentMethodID *int
+		var notes, targetName, subCatName, catName *string
 		var txDate time.Time
 		err := rows.Scan(&er.ID, &er.LedgerID, &er.Title, &er.Amount, &er.Nature, &er.SourceAccountID,
-			&er.TargetAccountID, &er.SubCategoryID, &paymentMethod,
+			&er.TargetAccountID, &er.SubCategoryID, &paymentMethodID,
 			&notes, &er.PrincipalAmount, &er.InterestAmount, &txDate, &er.CreatedAt,
 			&targetName, &subCatName, &catName)
 		if err != nil {
 			writeError(w, http.StatusInternalServerError, "Failed to scan row")
 			return
 		}
-		if paymentMethod != nil {
-			er.PaymentMethod = *paymentMethod
+		if paymentMethodID != nil {
+			er.PaymentMethodID = paymentMethodID
 		}
 		if notes != nil {
 			er.Notes = *notes
@@ -213,7 +214,7 @@ func (h *TransactionHandler) Export(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	headers := []string{"Date", "Title", "Amount", "Nature", "Loan Account", "Category", "Sub Category", "Payment Method", "Notes"}
+	headers := []string{"Date", "Title", "Amount", "Nature", "Loan Account", "Category", "Sub Category", "Payment Method ID", "Notes"}
 
 	if format == "csv" {
 		w.Header().Set("Content-Type", "text/csv")
@@ -241,6 +242,10 @@ func (h *TransactionHandler) Export(w http.ResponseWriter, r *http.Request) {
 			if d.SubCategoryName != nil {
 				subCat = *d.SubCategoryName
 			}
+			pmID := ""
+			if d.PaymentMethodID != nil {
+				pmID = fmt.Sprintf("%d", *d.PaymentMethodID)
+			}
 			writer.Write([]string{
 				d.TransactionDate,
 				d.Title,
@@ -249,7 +254,7 @@ func (h *TransactionHandler) Export(w http.ResponseWriter, r *http.Request) {
 				loanAccount,
 				cat,
 				subCat,
-				d.PaymentMethod,
+				pmID,
 				d.Notes,
 			})
 		}
@@ -299,7 +304,11 @@ func (h *TransactionHandler) Export(w http.ResponseWriter, r *http.Request) {
 			f.SetCellValue(sheet, fmt.Sprintf("E%d", rowIdx), loanAccount)
 			f.SetCellValue(sheet, fmt.Sprintf("F%d", rowIdx), cat)
 			f.SetCellValue(sheet, fmt.Sprintf("G%d", rowIdx), subCat)
-			f.SetCellValue(sheet, fmt.Sprintf("H%d", rowIdx), d.PaymentMethod)
+			pmID := ""
+			if d.PaymentMethodID != nil {
+				pmID = fmt.Sprintf("%d", *d.PaymentMethodID)
+			}
+			f.SetCellValue(sheet, fmt.Sprintf("H%d", rowIdx), pmID)
 			f.SetCellValue(sheet, fmt.Sprintf("I%d", rowIdx), d.Notes)
 		}
 
@@ -329,7 +338,7 @@ func (h *TransactionHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 	row := h.db.QueryRow(r.Context(),
 		`SELECT id, ledger_id, title, amount, nature, source_account_id,
-			target_account_id, sub_category_id, payment_method,
+			target_account_id, sub_category_id, payment_method_id,
 			notes, principal_amount, interest_amount, transaction_date, created_at
 		 FROM transactions WHERE id = $1 AND ledger_id = $2`, id, ledgerID)
 
@@ -380,13 +389,13 @@ func (h *TransactionHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var t models.Transaction
 	row := tx.QueryRow(r.Context(),
 		`INSERT INTO transactions (ledger_id, title, amount, nature, source_account_id, target_account_id,
-			sub_category_id, payment_method, notes, principal_amount, interest_amount, transaction_date)
+			sub_category_id, payment_method_id, notes, principal_amount, interest_amount, transaction_date)
 		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
 		 RETURNING id, ledger_id, title, amount, nature, source_account_id, target_account_id,
-			sub_category_id, payment_method, notes, principal_amount, interest_amount,
+			sub_category_id, payment_method_id, notes, principal_amount, interest_amount,
 			transaction_date, created_at`,
 		ledgerID, req.Title, req.Amount, req.Nature, req.SourceAccountID, req.TargetAccountID,
-		req.SubCategoryID, nilIfEmpty(req.PaymentMethod), nilIfEmpty(req.Notes),
+		req.SubCategoryID, req.PaymentMethodID, nilIfEmpty(req.Notes),
 		req.PrincipalAmount, req.InterestAmount, req.TransactionDate,
 	)
 	t, err = scanTransactionRow(row)
@@ -452,7 +461,7 @@ func (h *TransactionHandler) Update(w http.ResponseWriter, r *http.Request) {
 	// Get existing transaction to reverse its balance impact
 	row := tx.QueryRow(r.Context(),
 		`SELECT id, ledger_id, title, amount, nature, source_account_id,
-			target_account_id, sub_category_id, payment_method,
+			target_account_id, sub_category_id, payment_method_id,
 			notes, principal_amount, interest_amount, transaction_date, created_at
 		 FROM transactions WHERE id = $1 AND ledger_id = $2 FOR UPDATE`, id, ledgerID)
 	old, err := scanTransactionRow(row)
@@ -471,14 +480,14 @@ func (h *TransactionHandler) Update(w http.ResponseWriter, r *http.Request) {
 	var t models.Transaction
 	updateRow := tx.QueryRow(r.Context(),
 		`UPDATE transactions SET title=$1, amount=$2, nature=$3, source_account_id=$4,
-			target_account_id=$5, sub_category_id=$6, payment_method=$7,
+			target_account_id=$5, sub_category_id=$6, payment_method_id=$7,
 			notes=$8, principal_amount=$9, interest_amount=$10, transaction_date=$11
 		 WHERE id=$12 AND ledger_id=$13
 		 RETURNING id, ledger_id, title, amount, nature, source_account_id, target_account_id,
-			sub_category_id, payment_method, notes, principal_amount, interest_amount,
+			sub_category_id, payment_method_id, notes, principal_amount, interest_amount,
 			transaction_date, created_at`,
 		req.Title, req.Amount, req.Nature, req.SourceAccountID, req.TargetAccountID,
-		req.SubCategoryID, nilIfEmpty(req.PaymentMethod), nilIfEmpty(req.Notes),
+		req.SubCategoryID, req.PaymentMethodID, nilIfEmpty(req.Notes),
 		req.PrincipalAmount, req.InterestAmount, req.TransactionDate, id, ledgerID,
 	)
 	t, err = scanTransactionRow(updateRow)
@@ -679,13 +688,14 @@ func validateTransactionReq(req *models.CreateTransactionReq) error {
 
 func scanTransaction(rows pgx.Rows) (models.Transaction, error) {
 	var t models.Transaction
-	var paymentMethod, notes *string
+	var paymentMethodID *int
+	var notes *string
 	var txDate time.Time
 	err := rows.Scan(&t.ID, &t.LedgerID, &t.Title, &t.Amount, &t.Nature, &t.SourceAccountID,
-		&t.TargetAccountID, &t.SubCategoryID, &paymentMethod,
+		&t.TargetAccountID, &t.SubCategoryID, &paymentMethodID,
 		&notes, &t.PrincipalAmount, &t.InterestAmount, &txDate, &t.CreatedAt)
-	if paymentMethod != nil {
-		t.PaymentMethod = *paymentMethod
+	if paymentMethodID != nil {
+		t.PaymentMethodID = paymentMethodID
 	}
 	if notes != nil {
 		t.Notes = *notes
@@ -696,13 +706,14 @@ func scanTransaction(rows pgx.Rows) (models.Transaction, error) {
 
 func scanTransactionRow(row pgx.Row) (models.Transaction, error) {
 	var t models.Transaction
-	var paymentMethod, notes *string
+	var paymentMethodID *int
+	var notes *string
 	var txDate time.Time
 	err := row.Scan(&t.ID, &t.LedgerID, &t.Title, &t.Amount, &t.Nature, &t.SourceAccountID,
-		&t.TargetAccountID, &t.SubCategoryID, &paymentMethod,
+		&t.TargetAccountID, &t.SubCategoryID, &paymentMethodID,
 		&notes, &t.PrincipalAmount, &t.InterestAmount, &txDate, &t.CreatedAt)
-	if paymentMethod != nil {
-		t.PaymentMethod = *paymentMethod
+	if paymentMethodID != nil {
+		t.PaymentMethodID = paymentMethodID
 	}
 	if notes != nil {
 		t.Notes = *notes

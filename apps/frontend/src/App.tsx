@@ -11,6 +11,7 @@ import SummaryPage from './pages/SummaryPage';
 import TallyPage from './pages/TallyPage';
 import TemplatesPage from './pages/TemplatesPage';
 import CreateTemplatePage from './pages/CreateTemplatePage';
+import PaymentMethodsPage from './pages/PaymentMethodsPage';
 import EditTransactionPage from './pages/EditTransactionPage';
 import LoginPage from './pages/LoginPage';
 import ImportPage from './pages/ImportPage';
@@ -131,21 +132,23 @@ function AppShell() {
                   {activeLedger?.id === l.id && <span className="text-blue-600 dark:text-blue-400 flex-shrink-0">✓</span>}
                 </button>
               ))}
-              <div className="border-t border-gray-100 dark:border-gray-700 mt-1">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setShowLedgerDropdown(false);
-                    setShowCreateModal(true);
-                  }}
-                  className="w-full text-left px-3 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center gap-1"
-                >
-                  <span className="text-lg leading-none">+</span>
-                  <span>Create Ledger</span>
-                </button>
-              </div>
+              {editMode && (
+                <div className="border-t border-gray-100 dark:border-gray-700 mt-1">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setShowLedgerDropdown(false);
+                      setShowCreateModal(true);
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center gap-1"
+                  >
+                    <span className="text-lg leading-none">+</span>
+                    <span>Create Ledger</span>
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -261,6 +264,7 @@ function AppShell() {
           <Route path="/templates" element={<ProtectedRoute><TemplatesPage /></ProtectedRoute>} />
           <Route path="/templates/new" element={<ProtectedRoute><CreateTemplatePage /></ProtectedRoute>} />
           <Route path="/import" element={<ProtectedRoute><ImportPage /></ProtectedRoute>} />
+          <Route path="/payment-methods" element={<ProtectedRoute><PaymentMethodsPage /></ProtectedRoute>} />
           <Route path="/more" element={<ProtectedRoute><MorePage /></ProtectedRoute>} />
         </Routes>
       </main>
@@ -346,6 +350,9 @@ function MorePage() {
       <h2 className="text-lg font-semibold text-gray-800 dark:text-white">More</h2>
       <NavLink to="/categories" className="block p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-200">
         📁 Categories & Sub-categories
+      </NavLink>
+      <NavLink to="/payment-methods" className="block p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-200">
+        💳 Payment Methods
       </NavLink>
       <NavLink to="/tally" className="block p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-200">
         ✅ Tally / Reconciliation

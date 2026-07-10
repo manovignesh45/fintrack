@@ -14,7 +14,7 @@ function formToPayload(form: TransactionFormData) {
     target_account_id: form.target_account_id ? parseInt(form.target_account_id) : undefined,
     sub_category_id: form.sub_category_id ? parseInt(form.sub_category_id) : undefined,
     
-    payment_method: form.payment_method || undefined,
+    payment_method_id: form.payment_method_id ? parseInt(form.payment_method_id) : undefined,
     notes: form.notes || undefined,
     principal_amount: parseFloat(form.principal_amount) || 0,
     interest_amount: parseFloat(form.interest_amount) || 0,

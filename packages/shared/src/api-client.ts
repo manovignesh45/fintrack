@@ -8,6 +8,7 @@ import type {
   AuthResponse,
   LoginReq,
   RegisterReq,
+  PaymentMethod,
 } from './types';
 
 export interface ApiClientConfig {
@@ -164,6 +165,16 @@ export function createApiClient(config: ApiClientConfig) {
       }),
   };
 
+  const paymentMethodsApi = {
+    list: () => request<PaymentMethod[]>('/payment-methods'),
+    create: (data: { name: string }) =>
+      request<PaymentMethod>('/payment-methods', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: number, data: { name: string }) =>
+      request<PaymentMethod>(`/payment-methods/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: number) =>
+      request<void>(`/payment-methods/${id}`, { method: 'DELETE' }),
+  };
+
   const transactionsApi = {
     list: (params?: Record<string, string>) => {
       let qs = '';
@@ -212,6 +223,7 @@ export function createApiClient(config: ApiClientConfig) {
     importApi,
     accountsApi,
     categoriesApi,
+    paymentMethodsApi,
     transactionsApi,
     templatesApi,
     tallyApi,

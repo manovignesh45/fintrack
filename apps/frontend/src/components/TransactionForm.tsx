@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
-import { accountsApi, categoriesApi } from '../api/client';
-import type { Account, Category, TxNature } from '../api/types';
-import { NATURES, PAYMENT_METHODS } from '../api/types';
+import { useNavigate } from 'react-router-dom';
+import { accountsApi, categoriesApi, paymentMethodsApi } from '../api/client';
+import type { Account, Category, TxNature, PaymentMethod } from '../api/types';
+import { NATURES } from '../api/types';
+import { useAuth } from '../context/AuthContext';
 
 export interface TransactionFormData {
   title: string;
@@ -10,7 +12,7 @@ export interface TransactionFormData {
   source_account_id: string;
   target_account_id: string;
   sub_category_id: string;
-  payment_method: string;
+  payment_method_id: string;
   notes: string;
   principal_amount: string;
   interest_amount: string;
@@ -24,7 +26,7 @@ const emptyForm = (): TransactionFormData => ({
   source_account_id: '1',
   target_account_id: '',
   sub_category_id: '',
-  payment_method: '',
+  payment_method_id: '',
   notes: '',
   principal_amount: '0',
   interest_amount: '0',
@@ -40,15 +42,31 @@ interface Props {
 export { emptyForm };
 
 export default function TransactionForm({ initial, onSubmit, submitLabel }: Props) {
+  const { editMode } = useAuth();
   const [form, setForm] = useState<TransactionFormData>(initial ?? emptyForm());
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
+  // Custom Prompt Modal State
+  const [promptConfig, setPromptConfig] = useState<{
+    visible: boolean;
+    title: string;
+    placeholder: string;
+    configurePath?: string;
+    onSubmit: (val: string) => Promise<void>;
+  } | null>(null);
+  const [promptValue, setPromptValue] = useState('');
+  const [promptSubmitting, setPromptSubmitting] = useState(false);
+  
+  const navigate = useNavigate();
+
   useEffect(() => {
     accountsApi.list({ type: 'LIABILITY' }).then((data) => setAccounts(data || [])).catch(() => setAccounts([]));
+    paymentMethodsApi.list().then((data) => setPaymentMethods(data || [])).catch(() => setPaymentMethods([]));
   }, []);
 
   useEffect(() => {
@@ -113,7 +131,7 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
     }
     if (form.nature === 'INCOME' || form.nature === 'TRANSFER' || form.nature === 'LOAN_DISBURSEMENT') {
       // Clear payment method for INCOME, TRANSFER, and LOAN_DISBURSEMENT
-      setForm((f) => ({ ...f, payment_method: '' }));
+      setForm((f) => ({ ...f, payment_method_id: '' }));
     }
   }, [form.nature]);
 
@@ -146,6 +164,51 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
     setSelectedCategoryId(categoryId);
     // Reset sub-category when category changes
     set('sub_category_id', '');
+  };
+
+  const handleCreateCategory = () => {
+    setPromptConfig({
+      visible: true,
+      title: `New ${form.nature.toLowerCase()} category`,
+      placeholder: 'Category name',
+      configurePath: '/categories',
+      onSubmit: async (name) => {
+        const newCat = await categoriesApi.create({ name, nature: form.nature });
+        setCategories([...categories, newCat]);
+        handleCategoryChange(newCat.id.toString());
+      }
+    });
+  };
+
+  const handleCreateSubCategory = () => {
+    if (!selectedCategoryId) return;
+    setPromptConfig({
+      visible: true,
+      title: 'New sub-category',
+      placeholder: 'Sub-category name',
+      configurePath: '/categories',
+      onSubmit: async (name) => {
+        await categoriesApi.createSub(parseInt(selectedCategoryId), { name });
+        const updatedCategories = await categoriesApi.list({ nature: form.nature });
+        setCategories(updatedCategories || []);
+        const newSc = updatedCategories.find(c => c.id.toString() === selectedCategoryId)?.sub_categories?.find(sc => sc.name.toLowerCase() === name.toLowerCase());
+        if (newSc) set('sub_category_id', newSc.id.toString());
+      }
+    });
+  };
+
+  const handleCreatePaymentMethod = () => {
+    setPromptConfig({
+      visible: true,
+      title: 'New payment method',
+      placeholder: 'Method Name (e.g. Credit Card)',
+      configurePath: '/payment-methods',
+      onSubmit: async (name) => {
+        const newPm = await paymentMethodsApi.create({ name });
+        setPaymentMethods([...paymentMethods, newPm]);
+        set('payment_method_id', newPm.id.toString());
+      }
+    });
   };
 
   return (
@@ -280,7 +343,12 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
       {(form.nature === 'INCOME' || form.nature === 'EXPENSE') && (
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Category</label>
+            <div className="flex justify-between items-center mb-1">
+              <label className="block text-xs text-gray-500 dark:text-gray-400">Category *</label>
+              {editMode && (
+                <button type="button" onClick={handleCreateCategory} className="text-xs text-blue-600 dark:text-blue-400 font-medium hover:underline">+ Add</button>
+              )}
+            </div>
             <select
               value={selectedCategoryId}
               onChange={(e) => handleCategoryChange(e.target.value)}
@@ -296,7 +364,12 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
           </div>
 
           <div>
-            <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Sub-category</label>
+            <div className="flex justify-between items-center mb-1">
+              <label className="block text-xs text-gray-500 dark:text-gray-400">Sub-category</label>
+              {selectedCategoryId && editMode && (
+                <button type="button" onClick={handleCreateSubCategory} className="text-xs text-blue-600 dark:text-blue-400 font-medium hover:underline">+ Add</button>
+              )}
+            </div>
             <select
               value={form.sub_category_id}
               onChange={(e) => set('sub_category_id', e.target.value)}
@@ -319,16 +392,21 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
       {/* Payment method - Only for EXPENSE and EMI_PAYMENT */}
       {(form.nature === 'EXPENSE' || form.nature === 'EMI_PAYMENT') && (
         <div>
-          <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Payment Method</label>
+          <div className="flex justify-between items-center mb-1">
+            <label className="block text-xs text-gray-500 dark:text-gray-400">Payment Method</label>
+            {editMode && (
+              <button type="button" onClick={handleCreatePaymentMethod} className="text-xs text-blue-600 dark:text-blue-400 font-medium hover:underline">+ Add</button>
+            )}
+          </div>
           <select
-            value={form.payment_method}
-            onChange={(e) => set('payment_method', e.target.value)}
+            value={form.payment_method_id}
+            onChange={(e) => set('payment_method_id', e.target.value)}
             className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-800 dark:text-white"
           >
             <option value="">No payment method</option>
-            {PAYMENT_METHODS.map((pm) => (
-              <option key={pm} value={pm}>
-                {pm}
+            {paymentMethods.map((pm) => (
+              <option key={pm.id} value={pm.id}>
+                {pm.name}
               </option>
             ))}
           </select>
@@ -367,6 +445,91 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
       >
         {submitting ? 'Saving...' : submitLabel}
       </button>
+
+      {/* Custom Prompt Modal */}
+      {promptConfig?.visible && (
+        <div 
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) {
+              setPromptConfig(null);
+              setPromptValue('');
+            }
+          }}
+        >
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{promptConfig.title}</h3>
+            </div>
+            <div className="p-5">
+              <input
+                type="text"
+                autoFocus
+                value={promptValue}
+                onChange={(e) => setPromptValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    setPromptConfig(null);
+                    setPromptValue('');
+                  } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (promptValue.trim()) {
+                      document.getElementById('prompt-submit-btn')?.click();
+                    }
+                  }
+                }}
+                placeholder={promptConfig.placeholder}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
+              />
+            </div>
+            <div className="px-5 py-4 bg-gray-50 dark:bg-gray-700/50 flex justify-between items-center border-t border-gray-100 dark:border-gray-700">
+              {promptConfig.configurePath ? (
+                <button
+                  type="button"
+                  onClick={() => navigate(promptConfig.configurePath!)}
+                  className="text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                >
+                  Configure more
+                </button>
+              ) : <div></div>}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPromptConfig(null);
+                    setPromptValue('');
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-500"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  id="prompt-submit-btn"
+                onClick={async () => {
+                  if (promptValue.trim()) {
+                    setPromptSubmitting(true);
+                    try {
+                      await promptConfig.onSubmit(promptValue.trim());
+                      setPromptConfig(null);
+                      setPromptValue('');
+                    } catch (err: any) {
+                      setError(err.message || 'Failed to create');
+                    } finally {
+                      setPromptSubmitting(false);
+                    }
+                  }
+                }}
+                disabled={promptSubmitting || !promptValue.trim()}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 dark:focus:ring-offset-gray-800"
+              >
+                  {promptSubmitting ? '...' : 'Add'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   );
 }

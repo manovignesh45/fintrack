@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { accountsApi, tallyApi } from '../api/client';
 import type { Account, TallyResponse } from '../api/types';
 
@@ -34,7 +35,11 @@ export default function TallyPage() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Loan Reconciliation</h2>
+      <div className="flex items-center gap-1.5 mb-2">
+        <Link to="/more" className="text-lg font-semibold text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300">More</Link>
+        <span className="text-lg font-semibold text-gray-400 dark:text-gray-500">›</span>
+        <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Loan Reconciliation</h2>
+      </div>
       <p className="text-sm text-gray-500 dark:text-gray-400">
         Compare FinTrack's outstanding balance with your lender's actual statement.
       </p>
@@ -43,7 +48,7 @@ export default function TallyPage() {
         <select
           value={selectedId ?? ''}
           onChange={(e) => { setSelectedId(parseInt(e.target.value)); setResult(null); }}
-          className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 outline-none"
+          className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white outline-none"
         >
           {accounts.map((a) => (
             <option key={a.id} value={a.id}>{a.name}</option>
@@ -56,7 +61,7 @@ export default function TallyPage() {
           value={actualBalance}
           onChange={(e) => setActualBalance(e.target.value)}
           required
-          className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm outline-none"
+          className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white outline-none"
         />
 
         <button

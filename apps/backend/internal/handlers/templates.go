@@ -29,7 +29,7 @@ func (h *TemplateHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	rows, err := h.db.Query(r.Context(),
 		`SELECT id, ledger_id, title, amount, nature, source_account_id, target_account_id,
-			sub_category_id, payment_method, principal_amount, interest_amount, created_at
+			sub_category_id, payment_method_id, principal_amount, interest_amount, created_at
 		 FROM transaction_templates WHERE ledger_id = $1 ORDER BY title`, ledgerID)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "Failed to fetch templates")
@@ -40,15 +40,15 @@ func (h *TemplateHandler) List(w http.ResponseWriter, r *http.Request) {
 	var templates []models.TransactionTemplate
 	for rows.Next() {
 		var t models.TransactionTemplate
-		var paymentMethod *string
+		var paymentMethodID *int
 		if err := rows.Scan(&t.ID, &t.LedgerID, &t.Title, &t.Amount, &t.Nature, &t.SourceAccountID,
-			&t.TargetAccountID, &t.SubCategoryID, &paymentMethod,
+			&t.TargetAccountID, &t.SubCategoryID, &paymentMethodID,
 			&t.PrincipalAmount, &t.InterestAmount, &t.CreatedAt); err != nil {
 			writeError(w, http.StatusInternalServerError, "Failed to scan template")
 			return
 		}
-		if paymentMethod != nil {
-			t.PaymentMethod = *paymentMethod
+		if paymentMethodID != nil {
+			t.PaymentMethodID = paymentMethodID
 		}
 		templates = append(templates, t)
 	}
@@ -79,15 +79,15 @@ func (h *TemplateHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var t models.TransactionTemplate
-	var createPM *string
+	var createPM *int
 	err = h.db.QueryRow(r.Context(),
 		`INSERT INTO transaction_templates (ledger_id, title, amount, nature, source_account_id,
-			target_account_id, sub_category_id, payment_method, principal_amount, interest_amount)
+			target_account_id, sub_category_id, payment_method_id, principal_amount, interest_amount)
 		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
 		 RETURNING id, ledger_id, title, amount, nature, source_account_id, target_account_id,
-			sub_category_id, payment_method, principal_amount, interest_amount, created_at`,
+			sub_category_id, payment_method_id, principal_amount, interest_amount, created_at`,
 		ledgerID, req.Title, req.Amount, req.Nature, req.SourceAccountID, req.TargetAccountID,
-		req.SubCategoryID, nilIfEmpty(req.PaymentMethod),
+		req.SubCategoryID, req.PaymentMethodID,
 		req.PrincipalAmount, req.InterestAmount).Scan(
 		&t.ID, &t.LedgerID, &t.Title, &t.Amount, &t.Nature, &t.SourceAccountID,
 		&t.TargetAccountID, &t.SubCategoryID, &createPM,
@@ -97,7 +97,7 @@ func (h *TemplateHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if createPM != nil {
-		t.PaymentMethod = *createPM
+		t.PaymentMethodID = createPM
 	}
 
 	writeJSON(w, http.StatusCreated, t)
@@ -141,10 +141,10 @@ func (h *TemplateHandler) Execute(w http.ResponseWriter, r *http.Request) {
 
 	// Fetch the template
 	var t models.TransactionTemplate
-	var execPM *string
+	var execPM *int
 	err = h.db.QueryRow(r.Context(),
 		`SELECT id, ledger_id, title, amount, nature, source_account_id, target_account_id,
-			sub_category_id, payment_method, principal_amount, interest_amount, created_at
+			sub_category_id, payment_method_id, principal_amount, interest_amount, created_at
 		 FROM transaction_templates WHERE id = $1 AND ledger_id = $2`, id, ledgerID).Scan(
 		&t.ID, &t.LedgerID, &t.Title, &t.Amount, &t.Nature, &t.SourceAccountID,
 		&t.TargetAccountID, &t.SubCategoryID, &execPM,
@@ -154,7 +154,7 @@ func (h *TemplateHandler) Execute(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if execPM != nil {
-		t.PaymentMethod = *execPM
+		t.PaymentMethodID = execPM
 	}
 
 	// Build transaction request from template
@@ -165,7 +165,7 @@ func (h *TemplateHandler) Execute(w http.ResponseWriter, r *http.Request) {
 		SourceAccountID: t.SourceAccountID,
 		TargetAccountID: t.TargetAccountID,
 		SubCategoryID:   t.SubCategoryID,
-		PaymentMethod:   t.PaymentMethod,
+		PaymentMethodID: t.PaymentMethodID,
 		PrincipalAmount: t.PrincipalAmount,
 		InterestAmount:  t.InterestAmount,
 		TransactionDate: time.Now().Format("2006-01-02"),
@@ -181,13 +181,13 @@ func (h *TemplateHandler) Execute(w http.ResponseWriter, r *http.Request) {
 
 	createdRow := dbTx.QueryRow(r.Context(),
 		`INSERT INTO transactions (ledger_id, title, amount, nature, source_account_id, target_account_id,
-			sub_category_id, payment_method, notes, principal_amount, interest_amount, transaction_date)
+			sub_category_id, payment_method_id, notes, principal_amount, interest_amount, transaction_date)
 		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
 		 RETURNING id, ledger_id, title, amount, nature, source_account_id, target_account_id,
-			sub_category_id, payment_method, notes, principal_amount, interest_amount,
+			sub_category_id, payment_method_id, notes, principal_amount, interest_amount,
 			transaction_date, created_at`,
 		ledgerID, req.Title, req.Amount, req.Nature, req.SourceAccountID, req.TargetAccountID,
-		req.SubCategoryID, nilIfEmpty(req.PaymentMethod), nil,
+		req.SubCategoryID, req.PaymentMethodID, nil,
 		req.PrincipalAmount, req.InterestAmount, req.TransactionDate,
 	)
 	created, err := scanTransactionRow(createdRow)

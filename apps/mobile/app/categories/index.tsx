@@ -65,10 +65,12 @@ export default function CategoriesScreen() {
     <View className="flex-1 bg-gray-50 dark:bg-gray-900">
       <ScrollView contentContainerClassName="p-4 pb-24">
         <View className="flex-row items-center justify-between mb-4">
-          <View className="flex-row items-center gap-3">
-            <TouchableOpacity onPress={() => router.back()}>
-              <Ionicons name="arrow-back" size={22} color="#4b5563" />
+          <View className="flex-row items-center gap-2">
+            <TouchableOpacity onPress={() => router.back()} className="flex-row items-center">
+              <Ionicons name="arrow-back" size={20} color="#3b82f6" />
+              <Text className="text-lg font-semibold text-blue-600 dark:text-blue-400 ml-1">More</Text>
             </TouchableOpacity>
+            <Text className="text-lg font-semibold text-gray-400 dark:text-gray-500">›</Text>
             <Text className="text-lg font-semibold text-gray-800 dark:text-gray-100">Categories</Text>
           </View>
           <View className="flex-row items-center gap-1.5">

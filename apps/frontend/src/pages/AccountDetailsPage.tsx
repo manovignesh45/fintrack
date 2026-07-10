@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { accountsApi, transactionsApi } from '../api/client';
-import type { Account, Transaction } from '../api/types';
+import { accountsApi, transactionsApi, paymentMethodsApi } from '../api/client';
+import type { Account, Transaction, PaymentMethod } from '../api/types';
 
 export default function AccountDetailsPage() {
   const { id } = useParams<{ id: string }>();
@@ -9,6 +9,7 @@ export default function AccountDetailsPage() {
   const [account, setAccount] = useState<Account | null>(null);
   const [openingBalanceAccount, setOpeningBalanceAccount] = useState<Account | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [loading, setLoading] = useState(true);
   const [month, setMonth] = useState(() => {
     const d = new Date();
@@ -30,7 +31,7 @@ export default function AccountDetailsPage() {
           const dateTo = new Date(year, monthNum, 0).toISOString().split('T')[0];
           const dayBeforeStart = new Date(year, monthNum - 1, 0).toISOString().split('T')[0];
 
-          [accountCurr, accountAtStart, txnData] = await Promise.all([
+          [accountCurr, accountAtStart, txnData, ,] = await Promise.all([
             accountsApi.get(parseInt(id), { date_to: dateTo }),
             accountsApi.get(parseInt(id), { date_to: dayBeforeStart }),
             transactionsApi.list({ 
@@ -39,14 +40,16 @@ export default function AccountDetailsPage() {
               date_to: dateTo,
               per_page: "100" 
             }),
+            paymentMethodsApi.list().then(setPaymentMethods),
           ]);
         } else {
-          [accountCurr, txnData] = await Promise.all([
+          [accountCurr, txnData, ,] = await Promise.all([
             accountsApi.get(parseInt(id)),
             transactionsApi.list({ 
               account_id: id, 
               per_page: "1000"
             }),
+            paymentMethodsApi.list().then(setPaymentMethods),
           ]);
           // For all time, the opening balance is the initial balance
           accountAtStart = { ...accountCurr, current_balance: accountCurr.initial_balance };
@@ -186,8 +189,8 @@ export default function AccountDetailsPage() {
                           }`}>
                             {row.txn.nature === 'EMI_PAYMENT' ? 'EMI' : row.txn.nature === 'LOAN_DISBURSEMENT' ? 'LOAN' : row.txn.nature}
                           </span>
-                          {row.txn.payment_method && (
-                            <span className="text-xs text-gray-500 dark:text-gray-400">{row.txn.payment_method}</span>
+                          {row.txn.payment_method_id && (
+                            <span className="text-xs text-gray-500 dark:text-gray-400">{paymentMethods.find(p => p.id === row.txn.payment_method_id)?.name || `Payment #${row.txn.payment_method_id}`}</span>
                           )}
                         </div>
                         {row.txn.notes && (
