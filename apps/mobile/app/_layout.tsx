@@ -1,7 +1,7 @@
 import 'react-native-gesture-handler';
 import { ThemeProvider, useTheme } from '@/src/context/ThemeContext';
 import { useThemeColors } from '@/src/theme/colors';
-import { Stack, useRouter, useSegments } from 'expo-router';
+import { Stack, useRouter, useSegments, useRootNavigationState } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import React, { useEffect, useRef } from 'react';
@@ -14,6 +14,7 @@ import { AuthProvider, useAuth } from '@/src/context/AuthContext';
 import { LedgerProvider, useLedgers } from '@/src/context/LedgerContext';
 function HeaderLeft() {
   const { ledgers, activeLedger, switchLedger } = useLedgers();
+  const { editMode } = useAuth();
   const [menuVisible, setMenuVisible] = React.useState(false);
   const router = useRouter();
   const segments = useSegments();
@@ -205,10 +206,13 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   const { loading: ledgerLoading } = useLedgers();
   const segments = useSegments();
   const router = useRouter();
+  const colors = useThemeColors();
+  const rootNavigationState = useRootNavigationState();
   const prevAuthRef = useRef<boolean | null>(null);
 
   useEffect(() => {
     if (authLoading || ledgerLoading) return;
+    if (!rootNavigationState?.key) return; // Wait for navigator to be ready
 
     if (prevAuthRef.current === true && !isAuthenticated) {
       // Offline DB is removed, so no local data to clear.
@@ -217,21 +221,22 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 
     const inAuthGroup = segments[0] === 'login';
     if (!isAuthenticated && !inAuthGroup) {
-      router.replace('/login');
+      setTimeout(() => router.replace('/login'), 0);
     } else if (isAuthenticated && inAuthGroup) {
-      router.replace('/');
+      setTimeout(() => router.replace('/'), 0);
     }
-  }, [isAuthenticated, authLoading, ledgerLoading, segments]);
+  }, [isAuthenticated, authLoading, ledgerLoading, segments, rootNavigationState?.key]);
 
-  if (authLoading || ledgerLoading) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'transparent' }}>
-        <ActivityIndicator size="large" color="#2563eb" />
-      </View>
-    );
-  }
-
-  return <>{children}</>;
+  return (
+    <View style={{ flex: 1 }}>
+      {children}
+      {(authLoading || ledgerLoading) && (
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
+          <ActivityIndicator size="large" color="#2563eb" />
+        </View>
+      )}
+    </View>
+  );
 }
 
 

@@ -77,12 +77,16 @@ func (h *AccountHandler) Register(w http.ResponseWriter, r *http.Request) {
 		PasswordHash: string(hashedPassword),
 	}
 
-	query := `INSERT INTO users (username, password_hash) VALUES ($1, $2) RETURNING id, role, created_at, updated_at`
+	query := `INSERT INTO users (username, password_hash) VALUES ($1, $2) RETURNING id, role, preferences, created_at, updated_at`
+	var prefsBytes []byte
 	err = h.db.QueryRow(r.Context(), query, user.Username, user.PasswordHash).
-		Scan(&user.ID, &user.Role, &user.CreatedAt, &user.UpdatedAt)
+		Scan(&user.ID, &user.Role, &prefsBytes, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		writeError(w, http.StatusConflict, "Failed to create user (username might be taken)")
 		return
+	}
+	if len(prefsBytes) > 0 {
+		_ = json.Unmarshal(prefsBytes, &user.Preferences)
 	}
 
 	// Auto-create default ledger
@@ -105,12 +109,16 @@ func (h *AccountHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var user models.User
-	query := `SELECT id, username, password_hash, role, created_at, updated_at FROM users WHERE username = $1`
+	var prefsBytes []byte
+	query := `SELECT id, username, password_hash, role, preferences, created_at, updated_at FROM users WHERE username = $1`
 	err := h.db.QueryRow(r.Context(), query, req.Username).
-		Scan(&user.ID, &user.Username, &user.PasswordHash, &user.Role, &user.CreatedAt, &user.UpdatedAt)
+		Scan(&user.ID, &user.Username, &user.PasswordHash, &user.Role, &prefsBytes, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		writeError(w, http.StatusUnauthorized, "Invalid username or password")
 		return
+	}
+	if len(prefsBytes) > 0 {
+		_ = json.Unmarshal(prefsBytes, &user.Preferences)
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
@@ -209,6 +217,44 @@ func (h *AccountHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, map[string]string{"message": "Password updated successfully"})
+}
+
+func (h *AccountHandler) UpdatePreferences(w http.ResponseWriter, r *http.Request) {
+	userID, err := GetUserID(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	var req models.UpdatePreferencesReq
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "Invalid request payload")
+		return
+	}
+
+	prefsJSON, err := json.Marshal(req.Preferences)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Failed to encode preferences")
+		return
+	}
+
+	query := `UPDATE users SET preferences = preferences || $1::jsonb, updated_at = NOW() WHERE id = $2 RETURNING preferences`
+	
+	var prefsBytes []byte
+	err = h.db.QueryRow(r.Context(), query, prefsJSON, userID).Scan(&prefsBytes)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Failed to update preferences")
+		return
+	}
+
+	var finalPrefs map[string]interface{}
+	if len(prefsBytes) > 0 {
+		_ = json.Unmarshal(prefsBytes, &finalPrefs)
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"preferences": finalPrefs,
+	})
 }
 
 const ledgerContextKey contextKey = "ledger"

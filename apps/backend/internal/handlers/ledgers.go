@@ -113,5 +113,11 @@ func SeedDefaultCategories(ctx context.Context, db *pgxpool.Pool, ledgerID int) 
 		}
 	}
 
+	// Seed a default ASSET account so transactions have a fallback
+	_, err := db.Exec(ctx, "INSERT INTO accounts (ledger_id, name, type, initial_balance, current_balance, is_active) VALUES ($1, 'Cash', 'ASSET', 0, 0, true)", ledgerID)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { User } from '../api/types';
+import { authApi } from '../api/client';
 
 interface AuthContextType {
   user: User | null;
@@ -26,14 +27,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (savedToken && savedUser) {
       setToken(savedToken);
-      setUser(JSON.parse(savedUser));
+      const parsedUser = JSON.parse(savedUser) as User;
+      setUser(parsedUser);
+      if (parsedUser.preferences?.editMode !== undefined) {
+        setEditMode(parsedUser.preferences.editMode);
+      }
     }
     setLoading(false);
   }, []);
 
+  const handleSetEditMode = (v: boolean) => {
+    setEditMode(v);
+    if (user) {
+      const updatedUser = { ...user, preferences: { ...user.preferences, editMode: v } };
+      setUser(updatedUser);
+      localStorage.setItem('fintrack_user', JSON.stringify(updatedUser));
+      authApi.updatePreferences({ editMode: v }).catch(console.error);
+    }
+  };
+
   const login = (newUser: User, newToken: string) => {
     setUser(newUser);
     setToken(newToken);
+    if (newUser.preferences?.editMode !== undefined) {
+      setEditMode(newUser.preferences.editMode);
+    }
+    if (newUser.preferences?.theme) {
+      localStorage.setItem('fintrack-theme', newUser.preferences.theme);
+      // Reload to apply theme cleanly on first login from a new device
+      window.location.reload();
+    }
     localStorage.setItem('fintrack_token', newToken);
     localStorage.setItem('fintrack_user', JSON.stringify(newUser));
   };
@@ -55,7 +78,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAuthenticated: !!token,
         loading,
         editMode,
-        setEditMode,
+        setEditMode: handleSetEditMode,
       }}
     >
       {children}

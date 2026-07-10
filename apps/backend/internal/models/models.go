@@ -93,12 +93,13 @@ type Ledger struct {
 }
 
 type User struct {
-	ID           int       `json:"id"`
-	Username     string    `json:"username"`
-	PasswordHash string    `json:"-"`
-	Role         string    `json:"role"`
-	CreatedAt    time.Time `json:"created_at"`
-	UpdatedAt    time.Time `json:"updated_at"`
+	ID           int                    `json:"id"`
+	Username     string                 `json:"username"`
+	PasswordHash string                 `json:"-"`
+	Role         string                 `json:"role"`
+	Preferences  map[string]interface{} `json:"preferences"`
+	CreatedAt    time.Time              `json:"created_at"`
+	UpdatedAt    time.Time              `json:"updated_at"`
 }
 
 // --- Request / Response DTOs ---
@@ -111,6 +112,10 @@ type LoginReq struct {
 type RegisterReq struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
+}
+
+type UpdatePreferencesReq struct {
+	Preferences map[string]interface{} `json:"preferences"`
 }
 
 type CreateLedgerReq struct {

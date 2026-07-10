@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import { useColorScheme as useNativeWindColorScheme } from 'nativewind';
+import { authApi, tokenCache } from '../api/client';
 
 type Theme = 'light' | 'dark' | 'system';
 
@@ -31,6 +32,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     setThemeState(newTheme);
     setColorScheme(newTheme);
     SecureStore.setItemAsync('fintrack-theme', newTheme);
+    if (tokenCache.get()) {
+      authApi.updatePreferences({ theme: newTheme }).catch(console.error);
+    }
   };
 
   return (

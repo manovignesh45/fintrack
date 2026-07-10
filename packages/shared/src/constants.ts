@@ -102,7 +102,7 @@ export function emptyTransactionForm(): {
     title: '',
     amount: '',
     nature: 'EXPENSE',
-    source_account_id: '1',
+    source_account_id: '',
     target_account_id: '',
     sub_category_id: '',
     payment_method_id: '',

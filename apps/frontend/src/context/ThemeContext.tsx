@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-
+import { authApi } from '../api/client';
 export type Theme = 'dark' | 'light' | 'system';
 
 type ThemeProviderProps = {
@@ -68,6 +68,9 @@ export function ThemeProvider({
     setTheme: (theme: Theme) => {
       localStorage.setItem(storageKey, theme);
       setTheme(theme);
+      if (localStorage.getItem('fintrack_token')) {
+        authApi.updatePreferences({ theme }).catch(console.error);
+      }
     },
   };
 

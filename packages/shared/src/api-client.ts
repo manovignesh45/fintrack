@@ -70,6 +70,8 @@ export function createApiClient(config: ApiClientConfig) {
       request<AuthResponse>('/register', { method: 'POST', body: JSON.stringify(data) }),
     resetPassword: (data: any) =>
       request<{ message: string }>('/reset-password', { method: 'POST', body: JSON.stringify(data) }),
+    updatePreferences: (preferences: Record<string, any>) =>
+      request<{ preferences: Record<string, any> }>('/users/me/preferences', { method: 'PUT', body: JSON.stringify({ preferences }) }),
   };
 
   const adminApi = {

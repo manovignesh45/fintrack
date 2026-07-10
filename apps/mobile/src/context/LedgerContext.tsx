@@ -63,6 +63,13 @@ export const LedgerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     refreshLedgers();
   }, [refreshLedgers]);
 
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setLedgers([]);
+      setActiveLedgerId(null);
+    }
+  }, [isAuthenticated]);
+
   const switchLedger = async (id: string) => {
     setActiveLedgerId(id);
     setApiLedgerId(id);

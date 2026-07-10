@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import type { User } from '@fintrack/shared';
-import { tokenCache, setOnUnauthorized } from '../api/client';
+import { tokenCache, setOnUnauthorized, authApi, setApiLedgerId } from '../api/client';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface AuthContextType {
   user: User | null;
@@ -25,7 +26,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = useCallback(async () => {
     setUser(null);
     setToken(null);
+    setApiLedgerId(null);
     await tokenCache.clear();
+    await AsyncStorage.removeItem('fintrack_ledger_id');
   }, []);
 
   useEffect(() => {
@@ -42,7 +45,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (savedToken && savedUserStr) {
           setToken(savedToken);
-          setUser(JSON.parse(savedUserStr));
+          const parsedUser = JSON.parse(savedUserStr) as User;
+          setUser(parsedUser);
+          if (parsedUser.preferences?.editMode !== undefined) {
+            setEditMode(parsedUser.preferences.editMode);
+          }
         }
       } catch {
         // Failed to load auth state
@@ -54,9 +61,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loadAuth();
   }, []);
 
+  const handleSetEditMode = (v: boolean) => {
+    setEditMode(v);
+    if (user) {
+      const updatedUser = { ...user, preferences: { ...user.preferences, editMode: v } };
+      setUser(updatedUser);
+      SecureStore.setItemAsync('fintrack_user', JSON.stringify(updatedUser)).catch(console.error);
+      authApi.updatePreferences({ editMode: v }).catch(console.error);
+    }
+  };
+
   const login = async (newUser: User, newToken: string) => {
     setUser(newUser);
     setToken(newToken);
+    if (newUser.preferences?.editMode !== undefined) {
+      setEditMode(newUser.preferences.editMode);
+    }
+    if (newUser.preferences?.theme) {
+      await SecureStore.setItemAsync('fintrack-theme', newUser.preferences.theme);
+    }
     await tokenCache.set(newToken);
     await SecureStore.setItemAsync('fintrack_user', JSON.stringify(newUser));
   };
@@ -71,7 +94,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAuthenticated: !!token,
         loading,
         editMode,
-        setEditMode,
+        setEditMode: handleSetEditMode,
       }}
     >
       {children}

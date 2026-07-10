@@ -84,6 +84,9 @@ func main() {
 		r.Group(func(r chi.Router) {
 			r.Use(accountH.AuthMiddleware)
 
+			// User Profile
+			r.Put("/users/me/preferences", accountH.UpdatePreferences)
+
 			// Ledgers & Import (requires auth, but not ledger context)
 			r.Get("/ledgers", accountH.GetLedgers)
 			r.Post("/ledgers", accountH.CreateLedger)
