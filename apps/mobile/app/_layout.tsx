@@ -94,6 +94,7 @@ function HeaderLeft() {
 function HeaderRight() {
   const { editMode, setEditMode, user, logout } = useAuth();
   const { theme, setTheme } = useTheme();
+  const router = useRouter();
   const [menuVisible, setMenuVisible] = React.useState(false);
   const [menuView, setMenuView] = React.useState<'main' | 'settings' | 'theme'>('main');
   const initials = user?.username ? user.username.slice(0, 2).toUpperCase() : '?';
@@ -144,7 +145,12 @@ function HeaderRight() {
                       <Ionicons name="chevron-forward" size={16} color="#9ca3af" />
                     </TouchableOpacity>
                     <TouchableOpacity
-                      onPress={() => { setMenuVisible(false); setMenuView('main'); logout(); }}
+                      onPress={async () => { 
+                        setMenuVisible(false); 
+                        setMenuView('main'); 
+                        await logout();
+                        router.replace('/login');
+                      }}
                       className="px-4 py-3 bg-white dark:bg-gray-800"
                     >
                       <Text className="text-sm text-red-600 dark:text-red-500">Logout</Text>

@@ -23,7 +23,10 @@ export const LedgerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [loading, setLoading] = useState(true);
 
   const refreshLedgers = useCallback(async () => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated) {
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       const data = await ledgersApi.list();
