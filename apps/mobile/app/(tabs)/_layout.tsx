@@ -22,13 +22,13 @@ export default function TabLayout() {
         tabBarInactiveTintColor: colors.iconMuted,
         tabBarIndicatorStyle: { backgroundColor: 'transparent' },
         tabBarLabelStyle: { fontSize: 10, textTransform: 'none', marginTop: 2 },
+        tabBarItemStyle: { paddingVertical: 4 },
         tabBarStyle: {
-          paddingBottom: 4 + insets.bottom,
           height: 56 + insets.bottom,
+          paddingBottom: insets.bottom,
           backgroundColor: colors.tabBarBg,
           borderTopWidth: 1,
           borderTopColor: colors.border,
-          justifyContent: 'center'
         },
       }}
     >

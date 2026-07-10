@@ -177,7 +177,7 @@ export default function AccountDetailsScreen() {
       </View>
 
       {/* Balance card */}
-      <View className="mx-4 bg-blue-600 dark:bg-blue-50 dark:bg-blue-900/200 rounded-lg p-4 mb-4">
+      <View className="mx-4 bg-blue-600 dark:bg-blue-800 rounded-lg p-4 mb-4">
         <View className="flex-row justify-between items-start">
           <View>
             <Text className="text-xs text-blue-200 uppercase font-semibold">{period === 'all' ? 'Current Balance' : `Closing Balance (${monthShort})`}</Text>

@@ -4,6 +4,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { categoriesApi } from '@/src/api/client';
 import { FormScreen } from '@/src/components/ui/FormScreen';
+import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
 import { Button } from '@/src/components/ui/Button';
 import { useToast } from '@/src/context/ToastContext';
 import type { TxNature } from '@fintrack/shared';
@@ -35,14 +36,7 @@ export default function CreateCategoryScreen() {
   return (
     <FormScreen
       contentContainerClassName="p-4"
-      header={
-        <View className="flex-row items-center gap-3 px-4 pt-2 pb-2">
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={22} color="#4b5563" />
-          </TouchableOpacity>
-          <Text className="text-lg font-semibold text-gray-800 dark:text-gray-100">Create Category</Text>
-        </View>
-      }
+      header={<ScreenHeader title="Create Category" />}
     >
       {error ? (
         <View className="bg-red-50 p-3 rounded-lg mb-4">

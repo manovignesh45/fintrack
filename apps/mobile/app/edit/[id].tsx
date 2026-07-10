@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { transactionsApi } from '@/src/api/client';
 import TransactionForm from '@/src/components/TransactionForm';
 import { FormScreen } from '@/src/components/ui/FormScreen';
+import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
 import { useToast } from '@/src/context/ToastContext';
 import type { Transaction, TransactionFormData } from '@fintrack/shared';
 
@@ -78,14 +79,7 @@ export default function EditTransactionScreen() {
   return (
     <FormScreen
       ref={scrollRef}
-      header={
-        <View className="flex-row items-center gap-3 px-4 pt-2 pb-2">
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={22} color="#4b5563" />
-          </TouchableOpacity>
-          <Text className="text-lg font-semibold text-gray-800 dark:text-gray-100">Edit Transaction</Text>
-        </View>
-      }
+      header={<ScreenHeader title="Edit Transaction" />}
     >
       <TransactionForm scrollRef={scrollRef} initial={initial} onSubmit={handleSubmit} submitLabel="Update Transaction" />
     </FormScreen>

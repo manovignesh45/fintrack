@@ -4,6 +4,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { categoriesApi } from '@/src/api/client';
 import { FormScreen } from '@/src/components/ui/FormScreen';
+import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
 import { Button } from '@/src/components/ui/Button';
 import { useToast } from '@/src/context/ToastContext';
 import type { Category } from '@fintrack/shared';
@@ -64,14 +65,7 @@ export default function CreateSubCategoryScreen() {
   return (
     <FormScreen
       contentContainerClassName="p-4"
-      header={
-        <View className="flex-row items-center gap-3 px-4 pt-2 pb-2">
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={22} color="#4b5563" />
-          </TouchableOpacity>
-          <Text className="text-lg font-semibold text-gray-800 dark:text-gray-100">Create Sub-category</Text>
-        </View>
-      }
+      header={<ScreenHeader title="Create Sub-category" />}
     >
       {/* Parent category info */}
       <View className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-100 mb-4">

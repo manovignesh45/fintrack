@@ -150,7 +150,7 @@ export default function TransactionsScreen() {
   );
 
   const ListHeader = () => (
-    <View className="px-4 pb-2">
+    <View className="px-4 pt-4 pb-2">
       <View className="flex-row items-center justify-between mb-3">
         <Text className="text-lg font-semibold text-gray-800 dark:text-gray-100">Transactions</Text>
         <TransactionFilter ref={filterRef} filters={filters} onChange={setFilters} />

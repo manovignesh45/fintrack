@@ -4,6 +4,8 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import { accountsApi, tallyApi } from '@/src/api/client';
+import { KeyboardScreen } from '@/src/components/ui/FormScreen';
+import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
 import type { Account, TallyResponse } from '@fintrack/shared';
 
 export default function TallyScreen() {
@@ -37,15 +39,9 @@ export default function TallyScreen() {
   };
 
   return (
-    <ScrollView className="flex-1 bg-gray-50 dark:bg-gray-900" contentContainerClassName="p-4 pb-8" keyboardShouldPersistTaps="handled">
-      <View className="flex-row items-center gap-2 mb-4">
-        <TouchableOpacity onPress={() => router.back()} className="flex-row items-center">
-          <Ionicons name="arrow-back" size={20} color="#3b82f6" />
-          <Text className="text-lg font-semibold text-blue-600 dark:text-blue-400 ml-1">More</Text>
-        </TouchableOpacity>
-        <Text className="text-lg font-semibold text-gray-400 dark:text-gray-500">›</Text>
-        <Text className="text-lg font-semibold text-gray-800 dark:text-gray-100">Loan Reconciliation</Text>
-      </View>
+    <KeyboardScreen>
+      <ScreenHeader title="Loan Reconciliation" />
+      <ScrollView contentContainerClassName="p-4 pb-8" keyboardShouldPersistTaps="handled">
 
       <Text className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-4">
         Compare FinTrack's outstanding balance with your lender's actual statement.
@@ -110,6 +106,7 @@ export default function TallyScreen() {
           </Text>
         </View>
       )}
-    </ScrollView>
+      </ScrollView>
+    </KeyboardScreen>
   );
 }

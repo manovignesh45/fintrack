@@ -1,5 +1,5 @@
 import { forwardRef, useContext, type ReactNode } from 'react';
-import { KeyboardAvoidingView, ScrollView, View } from 'react-native';
+import { KeyboardAvoidingView, ScrollView, View, Platform } from 'react-native';
 import { HeaderHeightContext } from '@react-navigation/elements';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -29,8 +29,8 @@ export function KeyboardScreen({
   return (
     <KeyboardAvoidingView
       behavior="padding"
-      keyboardVerticalOffset={headerHeight}
-      style={{ paddingTop: insets.top }}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? headerHeight : 0}
+      style={{ paddingTop: headerHeight > 0 ? 0 : insets.top }}
       className={className}
     >
       {children}

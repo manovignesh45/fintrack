@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { templatesApi } from '@/src/api/client';
 import TransactionForm from '@/src/components/TransactionForm';
 import { FormScreen } from '@/src/components/ui/FormScreen';
+import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
 import { useToast } from '@/src/context/ToastContext';
 import type { TransactionFormData } from '@fintrack/shared';
 
@@ -33,14 +34,7 @@ export default function CreateTemplateScreen() {
   return (
     <FormScreen
       ref={scrollRef}
-      header={
-        <View className="flex-row items-center gap-3 px-4 pt-2 pb-2">
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={22} color="#4b5563" />
-          </TouchableOpacity>
-          <Text className="text-lg font-semibold text-gray-800 dark:text-gray-100">Create Template</Text>
-        </View>
-      }
+      header={<ScreenHeader title="Create Template" />}
     >
       <TransactionForm scrollRef={scrollRef} onSubmit={handleSubmit} submitLabel="Save Template" />
     </FormScreen>

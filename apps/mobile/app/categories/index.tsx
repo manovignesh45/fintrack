@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { categoriesApi } from '@/src/api/client';
 import { useAuth } from '@/src/context/AuthContext';
 import { KeyboardScreen } from '@/src/components/ui/FormScreen';
+import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
 import { FAB } from '@/src/components/ui/FAB';
 import { EditToggle } from '@/src/components/ui/EditToggle';
 import { EmptyState } from '@/src/components/ui/EmptyState';
@@ -71,22 +72,15 @@ export default function CategoriesScreen() {
 
   return (
     <KeyboardScreen>
+      <ScreenHeader 
+        title="Categories" 
+        right={<EditToggle value={editMode} onValueChange={setEditMode} />} 
+      />
       <ScrollView
         contentContainerClassName="p-4 pb-24"
         keyboardShouldPersistTaps="handled"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => load('refresh')} />}
       >
-        <View className="flex-row items-center justify-between mb-4">
-          <View className="flex-row items-center gap-2">
-            <TouchableOpacity onPress={() => router.back()} className="flex-row items-center">
-              <Ionicons name="arrow-back" size={20} color="#3b82f6" />
-              <Text className="text-lg font-semibold text-blue-600 dark:text-blue-400 ml-1">More</Text>
-            </TouchableOpacity>
-            <Text className="text-lg font-semibold text-gray-400 dark:text-gray-500">›</Text>
-            <Text className="text-lg font-semibold text-gray-800 dark:text-gray-100">Categories</Text>
-          </View>
-          <EditToggle value={editMode} onValueChange={setEditMode} />
-        </View>
 
 
 
