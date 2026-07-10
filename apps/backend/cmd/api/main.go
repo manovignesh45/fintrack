@@ -56,8 +56,13 @@ func main() {
 
 	allowedOrigins := []string{"http://localhost:5173", "http://localhost:3000"}
 	if envOrigins := os.Getenv("ALLOWED_ORIGINS"); envOrigins != "" {
-		allowedOrigins = strings.Split(envOrigins, ",")
+		parts := strings.Split(envOrigins, ",")
+		allowedOrigins = make([]string, 0, len(parts))
+		for _, p := range parts {
+			allowedOrigins = append(allowedOrigins, strings.TrimSpace(p))
+		}
 	}
+	log.Printf("CORS Allowed Origins: %v", allowedOrigins)
 
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   allowedOrigins,

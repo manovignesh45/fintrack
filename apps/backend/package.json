@@ -4,6 +4,6 @@
   "scripts": {
     "dev": "go run ./cmd/api",
     "build": "go build -o bin/api ./cmd/api",
-    "migrate": "migrate -path ./internal/db/migrations -database \"$DATABASE_URL\""
+    "migrate": "migrate -path ./internal/db/migrations -database \"$DATABASE_URL\" up"
   }
 }
