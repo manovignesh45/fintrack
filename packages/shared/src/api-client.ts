@@ -48,8 +48,10 @@ export function createApiClient(config: ApiClientConfig) {
     });
 
     if (res.status === 401) {
-      onUnauthorized();
-      throw new Error('Unauthorized');
+      if (url !== '/login') {
+        onUnauthorized();
+      }
+      throw new Error('Invalid credentials or unauthorized');
     }
 
     if (!res.ok) {
@@ -65,6 +67,16 @@ export function createApiClient(config: ApiClientConfig) {
       request<AuthResponse>('/login', { method: 'POST', body: JSON.stringify(data) }),
     register: (data: RegisterReq) =>
       request<AuthResponse>('/register', { method: 'POST', body: JSON.stringify(data) }),
+    resetPassword: (data: any) =>
+      request<{ message: string }>('/reset-password', { method: 'POST', body: JSON.stringify(data) }),
+  };
+
+  const adminApi = {
+    listUsers: () => request<any[]>('/admin/users'),
+    resetPassword: (data: { user_id: number; temp_password: string }) =>
+      request<{ message: string }>('/admin/users/reset-password', { method: 'POST', body: JSON.stringify(data) }),
+    deleteUser: (id: number) =>
+      request<void>(`/admin/users/${id}`, { method: 'DELETE' }),
   };
 
   const ledgersApi = {
@@ -204,6 +216,7 @@ export function createApiClient(config: ApiClientConfig) {
     templatesApi,
     tallyApi,
     summaryApi,
+    adminApi,
   };
 }
 

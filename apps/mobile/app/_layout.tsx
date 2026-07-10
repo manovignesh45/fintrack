@@ -199,13 +199,14 @@ function HeaderRight() {
 }
 
 function AuthGate({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading: authLoading } = useAuth();
+  const { loading: ledgerLoading } = useLedgers();
   const segments = useSegments();
   const router = useRouter();
   const prevAuthRef = useRef<boolean | null>(null);
 
   useEffect(() => {
-    if (loading) return;
+    if (authLoading || ledgerLoading) return;
 
     if (prevAuthRef.current === true && !isAuthenticated) {
       // Offline DB is removed, so no local data to clear.
@@ -218,9 +219,9 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     } else if (isAuthenticated && inAuthGroup) {
       router.replace('/');
     }
-  }, [isAuthenticated, loading, segments]);
+  }, [isAuthenticated, authLoading, ledgerLoading, segments]);
 
-  if (loading) {
+  if (authLoading || ledgerLoading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'transparent' }}>
         <ActivityIndicator size="large" color="#2563eb" />

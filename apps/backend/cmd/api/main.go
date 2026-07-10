@@ -72,6 +72,7 @@ func main() {
 		// Auth
 		r.Post("/login", accountH.Login)
 		r.Post("/register", accountH.Register)
+		r.Post("/reset-password", accountH.ResetPassword)
 
 		// Protected routes
 		r.Group(func(r chi.Router) {
@@ -81,6 +82,14 @@ func main() {
 			r.Get("/ledgers", accountH.GetLedgers)
 			r.Post("/ledgers", accountH.CreateLedger)
 			r.Post("/import/csv", accountH.ImportCSV)
+
+			// Superadmin routes
+			r.Group(func(r chi.Router) {
+				r.Use(accountH.SuperAdminMiddleware)
+				r.Get("/admin/users", accountH.GetUsers)
+				r.Post("/admin/users/reset-password", accountH.AdminResetPassword)
+				r.Delete("/admin/users/{id}", accountH.DeleteUser)
+			})
 
 			// Ledger-scoped routes
 			r.Group(func(r chi.Router) {

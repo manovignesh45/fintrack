@@ -4,6 +4,7 @@ export type TxNature = 'INCOME' | 'EXPENSE' | 'TRANSFER' | 'EMI_PAYMENT' | 'LOAN
 export interface User {
   id: number;
   username: string;
+  role: string;
   created_at: string;
   updated_at: string;
 }

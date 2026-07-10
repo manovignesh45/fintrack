@@ -17,6 +17,7 @@ import ImportPage from './pages/ImportPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LedgerProvider, useLedgers } from './context/LedgerContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
+import SuperAdminShell from './components/SuperAdminShell';
 
 const navItems = [
   { to: '/', label: 'Transactions', icon: '📋' },
@@ -27,13 +28,26 @@ const navItems = [
 ];
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading: authLoading } = useAuth();
+  const { loading: ledgerLoading } = useLedgers();
   const location = useLocation();
 
-  if (loading) return <div>Loading...</div>;
-  if (!isAuthenticated) return <Navigate to="/login" state={{ from: location }} replace />;
+	if (authLoading) return <div className="flex h-screen items-center justify-center">Loading auth...</div>;
+	if (!isAuthenticated) return <Navigate to="/login" state={{ from: location }} replace />;
+	if (ledgerLoading) return <div className="flex h-screen items-center justify-center">Loading workspace...</div>;
 
-  return <>{children}</>;
+	return <>{children}</>;
+}
+
+function SuperAdminRoute({ children }: { children: React.ReactNode }) {
+	const { isAuthenticated, loading, user } = useAuth();
+
+	if (loading) return <div>Loading...</div>;
+	if (!isAuthenticated || user?.role !== 'superadmin') {
+		return <Navigate to="/" replace />;
+	}
+
+	return <>{children}</>;
 }
 
 export default function App() {
@@ -42,7 +56,11 @@ export default function App() {
       <AuthProvider>
         <LedgerProvider>
           <ThemeProvider>
-            <AppShell />
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/superadmin/*" element={<SuperAdminRoute><SuperAdminShell /></SuperAdminRoute>} />
+              <Route path="/*" element={<AppShell />} />
+            </Routes>
           </ThemeProvider>
         </LedgerProvider>
       </AuthProvider>
@@ -230,7 +248,6 @@ function AppShell() {
 
       <main className="max-w-lg mx-auto px-4 py-4">
         <Routes>
-          <Route path="/login" element={<LoginPage />} />
           <Route path="/" element={<ProtectedRoute><TransactionsPage /></ProtectedRoute>} />
           <Route path="/add" element={<ProtectedRoute><AddTransactionPage /></ProtectedRoute>} />
           <Route path="/edit/:id" element={<ProtectedRoute><EditTransactionPage /></ProtectedRoute>} />

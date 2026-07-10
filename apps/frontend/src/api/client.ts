@@ -33,3 +33,4 @@ export const transactionsApi = client.transactionsApi;
 export const templatesApi = client.templatesApi;
 export const tallyApi = client.tallyApi;
 export const summaryApi = client.summaryApi;
+export const adminApi = client.adminApi;

@@ -25,6 +25,7 @@ func init() {
 type Claims struct {
 	UserID   int    `json:"user_id"`
 	Username string `json:"username"`
+	Role     string `json:"role"`
 	jwt.RegisteredClaims
 }
 
@@ -76,9 +77,9 @@ func (h *AccountHandler) Register(w http.ResponseWriter, r *http.Request) {
 		PasswordHash: string(hashedPassword),
 	}
 
-	query := `INSERT INTO users (username, password_hash) VALUES ($1, $2) RETURNING id, created_at, updated_at`
+	query := `INSERT INTO users (username, password_hash) VALUES ($1, $2) RETURNING id, role, created_at, updated_at`
 	err = h.db.QueryRow(r.Context(), query, user.Username, user.PasswordHash).
-		Scan(&user.ID, &user.CreatedAt, &user.UpdatedAt)
+		Scan(&user.ID, &user.Role, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		writeError(w, http.StatusConflict, "Failed to create user (username might be taken)")
 		return
@@ -95,9 +96,9 @@ func (h *AccountHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var user models.User
-	query := `SELECT id, username, password_hash, created_at, updated_at FROM users WHERE username = $1`
+	query := `SELECT id, username, password_hash, role, created_at, updated_at FROM users WHERE username = $1`
 	err := h.db.QueryRow(r.Context(), query, req.Username).
-		Scan(&user.ID, &user.Username, &user.PasswordHash, &user.CreatedAt, &user.UpdatedAt)
+		Scan(&user.ID, &user.Username, &user.PasswordHash, &user.Role, &user.CreatedAt, &user.UpdatedAt)
 	if err != nil {
 		writeError(w, http.StatusUnauthorized, "Invalid username or password")
 		return
@@ -112,6 +113,7 @@ func (h *AccountHandler) Login(w http.ResponseWriter, r *http.Request) {
 	claims := &Claims{
 		UserID:   user.ID,
 		Username: user.Username,
+		Role:     user.Role,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(expirationTime),
 		},
@@ -140,6 +142,64 @@ func GetUserID(r *http.Request) (int, error) {
 		return 0, errors.New("user not found in context")
 	}
 	return claims.UserID, nil
+}
+
+func (h *AccountHandler) SuperAdminMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		claims, ok := r.Context().Value(userContextKey).(*Claims)
+		if !ok || claims.Role != "superadmin" {
+			writeError(w, http.StatusForbidden, "Forbidden: Superadmin access required")
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+type ResetPasswordReq struct {
+	Username    string `json:"username"`
+	TempPassword string `json:"temp_password"`
+	NewPassword  string `json:"new_password"`
+}
+
+func (h *AccountHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
+	var req ResetPasswordReq
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "Invalid request payload")
+		return
+	}
+
+	if req.Username == "" || req.TempPassword == "" || req.NewPassword == "" {
+		writeError(w, http.StatusBadRequest, "Username, temp password, and new password are required")
+		return
+	}
+
+	var userID int
+	var passwordHash string
+	query := `SELECT id, password_hash FROM users WHERE username = $1`
+	err := h.db.QueryRow(r.Context(), query, req.Username).Scan(&userID, &passwordHash)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "Invalid credentials")
+		return
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(req.TempPassword)); err != nil {
+		writeError(w, http.StatusUnauthorized, "Invalid temporary password")
+		return
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Failed to hash new password")
+		return
+	}
+
+	_, err = h.db.Exec(r.Context(), `UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2`, string(hashedPassword), userID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Failed to update password")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]string{"message": "Password updated successfully"})
 }
 
 const ledgerContextKey contextKey = "ledger"

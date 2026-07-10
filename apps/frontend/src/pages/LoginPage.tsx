@@ -10,6 +10,9 @@ const LoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isRegistering, setIsRegistering] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [tempPassword, setTempPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -17,18 +20,30 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
     setError('');
     try {
-      if (isRegistering) {
+      if (isForgotPassword) {
+        await authApi.resetPassword({ username, temp_password: tempPassword, new_password: newPassword });
+        setIsForgotPassword(false);
+        setPassword('');
+        setTempPassword('');
+        setNewPassword('');
+        alert('Password reset successfully. You can now login.');
+      } else if (isRegistering) {
         await authApi.register({ username, password });
         // After registration, log them in automatically
         const loginRes = await authApi.login({ username, password });
         login(loginRes.user, loginRes.token);
+        navigate('/');
       } else {
         const res = await authApi.login({ username, password });
         login(res.user, res.token);
+        if (res.user.role === 'superadmin') {
+          navigate('/superadmin');
+        } else {
+          navigate('/');
+        }
       }
-      navigate('/');
     } catch (err: any) {
-      setError(err.message || 'Login failed');
+      setError(err.message || 'Action failed');
     }
   };
 
@@ -39,7 +54,7 @@ const LoginPage: React.FC = () => {
           FinTrack
         </h1>
         <h2 className="text-xl font-semibold text-center mb-8">
-          {isRegistering ? 'Create an Account' : 'Login to Your Account'}
+          {isForgotPassword ? 'Reset Password' : isRegistering ? 'Create an Account' : 'Login to Your Account'}
         </h2>
 
         {error && (
@@ -61,46 +76,110 @@ const LoginPage: React.FC = () => {
               onChange={(e) => setUsername(e.target.value)}
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Password
-            </label>
-            <div className="relative">
-              <input
-                type={showPassword ? "text" : "password"}
-                required
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 pr-10 dark:bg-gray-800 dark:text-white"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-              <button
-                type="button"
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:text-gray-400 focus:outline-none"
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? (
-                  <EyeOff className="h-5 w-5" aria-hidden="true" />
-                ) : (
-                  <Eye className="h-5 w-5" aria-hidden="true" />
-                )}
-              </button>
+          {isForgotPassword ? (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Temporary Password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 pr-10 dark:bg-gray-800 dark:text-white"
+                    value={tempPassword}
+                    onChange={(e) => setTempPassword(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  New Password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 pr-10 dark:bg-gray-800 dark:text-white"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                  />
+                </div>
+              </div>
+            </>
+          ) : (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 pr-10 dark:bg-gray-800 dark:text-white"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+                <button
+                  type="button"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:text-gray-400 focus:outline-none"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" aria-hidden="true" />
+                  ) : (
+                    <Eye className="h-5 w-5" aria-hidden="true" />
+                  )}
+                </button>
+              </div>
             </div>
-          </div>
+          )}
           <button
             type="submit"
             className="w-full bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700 transition"
           >
-            {isRegistering ? 'Register' : 'Login'}
+            {isForgotPassword ? 'Reset Password' : isRegistering ? 'Register' : 'Login'}
           </button>
         </form>
 
-        <div className="mt-6 text-center">
-            <button 
-                onClick={() => setIsRegistering(!isRegistering)}
+        <div className="mt-6 flex flex-col items-center space-y-3">
+            {!isForgotPassword && !isRegistering && (
+              <button 
+                type="button"
+                onClick={() => setIsForgotPassword(true)}
                 className="text-indigo-600 hover:underline text-sm"
-            >
-                {isRegistering ? 'Already have an account? Login' : 'Need an account? Register'}
-            </button>
+              >
+                Forgot Password?
+              </button>
+            )}
+            
+            {(isForgotPassword || isRegistering) ? (
+              <button 
+                type="button"
+                onClick={() => {
+                  setIsRegistering(false);
+                  setIsForgotPassword(false);
+                }}
+                className="text-indigo-600 hover:underline text-sm"
+              >
+                Back to Login
+              </button>
+            ) : (
+              <button 
+                  type="button"
+                  onClick={() => setIsRegistering(true)}
+                  className="text-indigo-600 hover:underline text-sm"
+              >
+                  Need an account? Register
+              </button>
+            )}
         </div>
       </div>
     </div>
