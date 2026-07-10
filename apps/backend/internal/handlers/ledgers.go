@@ -1,11 +1,13 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"time"
 
 	"github.com/fintrack/backend/internal/models"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func (h *AccountHandler) GetLedgers(w http.ResponseWriter, r *http.Request) {
@@ -71,5 +73,36 @@ func (h *AccountHandler) CreateLedger(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Seed default categories for this newly created ledger
+	_ = SeedDefaultCategories(r.Context(), h.db, l.ID)
+
 	writeJSON(w, http.StatusCreated, l)
+}
+
+// SeedDefaultCategories seeds the basic useful categories and subcategories for a given ledger.
+func SeedDefaultCategories(ctx context.Context, db *pgxpool.Pool, ledgerID int) error {
+	categories := []struct {
+		Nature  models.TxNature
+		Label   string
+		SubCats []string
+	}{
+		{Nature: models.NatureIncome, Label: "Income", SubCats: []string{"Salary", "Other Income"}},
+		{Nature: models.NatureExpense, Label: "Expense", SubCats: []string{"Food & Dining", "Transport", "Utilities", "Shopping", "Health", "Entertainment", "Housing"}},
+		{Nature: models.NatureTransfer, Label: "Transfer", SubCats: []string{"Bank Transfer"}},
+	}
+
+	for _, c := range categories {
+		var catID int
+		err := db.QueryRow(ctx, "INSERT INTO categories (ledger_id, name, nature) VALUES ($1, $2, $3) RETURNING id", ledgerID, c.Label, c.Nature).Scan(&catID)
+		if err != nil {
+			return err
+		}
+		for _, sc := range c.SubCats {
+			_, err = db.Exec(ctx, "INSERT INTO sub_categories (category_id, ledger_id, name) VALUES ($1, $2, $3)", catID, ledgerID, sc)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
