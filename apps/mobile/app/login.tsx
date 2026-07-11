@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, ScrollVi
 import { Ionicons } from '@expo/vector-icons';
 import { authApi } from '@/src/api/client';
 import { useAuth } from '@/src/context/AuthContext';
+import { useTheme } from '@/src/context/ThemeContext';
 
 export default function LoginScreen() {
   const [username, setUsername] = useState('');
@@ -15,6 +16,14 @@ export default function LoginScreen() {
   const [newPassword, setNewPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const { login } = useAuth();
+  const { setTheme } = useTheme();
+
+  // Apply the logged-in user's saved theme immediately (no app restart needed).
+  const applyUserTheme = (theme?: string) => {
+    if (theme === 'dark' || theme === 'light' || theme === 'system') {
+      setTheme(theme);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!username.trim() || !password.trim()) return;
@@ -32,9 +41,11 @@ export default function LoginScreen() {
         await authApi.register({ username, password });
         const loginRes = await authApi.login({ username, password });
         await login(loginRes.user, loginRes.token);
+        applyUserTheme(loginRes.user.preferences?.theme);
       } else {
         const res = await authApi.login({ username, password });
         await login(res.user, res.token);
+        applyUserTheme(res.user.preferences?.theme);
       }
     } catch (err: any) {
       setError(err.message || 'Login failed');

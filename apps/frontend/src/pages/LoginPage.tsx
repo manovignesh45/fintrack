@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { authApi } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { useTheme, type Theme } from '../context/ThemeContext';
 
 const LoginPage: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -14,7 +15,15 @@ const LoginPage: React.FC = () => {
   const [tempPassword, setTempPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const { login } = useAuth();
+  const { setTheme } = useTheme();
   const navigate = useNavigate();
+
+  // Apply the logged-in user's saved theme immediately (no page reload needed).
+  const applyUserTheme = (theme?: string) => {
+    if (theme === 'dark' || theme === 'light' || theme === 'system') {
+      setTheme(theme as Theme);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,10 +41,12 @@ const LoginPage: React.FC = () => {
         // After registration, log them in automatically
         const loginRes = await authApi.login({ username, password });
         login(loginRes.user, loginRes.token);
+        applyUserTheme(loginRes.user.preferences?.theme);
         navigate('/');
       } else {
         const res = await authApi.login({ username, password });
         login(res.user, res.token);
+        applyUserTheme(res.user.preferences?.theme);
         if (res.user.role === 'superadmin') {
           navigate('/superadmin');
         } else {

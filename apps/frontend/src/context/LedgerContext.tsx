@@ -16,20 +16,30 @@ interface LedgerContextType {
 const LedgerContext = createContext<LedgerContextType | undefined>(undefined);
 
 export const LedgerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated } = useAuth();
+  // Depend on the token (not just the isAuthenticated boolean) so switching
+  // between two logged-in users re-fetches and reconciles the active ledger.
+  const { token } = useAuth();
   const [ledgers, setLedgers] = useState<Ledger[]>([]);
   const [activeLedgerId, setActiveLedgerId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const refreshLedgers = useCallback(async () => {
-    if (!isAuthenticated) return;
+    if (!token) {
+      setLedgers([]);
+      setActiveLedgerId(null);
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       const data = await ledgersApi.list();
       setLedgers(data || []);
-      
+
       const savedId = localStorage.getItem('fintrack_ledger_id');
       if (data && data.length > 0) {
+        // Only honor a saved ledger id if it belongs to the current user;
+        // otherwise fall back to their first ledger. This prevents a stale id
+        // from a previous session leaking into requests (403 you-do-not-own).
         if (savedId && data.some(l => l.id.toString() === savedId)) {
           setActiveLedgerId(savedId);
         } else {
@@ -46,9 +56,12 @@ export const LedgerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated]);
+  }, [token]);
 
   useEffect(() => {
+    // Block the app (via ProtectedRoute's ledgerLoading gate) until the new
+    // identity's ledgers are reconciled, so no request fires with a stale id.
+    setLoading(true);
     refreshLedgers();
   }, [refreshLedgers]);
 

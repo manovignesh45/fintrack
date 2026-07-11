@@ -17,13 +17,15 @@ interface LedgerContextType {
 const LedgerContext = createContext<LedgerContextType | undefined>(undefined);
 
 export const LedgerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated } = useAuth();
+  // Depend on the token (not just the isAuthenticated boolean) so switching
+  // between two logged-in users re-fetches and reconciles the active ledger.
+  const { token } = useAuth();
   const [ledgers, setLedgers] = useState<Ledger[]>([]);
   const [activeLedgerId, setActiveLedgerId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const refreshLedgers = useCallback(async () => {
-    if (!isAuthenticated) {
+    if (!token) {
       setLoading(false);
       return;
     }
@@ -60,18 +62,22 @@ export const LedgerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated]);
+  }, [token]);
 
   useEffect(() => {
+    // Block until the new identity's ledgers are reconciled so no request
+    // fires with a stale ledger id from the previous session.
+    setLoading(true);
     refreshLedgers();
   }, [refreshLedgers]);
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!token) {
       setLedgers([]);
       setActiveLedgerId(null);
+      setApiLedgerId(null);
     }
-  }, [isAuthenticated]);
+  }, [token]);
 
   const switchLedger = async (id: string) => {
     setActiveLedgerId(id);

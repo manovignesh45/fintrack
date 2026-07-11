@@ -43,13 +43,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const savedToken = await tokenCache.load();
         const savedUserStr = await SecureStore.getItemAsync('fintrack_user');
 
-        if (savedToken && savedUserStr) {
+        if (!savedToken || !savedUserStr) {
+          return;
+        }
+
+        // Validate the persisted token BEFORE activating the session. The token
+        // is already in tokenCache (from tokenCache.load()), so authApi.me()
+        // uses it without needing React state. Only mark the session active if
+        // it's valid — this prevents ledger-scoped requests (LedgerContext keys
+        // off `token`) from firing with a stale/invalid token and 401'ing.
+        try {
+          const freshUser = await authApi.me();
+          await SecureStore.setItemAsync('fintrack_user', JSON.stringify(freshUser));
+          setUser(freshUser);
           setToken(savedToken);
-          const parsedUser = JSON.parse(savedUserStr) as User;
-          setUser(parsedUser);
-          if (parsedUser.preferences?.editMode !== undefined) {
-            setEditMode(parsedUser.preferences.editMode);
+          if (freshUser.preferences?.editMode !== undefined) {
+            setEditMode(freshUser.preferences.editMode);
           }
+        } catch {
+          // Token invalid/expired (e.g. issued by a different backend). Clear it
+          // and fall through to the login screen.
+          await logout();
         }
       } catch {
         // Failed to load auth state
@@ -59,7 +73,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     loadAuth();
-  }, []);
+  }, [logout]);
 
   const handleSetEditMode = (v: boolean) => {
     setEditMode(v);
@@ -72,16 +86,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const login = async (newUser: User, newToken: string) => {
+    // Populate the token cache FIRST. The api client reads the token from
+    // tokenCache (in-memory), and LedgerContext fires /ledgers as soon as the
+    // `token` state changes. If we flipped state before setting the cache, that
+    // request would go out with the previous (or empty) token and 401.
+    await tokenCache.set(newToken);
+    // A freshly logged-in user must NOT inherit the previous user's active
+    // ledger — sending it would 403 as "you do not own this ledger".
+    setApiLedgerId(null);
+    await AsyncStorage.removeItem('fintrack_ledger_id');
+    await SecureStore.setItemAsync('fintrack_user', JSON.stringify(newUser));
+    if (newUser.preferences?.theme) {
+      await SecureStore.setItemAsync('fintrack-theme', newUser.preferences.theme);
+    }
+    // Now activate the session — LedgerContext fetches with the token in place.
     setUser(newUser);
     setToken(newToken);
     if (newUser.preferences?.editMode !== undefined) {
       setEditMode(newUser.preferences.editMode);
     }
-    if (newUser.preferences?.theme) {
-      await SecureStore.setItemAsync('fintrack-theme', newUser.preferences.theme);
-    }
-    await tokenCache.set(newToken);
-    await SecureStore.setItemAsync('fintrack_user', JSON.stringify(newUser));
   };
 
   return (

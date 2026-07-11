@@ -9,6 +9,7 @@ import type {
   LoginReq,
   RegisterReq,
   PaymentMethod,
+  User,
 } from './types';
 
 export interface ApiClientConfig {
@@ -64,6 +65,7 @@ export function createApiClient(config: ApiClientConfig) {
   }
 
   const authApi = {
+    me: () => request<User>('/me'),
     login: (data: LoginReq) =>
       request<AuthResponse>('/login', { method: 'POST', body: JSON.stringify(data) }),
     register: (data: RegisterReq) =>

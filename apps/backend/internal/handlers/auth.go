@@ -4,9 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/fintrack/backend/internal/models"
@@ -14,13 +17,30 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var jwtKey = []byte(os.Getenv("JWT_SECRET"))
+var (
+	jwtKey  []byte
+	jwtOnce sync.Once
+)
 
-func init() {
-	if len(jwtKey) == 0 {
-		jwtKey = []byte("fintrack-default-secret")
-	}
+// signingKey lazily resolves the JWT signing secret. It is loaded on first use
+// (after main() has loaded the .env file / process environment) so the
+// JWT_SECRET from .env is actually honored. Reading it at package-init time ran
+// before godotenv.Load() and silently fell back to the insecure dev default.
+func signingKey() []byte {
+	jwtOnce.Do(func() {
+		secret := os.Getenv("JWT_SECRET")
+		if secret == "" {
+			log.Println("WARNING: JWT_SECRET is not set; using an insecure development default. Set JWT_SECRET before deploying.")
+			secret = "fintrack-default-secret"
+		}
+		jwtKey = []byte(secret)
+	})
+	return jwtKey
 }
+
+// InitJWT eagerly initializes the signing key so misconfiguration is logged at
+// startup rather than on the first authenticated request. Call after env load.
+func InitJWT() { signingKey() }
 
 type Claims struct {
 	UserID   int    `json:"user_id"`
@@ -41,8 +61,12 @@ func (h *AccountHandler) AuthMiddleware(next http.Handler) http.Handler {
 
 		claims := &Claims{}
 		token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-			return jwtKey, nil
-		})
+			// Enforce the expected HMAC signing method to prevent algorithm-confusion attacks.
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+			}
+			return signingKey(), nil
+		}, jwt.WithValidMethods([]string{"HS256"}))
 
 		if err != nil || !token.Valid {
 			writeError(w, http.StatusUnauthorized, "Invalid token")
@@ -137,7 +161,7 @@ func (h *AccountHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString(jwtKey)
+	tokenString, err := token.SignedString(signingKey())
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "Failed to generate token")
 		return
@@ -147,6 +171,32 @@ func (h *AccountHandler) Login(w http.ResponseWriter, r *http.Request) {
 		Token: tokenString,
 		User:  user,
 	})
+}
+
+// Me returns the currently authenticated user. Clients call it on startup to
+// validate a persisted token before entering the app; a 401 here means the
+// stored token is invalid/expired and should be cleared.
+func (h *AccountHandler) Me(w http.ResponseWriter, r *http.Request) {
+	userID, err := GetUserID(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	var user models.User
+	var prefsBytes []byte
+	query := `SELECT id, username, role, preferences, created_at, updated_at FROM users WHERE id = $1`
+	err = h.db.QueryRow(r.Context(), query, userID).
+		Scan(&user.ID, &user.Username, &user.Role, &prefsBytes, &user.CreatedAt, &user.UpdatedAt)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "User not found")
+		return
+	}
+	if len(prefsBytes) > 0 {
+		_ = json.Unmarshal(prefsBytes, &user.Preferences)
+	}
+
+	writeJSON(w, http.StatusOK, user)
 }
 
 type contextKey string

@@ -25,15 +25,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const savedToken = localStorage.getItem('fintrack_token');
     const savedUser = localStorage.getItem('fintrack_user');
 
-    if (savedToken && savedUser) {
-      setToken(savedToken);
-      const parsedUser = JSON.parse(savedUser) as User;
-      setUser(parsedUser);
-      if (parsedUser.preferences?.editMode !== undefined) {
-        setEditMode(parsedUser.preferences.editMode);
-      }
+    if (!savedToken || !savedUser) {
+      setLoading(false);
+      return;
     }
-    setLoading(false);
+
+    // Validate the persisted token BEFORE activating the session, so no
+    // ledger-scoped request fires with a stale/invalid token. The api client's
+    // getToken reads localStorage, so me() uses the saved token directly.
+    authApi
+      .me()
+      .then((freshUser) => {
+        const u = freshUser as User;
+        localStorage.setItem('fintrack_user', JSON.stringify(u));
+        setUser(u);
+        setToken(savedToken);
+        if (u.preferences?.editMode !== undefined) {
+          setEditMode(u.preferences.editMode);
+        }
+      })
+      .catch(() => {
+        // Token invalid/expired (e.g. issued by a different backend). Clear it.
+        setUser(null);
+        setToken(null);
+        localStorage.removeItem('fintrack_token');
+        localStorage.removeItem('fintrack_user');
+        localStorage.removeItem('fintrack_ledger_id');
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   const handleSetEditMode = (v: boolean) => {
@@ -47,18 +66,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const login = (newUser: User, newToken: string) => {
+    // Persist the session first so the next render's route guards / data
+    // fetches immediately see the new identity.
+    localStorage.setItem('fintrack_token', newToken);
+    localStorage.setItem('fintrack_user', JSON.stringify(newUser));
+    // A freshly logged-in user must NOT inherit the previous user's active
+    // ledger — sending it would 403 as "you do not own this ledger".
+    localStorage.removeItem('fintrack_ledger_id');
+    if (newUser.preferences?.theme) {
+      localStorage.setItem('fintrack-theme', newUser.preferences.theme);
+    }
     setUser(newUser);
     setToken(newToken);
     if (newUser.preferences?.editMode !== undefined) {
       setEditMode(newUser.preferences.editMode);
     }
-    if (newUser.preferences?.theme) {
-      localStorage.setItem('fintrack-theme', newUser.preferences.theme);
-      // Reload to apply theme cleanly on first login from a new device
-      window.location.reload();
-    }
-    localStorage.setItem('fintrack_token', newToken);
-    localStorage.setItem('fintrack_user', JSON.stringify(newUser));
   };
 
   const logout = () => {
@@ -66,6 +88,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setToken(null);
     localStorage.removeItem('fintrack_token');
     localStorage.removeItem('fintrack_user');
+    localStorage.removeItem('fintrack_ledger_id');
   };
 
   return (

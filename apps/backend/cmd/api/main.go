@@ -27,6 +27,9 @@ func main() {
 		log.Println("No .env file found, relying on environment variables")
 	}
 
+	// Resolve the JWT signing secret now that env/.env is loaded.
+	handlers.InitJWT()
+
 	ctx := context.Background()
 
 	// Connect to database
@@ -85,6 +88,7 @@ func main() {
 			r.Use(accountH.AuthMiddleware)
 
 			// User Profile
+			r.Get("/me", accountH.Me)
 			r.Put("/users/me/preferences", accountH.UpdatePreferences)
 
 			// Ledgers & Import (requires auth, but not ledger context)
