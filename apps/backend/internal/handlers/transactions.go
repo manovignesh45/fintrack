@@ -370,7 +370,7 @@ func (h *TransactionHandler) Create(w http.ResponseWriter, r *http.Request) {
 		h.db.QueryRow(r.Context(), "SELECT EXISTS(SELECT 1 FROM accounts WHERE id = $1 AND ledger_id = $2)", req.SourceAccountID, ledgerID).Scan(&accountExists)
 	}
 	if !accountExists {
-		primaryID, err := h.getPrimaryAssetAccountID(r.Context(), ledgerID)
+		primaryID, err := getPrimaryAssetAccountID(r.Context(), h.db, ledgerID)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, "Invalid source_account_id and no primary asset account found")
 			return
@@ -443,7 +443,7 @@ func (h *TransactionHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	// Default source_account_id to the user's primary asset account when not provided
 	if req.SourceAccountID == 0 {
-		primaryID, err := h.getPrimaryAssetAccountID(r.Context(), ledgerID)
+		primaryID, err := getPrimaryAssetAccountID(r.Context(), h.db, ledgerID)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, "source_account_id not provided and no primary asset account found")
 			return
@@ -733,10 +733,10 @@ func nilIfEmpty(s string) *string {
 	return &s
 }
 
-// getPrimaryAssetAccountID returns the first active ASSET account ID for the given user.
-func (h *TransactionHandler) getPrimaryAssetAccountID(ctx context.Context, ledgerID int) (int, error) {
+// getPrimaryAssetAccountID returns the first active ASSET account ID for the given ledger.
+func getPrimaryAssetAccountID(ctx context.Context, db *pgxpool.Pool, ledgerID int) (int, error) {
 	var id int
-	err := h.db.QueryRow(ctx,
+	err := db.QueryRow(ctx,
 		`SELECT id FROM accounts WHERE ledger_id = $1 AND type = 'ASSET' AND is_active = true ORDER BY id LIMIT 1`,
 		ledgerID).Scan(&id)
 	return id, err

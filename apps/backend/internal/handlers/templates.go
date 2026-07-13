@@ -78,6 +78,16 @@ func (h *TemplateHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Default source_account_id to the ledger's primary asset account when not provided
+	if req.SourceAccountID == 0 {
+		primaryID, err := getPrimaryAssetAccountID(r.Context(), h.db, ledgerID)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "source_account_id not provided and no primary asset account found")
+			return
+		}
+		req.SourceAccountID = primaryID
+	}
+
 	var t models.TransactionTemplate
 	var createPM *int
 	err = h.db.QueryRow(r.Context(),

@@ -301,6 +301,7 @@ func main() {
 	tgtPool.Exec(ctx, "SELECT setval('transactions_id_seq', (SELECT MAX(id) FROM transactions))")
 	tgtPool.Exec(ctx, "SELECT setval('categories_id_seq', (SELECT MAX(id) FROM categories))")
 	tgtPool.Exec(ctx, "SELECT setval('sub_categories_id_seq', (SELECT MAX(id) FROM sub_categories))")
+	tgtPool.Exec(ctx, "SELECT setval('transaction_templates_id_seq', (SELECT MAX(id) FROM transaction_templates))")
 
 	fmt.Println("Migration completed successfully!")
 }

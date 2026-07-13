@@ -1,7 +1,7 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { View, Text, SectionList, TouchableOpacity, Alert, ActivityIndicator, RefreshControl } from 'react-native';
 import { FAB } from '@/src/components/ui/FAB';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { templatesApi } from '@/src/api/client';
 import { useAuth } from '@/src/context/AuthContext';
 import { useLedgers } from '@/src/context/LedgerContext';
@@ -47,7 +47,7 @@ export default function TemplatesScreen() {
     }
   }, [activeLedgerId, refreshLedgers]);
 
-  useEffect(() => { load(); }, []);
+  useFocusEffect(useCallback(() => { load(); }, []));
 
   const handleUse = (t: TransactionTemplate) => {
     router.push({

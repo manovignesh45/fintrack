@@ -4,6 +4,7 @@ dist
 coverage
 *.log
 .turbo
+*.apk
 
 # graphify
 graphify-out/
