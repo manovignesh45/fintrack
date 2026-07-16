@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { summaryApi } from '@/src/api/client';
+import { useLedgers } from '@/src/context/LedgerContext';
 import type { SummaryResponse } from '@fintrack/shared';
 
 function fmt(n: number) {
@@ -38,6 +39,7 @@ export default function SummaryScreen() {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const isCurrentMonth = month === currentMonth();
+  const { activeLedgerId } = useLedgers();
 
   useEffect(() => {
     setLoading(true);
@@ -45,7 +47,7 @@ export default function SummaryScreen() {
       .then(setData)
       .catch(() => setData(null))
       .finally(() => setLoading(false));
-  }, [month]);
+  }, [month, activeLedgerId]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);

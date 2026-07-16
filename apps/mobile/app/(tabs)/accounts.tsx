@@ -6,11 +6,13 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { accountsApi } from '@/src/api/client';
 import { useAuth } from '@/src/context/AuthContext';
+import { useLedgers } from '@/src/context/LedgerContext';
 import type { Account } from '@fintrack/shared';
 
 export default function AccountsScreen() {
   const router = useRouter();
   const { editMode } = useAuth();
+  const { activeLedgerId } = useLedgers();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
@@ -40,7 +42,7 @@ export default function AccountsScreen() {
     }
   }, []);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [activeLedgerId]);
 
   const liabilities = accounts.filter((a) => a.type === 'LIABILITY');
 

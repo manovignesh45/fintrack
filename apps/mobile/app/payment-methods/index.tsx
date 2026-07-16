@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { paymentMethodsApi } from '@/src/api/client';
 import { useAuth } from '@/src/context/AuthContext';
+import { useLedgers } from '@/src/context/LedgerContext';
 import { KeyboardScreen } from '@/src/components/ui/FormScreen';
 import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
 import { FAB } from '@/src/components/ui/FAB';
@@ -17,6 +18,7 @@ export default function PaymentMethodsScreen() {
   const router = useRouter();
   const { showToast } = useToast();
   const { editMode, setEditMode } = useAuth();
+  const { activeLedgerId } = useLedgers();
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -34,7 +36,7 @@ export default function PaymentMethodsScreen() {
       .finally(() => (mode === 'refresh' ? setRefreshing(false) : setLoading(false)));
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [activeLedgerId]);
 
   const handleDelete = (id: number) => {
     Alert.alert('Delete', 'Delete this payment method?', [

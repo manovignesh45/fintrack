@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { categoriesApi } from '@/src/api/client';
 import { useAuth } from '@/src/context/AuthContext';
+import { useLedgers } from '@/src/context/LedgerContext';
 import { KeyboardScreen } from '@/src/components/ui/FormScreen';
 import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
 import { FAB } from '@/src/components/ui/FAB';
@@ -15,6 +16,7 @@ import type { Category, TxNature } from '@fintrack/shared';
 export default function CategoriesScreen() {
   const router = useRouter();
   const { editMode, setEditMode } = useAuth();
+  const { activeLedgerId } = useLedgers();
   const [selectedNature, setSelectedNature] = useState<TxNature>('EXPENSE');
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,7 +35,7 @@ export default function CategoriesScreen() {
       .finally(() => (mode === 'refresh' ? setRefreshing(false) : setLoading(false)));
   };
 
-  useEffect(() => { load(); }, [selectedNature]);
+  useEffect(() => { load(); }, [selectedNature, activeLedgerId]);
 
   const deleteCategory = (id: number) => {
     Alert.alert('Delete', 'Delete category and all its sub-categories?', [

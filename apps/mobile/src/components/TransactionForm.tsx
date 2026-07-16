@@ -7,6 +7,7 @@ import type { Account, Category, TransactionFormData, PaymentMethod } from '@fin
 import { NATURES, emptyTransactionForm } from '@fintrack/shared';
 import { useColorScheme } from 'nativewind';
 import { useAuth } from '@/src/context/AuthContext';
+import { useLedgers } from '@/src/context/LedgerContext';
 import { Button } from '@/src/components/ui/Button';
 import { SelectField } from '@/src/components/ui/SelectField';
 
@@ -20,6 +21,7 @@ interface Props {
 
 export default function TransactionForm({ initial, onSubmit, submitLabel, scrollRef }: Props) {
   const { editMode } = useAuth();
+  const { activeLedgerId } = useLedgers();
   const amountRef = useRef<TextInput>(null);
   const principalRef = useRef<TextInput>(null);
   const interestRef = useRef<TextInput>(null);
@@ -52,7 +54,7 @@ export default function TransactionForm({ initial, onSubmit, submitLabel, scroll
   useEffect(() => {
     accountsApi.list({ type: 'LIABILITY' }).then((data) => setAccounts(data || [])).catch(() => setAccounts([]));
     paymentMethodsApi.list().then((data) => setPaymentMethods(data || [])).catch(() => setPaymentMethods([]));
-  }, []);
+  }, [activeLedgerId]);
 
   useEffect(() => {
     categoriesApi.list({  nature: form.nature }).then((data) => setCategories(data || [])).catch(() => setCategories([]));
@@ -63,7 +65,7 @@ export default function TransactionForm({ initial, onSubmit, submitLabel, scroll
       setSelectedCategoryId('');
       return { ...f, sub_category_id: '' };
     });
-  }, [form.nature]);
+  }, [form.nature, activeLedgerId]);
 
   useEffect(() => {
     if (form.sub_category_id && categories.length > 0) {

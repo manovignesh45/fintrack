@@ -47,7 +47,7 @@ export default function TemplatesScreen() {
     }
   }, [activeLedgerId, refreshLedgers]);
 
-  useFocusEffect(useCallback(() => { load(); }, []));
+  useFocusEffect(useCallback(() => { load(); }, [activeLedgerId]));
 
   const handleUse = (t: TransactionTemplate) => {
     router.push({

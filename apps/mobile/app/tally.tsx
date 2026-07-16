@@ -6,10 +6,12 @@ import { Picker } from '@react-native-picker/picker';
 import { accountsApi, tallyApi } from '@/src/api/client';
 import { KeyboardScreen } from '@/src/components/ui/FormScreen';
 import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
+import { useLedgers } from '@/src/context/LedgerContext';
 import type { Account, TallyResponse } from '@fintrack/shared';
 
 export default function TallyScreen() {
   const router = useRouter();
+  const { activeLedgerId } = useLedgers();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [actualBalance, setActualBalance] = useState('');
@@ -17,12 +19,13 @@ export default function TallyScreen() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    setResult(null);
     accountsApi.list({ type: 'LIABILITY' }).then((a) => {
       const list = a || [];
       setAccounts(list);
-      if (list.length > 0) setSelectedId(list[0].id);
+      setSelectedId(list.length > 0 ? list[0].id : null);
     }).catch(() => setAccounts([]));
-  }, []);
+  }, [activeLedgerId]);
 
   const handleCheck = async () => {
     if (!selectedId) return;
