@@ -77,6 +77,15 @@ export default function AccountsScreen() {
     }
   };
 
+  const handleUpdateRate = async (a: Account, rate: number) => {
+    try {
+      await accountsApi.update(a.id, { interest_rate: rate });
+      load();
+    } catch (err) {
+      Alert.alert('Error', err instanceof Error ? err.message : 'Failed to update interest rate');
+    }
+  };
+
   const handleDelete = (a: Account) => {
     Alert.alert('Delete', `Delete "${a.name}"? This cannot be undone.`, [
       { text: 'Cancel', style: 'cancel' },
@@ -96,46 +105,14 @@ export default function AccountsScreen() {
   };
 
   const renderItem = ({ item: a }: { item: Account }) => (
-    <TouchableOpacity
+    <AccountCard
+      account={a}
+      editMode={editMode}
       onPress={() => router.push(`/accounts/${a.id}`)}
-      className={`bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 mb-2 mx-4 ${!a.is_active ? 'opacity-50' : ''}`}
-      activeOpacity={0.7}
-    >
-      <View className="flex-row justify-between items-center">
-        <View className="flex-row items-center gap-2">
-          <Text className="font-medium text-gray-800 dark:text-gray-100 text-sm">{a.name}</Text>
-          {editMode && (
-            <TouchableOpacity
-              onPress={() => handleDelete(a)}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Ionicons name="trash-outline" size={14} color="#d1d5db" />
-            </TouchableOpacity>
-          )}
-        </View>
-        <Text className="font-semibold text-orange-600">
-          Outstanding: ₹{a.current_balance.toLocaleString('en-IN')}
-        </Text>
-      </View>
-      <View className="flex-row justify-between items-center mt-2">
-        <View className="flex-row gap-3">
-          <Text className="text-xs text-gray-400 dark:text-gray-500">Total: ₹{a.initial_balance.toLocaleString('en-IN')}</Text>
-          {a.interest_rate > 0 && (
-            <Text className="text-xs font-medium text-orange-500">{a.interest_rate}% p.a.</Text>
-          )}
-        </View>
-        <View className="flex-row items-center gap-2">
-          <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{a.is_active ? 'Active' : 'Inactive'}</Text>
-          <Switch
-            value={a.is_active}
-            onValueChange={() => handleToggle(a)}
-            trackColor={{ false: '#d1d5db', true: '#2563eb' }}
-            thumbColor="white"
-            style={{ transform: [{ scaleX: 0.7 }, { scaleY: 0.7 }] }}
-          />
-        </View>
-      </View>
-    </TouchableOpacity>
+      onDelete={handleDelete}
+      onToggle={handleToggle}
+      onUpdateRate={handleUpdateRate}
+    />
   );
 
   return (
@@ -199,5 +176,107 @@ export default function AccountsScreen() {
 
       {editMode && <FAB onPress={() => setShowAdd(true)} accessibilityLabel="Add loan account" />}
     </View>
+  );
+}
+
+function AccountCard({
+  account: a,
+  editMode,
+  onPress,
+  onDelete,
+  onToggle,
+  onUpdateRate,
+}: {
+  account: Account;
+  editMode: boolean;
+  onPress: () => void;
+  onDelete: (a: Account) => void;
+  onToggle: (a: Account) => void;
+  onUpdateRate: (a: Account, rate: number) => void;
+}) {
+  const [editingRate, setEditingRate] = useState(false);
+  const [rateValue, setRateValue] = useState(String(a.interest_rate));
+
+  const saveRate = () => {
+    const rate = parseFloat(rateValue);
+    if (!isNaN(rate) && rate >= 0) onUpdateRate(a, rate);
+    setEditingRate(false);
+  };
+
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      className={`bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 mb-2 mx-4 ${!a.is_active ? 'opacity-50' : ''}`}
+      activeOpacity={0.7}
+    >
+      <View className="flex-row justify-between items-center">
+        <View className="flex-row items-center gap-2">
+          <Text className="font-medium text-gray-800 dark:text-gray-100 text-sm">{a.name}</Text>
+          {editMode && (
+            <TouchableOpacity
+              onPress={() => onDelete(a)}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="trash-outline" size={14} color="#d1d5db" />
+            </TouchableOpacity>
+          )}
+        </View>
+        <Text className="font-semibold text-orange-600">
+          Outstanding: ₹{a.current_balance.toLocaleString('en-IN')}
+        </Text>
+      </View>
+      <View className="flex-row justify-between items-center mt-2">
+        <View className="flex-row items-center gap-3">
+          <Text className="text-xs text-gray-400 dark:text-gray-500">Total: ₹{a.total_disbursed.toLocaleString('en-IN')}</Text>
+          {editingRate ? (
+            <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()} className="flex-row items-center gap-1">
+              <TextInput
+                autoFocus
+                value={rateValue}
+                onChangeText={setRateValue}
+                onSubmitEditing={saveRate}
+                keyboardType="decimal-pad"
+                className="w-12 px-1.5 py-0.5 border border-gray-300 dark:border-gray-600 rounded text-xs text-gray-900 dark:text-gray-100"
+              />
+              <Text className="text-xs text-gray-400">%</Text>
+              <TouchableOpacity onPress={saveRate} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Ionicons name="checkmark" size={16} color="#2563eb" />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setEditingRate(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Ionicons name="close" size={16} color="#9ca3af" />
+              </TouchableOpacity>
+            </TouchableOpacity>
+          ) : (
+            <View className="flex-row items-center gap-1">
+              {a.interest_rate > 0 && (
+                <Text className="text-xs font-medium text-orange-500">{a.interest_rate}% p.a.</Text>
+              )}
+              {editMode && (
+                <TouchableOpacity
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    setRateValue(String(a.interest_rate));
+                    setEditingRate(true);
+                  }}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Ionicons name="pencil-outline" size={12} color="#d1d5db" />
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+        </View>
+        <View className="flex-row items-center gap-2">
+          <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">{a.is_active ? 'Active' : 'Inactive'}</Text>
+          <Switch
+            value={a.is_active}
+            onValueChange={() => onToggle(a)}
+            trackColor={{ false: '#d1d5db', true: '#2563eb' }}
+            thumbColor="white"
+            style={{ transform: [{ scaleX: 0.7 }, { scaleY: 0.7 }] }}
+          />
+        </View>
+      </View>
+    </TouchableOpacity>
   );
 }

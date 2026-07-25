@@ -75,7 +75,7 @@ function AppShell() {
   const { ledgers, activeLedger, switchLedger, createLedger } = useLedgers();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showLedgerDropdown, setShowLedgerDropdown] = useState(false);
-  const [menuView, setMenuView] = useState<'main' | 'settings' | 'theme'>('main');
+  const [menuView, setMenuView] = useState<'main' | 'theme'>('main');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newLedgerName, setNewLedgerName] = useState('');
   const menuRef = useRef<HTMLDivElement>(null);
@@ -189,10 +189,10 @@ function AppShell() {
                         <p className="text-xs font-semibold text-gray-800 dark:text-white truncate">{user?.username}</p>
                       </div>
                       <button
-                        onClick={() => setMenuView('settings')}
+                        onClick={() => setMenuView('theme')}
                         className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex justify-between items-center"
                       >
-                        <span>Settings</span>
+                        <span>Theme</span>
                         <span className="text-gray-400">›</span>
                       </button>
                       <button
@@ -203,28 +203,10 @@ function AppShell() {
                       </button>
                     </>
                   )}
-                  {menuView === 'settings' && (
-                    <>
-                      <button
-                        onClick={() => setMenuView('main')}
-                        className="w-full text-left px-3 py-2 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 flex items-center gap-1"
-                      >
-                        <span>‹</span>
-                        <span>Back</span>
-                      </button>
-                      <button
-                        onClick={() => setMenuView('theme')}
-                        className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex justify-between items-center"
-                      >
-                        <span>Theme</span>
-                        <span className="text-gray-400">›</span>
-                      </button>
-                    </>
-                  )}
                   {menuView === 'theme' && (
                     <>
                       <button
-                        onClick={() => setMenuView('settings')}
+                        onClick={() => setMenuView('main')}
                         className="w-full text-left px-3 py-2 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 flex items-center gap-1"
                       >
                         <span>‹</span>

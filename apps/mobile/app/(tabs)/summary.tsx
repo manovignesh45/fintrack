@@ -64,6 +64,7 @@ export default function SummaryScreen() {
   const totalIncome = data?.total_income ?? 0;
   const totalExpense = data?.total_expense ?? 0;
   const totalEmi = data?.total_emi ?? 0;
+  const totalLoan = data?.total_loan ?? 0;
   const totalOut = totalExpense + totalEmi;
   const totalNet = data?.net_flow ?? 0;
 
@@ -102,7 +103,7 @@ export default function SummaryScreen() {
         <View className="items-center justify-center py-12">
           <ActivityIndicator size="large" color="#2563eb" />
         </View>
-      ) : !data || (data.total_income === 0 && data.total_expense === 0 && data.total_emi === 0) ? (
+      ) : !data || (data.total_income === 0 && data.total_expense === 0 && data.total_emi === 0 && data.total_loan === 0) ? (
         <View className="items-center py-12">
           <Text className="text-3xl mb-2">📭</Text>
           <Text className="text-sm text-gray-400 dark:text-gray-500">No transactions for {monthLabel(month)}</Text>
@@ -115,7 +116,7 @@ export default function SummaryScreen() {
             <View className="flex-row">
               <View className="flex-1 items-center">
                 <Text className="text-xs text-blue-200 mb-1">Income</Text>
-                <Text className="text-sm font-bold text-green-300">{fmt(totalIncome)}</Text>
+                <Text className="text-sm font-bold text-green-300">{fmt(totalIncome + totalLoan)}</Text>
               </View>
               <View className="flex-1 items-center border-x border-blue-500">
                 <Text className="text-xs text-blue-200 mb-1">Total Out</Text>
@@ -143,6 +144,15 @@ export default function SummaryScreen() {
                     <Text className="text-sm text-gray-500 dark:text-gray-400">Income</Text>
                   </View>
                   <Text className="text-sm font-semibold text-green-600">{fmt(totalIncome)}</Text>
+                </View>
+              )}
+              {totalLoan > 0 && (
+                <View className="flex-row items-center justify-between">
+                  <View className="flex-row items-center gap-2">
+                    <View className="w-2 h-2 rounded-full bg-purple-400" />
+                    <Text className="text-sm text-gray-500 dark:text-gray-400">Loan Received</Text>
+                  </View>
+                  <Text className="text-sm font-semibold text-purple-500">{fmt(totalLoan)}</Text>
                 </View>
               )}
               {totalExpense > 0 && (

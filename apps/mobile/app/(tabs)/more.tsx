@@ -3,10 +3,18 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { useAuth } from '@/src/context/AuthContext';
+import { useTheme } from '@/src/context/ThemeContext';
+
+const THEME_OPTIONS = [
+  { value: 'light', label: 'Light', icon: 'sunny-outline' as const },
+  { value: 'dark', label: 'Dark', icon: 'moon-outline' as const },
+  { value: 'system', label: 'System', icon: 'phone-portrait-outline' as const },
+] as const;
 
 export default function MoreScreen() {
   const router = useRouter();
   const { user, logout } = useAuth();
+  const { theme, setTheme } = useTheme();
 
   const links = [
     { label: 'Categories', icon: 'folder-outline' as const, href: '/categories' as const },
@@ -28,6 +36,38 @@ export default function MoreScreen() {
         <View className="flex-1">
           <Text className="font-medium text-gray-800 dark:text-gray-100">{user?.username ?? 'Unknown'}</Text>
           <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">Logged in</Text>
+        </View>
+      </View>
+
+      {/* Theme */}
+      <View className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 mb-4">
+        <Text className="text-sm font-medium text-gray-800 dark:text-gray-100 mb-3">Theme</Text>
+        <View className="flex-row gap-2">
+          {THEME_OPTIONS.map((opt) => (
+            <TouchableOpacity
+              key={opt.value}
+              onPress={() => setTheme(opt.value)}
+              activeOpacity={0.7}
+              className={`flex-1 items-center py-2.5 rounded-lg border ${
+                theme === opt.value
+                  ? 'bg-blue-50 border-blue-500 dark:bg-blue-900/30 dark:border-blue-500'
+                  : 'bg-gray-50 border-gray-200 dark:bg-gray-900 dark:border-gray-700'
+              }`}
+            >
+              <Ionicons
+                name={opt.icon}
+                size={18}
+                color={theme === opt.value ? '#2563eb' : '#9ca3af'}
+              />
+              <Text
+                className={`text-xs mt-1 font-medium ${
+                  theme === opt.value ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'
+                }`}
+              >
+                {opt.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
       </View>
 
