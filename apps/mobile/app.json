@@ -42,7 +42,13 @@
       ],
       "@react-native-community/datetimepicker",
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Use Face ID to unlock FinTrack"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

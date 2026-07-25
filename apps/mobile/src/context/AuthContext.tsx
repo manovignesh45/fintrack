@@ -3,6 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 import type { User } from '@fintrack/shared';
 import { tokenCache, setOnUnauthorized, authApi, setApiLedgerId } from '../api/client';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { clearPin } from '../lib/appLock';
 
 interface AuthContextType {
   user: User | null;
@@ -29,6 +30,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setApiLedgerId(null);
     await tokenCache.clear();
     await AsyncStorage.removeItem('fintrack_ledger_id');
+    // Clear the device-local PIN/biometric so a fresh login starts clean and the
+    // lock feature is opt-in again for the next user of this device.
+    await clearPin();
   }, []);
 
   useEffect(() => {

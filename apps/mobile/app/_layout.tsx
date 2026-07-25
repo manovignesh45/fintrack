@@ -12,6 +12,7 @@ import '../global.css';
 
 import { AuthProvider, useAuth } from '@/src/context/AuthContext';
 import { LedgerProvider, useLedgers } from '@/src/context/LedgerContext';
+import { AppLockProvider, useAppLock } from '@/src/context/AppLockContext';
 import { EditToggle } from '@/src/components/ui/EditToggle';
 function HeaderLeft() {
   const { ledgers, activeLedger, switchLedger } = useLedgers();
@@ -196,6 +197,7 @@ function HeaderRight() {
 function AuthGate({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading: authLoading } = useAuth();
   const { loading: ledgerLoading } = useLedgers();
+  const { lockEnabled, isLocked, loading: lockLoading } = useAppLock();
   const segments = useSegments();
   const router = useRouter();
   const colors = useThemeColors();
@@ -203,7 +205,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   const prevAuthRef = useRef<boolean | null>(null);
 
   useEffect(() => {
-    if (authLoading || ledgerLoading) return;
+    if (authLoading || ledgerLoading || lockLoading) return;
     if (!rootNavigationState?.key) return; // Wait for navigator to be ready
 
     if (prevAuthRef.current === true && !isAuthenticated) {
@@ -212,17 +214,25 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     prevAuthRef.current = isAuthenticated;
 
     const inAuthGroup = segments[0] === 'login';
+    const inLock = segments[0] === 'lock';
+    const shouldLock = isAuthenticated && lockEnabled && isLocked;
+
     if (!isAuthenticated && !inAuthGroup) {
       setTimeout(() => router.replace('/login'), 0);
     } else if (isAuthenticated && inAuthGroup) {
+      // Just authenticated: honor a pending lock, otherwise enter the app.
+      setTimeout(() => router.replace(shouldLock ? '/lock' : '/'), 0);
+    } else if (shouldLock && !inLock) {
+      setTimeout(() => router.replace('/lock'), 0);
+    } else if (!shouldLock && inLock) {
       setTimeout(() => router.replace('/'), 0);
     }
-  }, [isAuthenticated, authLoading, ledgerLoading, segments, rootNavigationState?.key]);
+  }, [isAuthenticated, authLoading, ledgerLoading, lockLoading, lockEnabled, isLocked, segments, rootNavigationState?.key]);
 
   return (
     <View style={{ flex: 1 }}>
       {children}
-      {(authLoading || ledgerLoading) && (
+      {(authLoading || ledgerLoading || lockLoading) && (
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
           <ActivityIndicator size="large" color="#2563eb" />
         </View>
@@ -240,6 +250,7 @@ function RootContent() {
   return (
       <AuthProvider>
         <LedgerProvider>
+          <AppLockProvider>
           <AuthGate>
             <Stack
             screenOptions={{
@@ -256,6 +267,8 @@ function RootContent() {
               options={{ headerShown: true }} 
             />
             <Stack.Screen name="login" options={{ headerShown: false }} />
+            <Stack.Screen name="lock" options={{ headerShown: false, gestureEnabled: false }} />
+            <Stack.Screen name="security/pin" options={{ headerShown: false }} />
             {/* Form/sub screens render their own inline header, so the global
                 Stack header is hidden to avoid the double-header stack. */}
             <Stack.Screen name="add" options={{ headerShown: true }} />
@@ -270,6 +283,7 @@ function RootContent() {
           </Stack>
         </AuthGate>
         <StatusBar style={theme === 'system' ? 'auto' : theme} />
+          </AppLockProvider>
         </LedgerProvider>
       </AuthProvider>
   );
