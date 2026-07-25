@@ -153,6 +153,8 @@ export default function SummaryPage() {
   );
   const totalExpense = totals.total_expense + totals.total_emi;
   const hasData = !!rangeData && rangeData.some((r) => r.total_income > 0 || r.total_expense > 0 || r.total_emi > 0);
+  const monthsWithData = (rangeData ?? []).filter((r) => r.total_income > 0 || r.total_expense > 0 || r.total_emi > 0).length;
+  const avgExpense = monthsWithData > 0 ? totalExpense / monthsWithData : 0;
 
   return (
     <div className="space-y-4">
@@ -207,16 +209,20 @@ export default function SummaryPage() {
             <p className="text-xs font-semibold uppercase tracking-wider text-blue-200 mb-3">
               Grand Total <span className="normal-case font-normal text-blue-300">· {rangeLabel(rangeFrom, rangeTo)}</span>
             </p>
-            <div className="grid grid-cols-3 gap-2 text-center">
+            <div className="grid grid-cols-4 gap-2 text-center">
               <div>
                 <p className="text-xs text-blue-200 mb-1">Income</p>
                 <p className="text-sm font-bold text-green-300">{fmt(totals.total_income)}</p>
               </div>
-              <div className="border-x border-blue-500">
+              <div className="border-l border-blue-500">
                 <p className="text-xs text-blue-200 mb-1">Expense</p>
                 <p className="text-sm font-bold text-red-300">{fmt(totalExpense)}</p>
               </div>
-              <div>
+              <div className="border-l border-blue-500">
+                <p className="text-xs text-blue-200 mb-1">Avg Exp/mo</p>
+                <p className="text-sm font-bold text-red-300">{fmt(avgExpense)}</p>
+              </div>
+              <div className="border-l border-blue-500">
                 <p className="text-xs text-blue-200 mb-1">Net</p>
                 <p className={`text-sm font-bold ${totals.net_flow >= 0 ? 'text-green-300' : 'text-red-300'}`}>
                   {totals.net_flow >= 0 ? '+' : '-'}{fmt(totals.net_flow)}
