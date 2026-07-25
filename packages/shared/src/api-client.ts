@@ -133,7 +133,7 @@ export function createApiClient(config: ApiClientConfig) {
     },
     create: (data: { name: string; type: string; initial_balance: number; interest_rate: number }) =>
       request<Account>('/accounts', { method: 'POST', body: JSON.stringify(data) }),
-    update: (id: number, data: { name?: string; is_active?: boolean }) =>
+    update: (id: number, data: { name?: string; is_active?: boolean; interest_rate?: number }) =>
       request<Account>(`/accounts/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: number) =>
       request<void>(`/accounts/${id}`, { method: 'DELETE' }),

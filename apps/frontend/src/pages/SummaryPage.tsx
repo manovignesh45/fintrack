@@ -53,6 +53,17 @@ function BreakdownCard({ data }: { data: SummaryResponse }) {
           </div>
         )}
 
+        {/* Loan Received */}
+        {data.total_loan > 0 && (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-purple-400 inline-block"></span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">Loan Received</span>
+            </div>
+            <span className="text-sm font-semibold text-purple-500">{fmt(data.total_loan)}</span>
+          </div>
+        )}
+
         {/* Expense */}
         {data.total_expense > 0 && (
           <div className="flex items-center justify-between">
@@ -76,7 +87,7 @@ function BreakdownCard({ data }: { data: SummaryResponse }) {
         )}
 
         {/* Divider + total out */}
-        {totalOut > 0 && data.total_income > 0 && (
+        {totalOut > 0 && (data.total_income > 0 || data.total_loan > 0) && (
           <div className="flex items-center justify-between pt-1 border-t border-gray-100 dark:border-gray-800">
             <span className="text-xs text-gray-400">Total Out</span>
             <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{fmt(totalOut)}</span>
@@ -105,7 +116,7 @@ function CompareTable({ rows }: { rows: SummaryResponse[] }) {
             <tr key={r.month} className="border-b border-gray-50 dark:border-gray-800 last:border-0">
               <td className="px-4 py-2 text-gray-700 dark:text-gray-300 font-medium">{shortMonthLabel(r.month)}</td>
               <td className="px-4 py-2 text-right text-green-600 dark:text-green-400">
-                {r.total_income > 0 ? fmt(r.total_income) : '—'}
+                {r.total_income + r.total_loan > 0 ? fmt(r.total_income + r.total_loan) : '—'}
               </td>
               <td className="px-4 py-2 text-right text-red-500">{r.total_expense > 0 ? fmt(r.total_expense) : '—'}</td>
               <td className="px-4 py-2 text-right text-orange-500">{r.total_emi > 0 ? fmt(r.total_emi) : '—'}</td>
@@ -147,13 +158,14 @@ export default function SummaryPage() {
       total_income: acc.total_income + r.total_income,
       total_expense: acc.total_expense + r.total_expense,
       total_emi: acc.total_emi + r.total_emi,
+      total_loan: acc.total_loan + r.total_loan,
       net_flow: acc.net_flow + r.net_flow,
     }),
-    { total_income: 0, total_expense: 0, total_emi: 0, net_flow: 0 }
+    { total_income: 0, total_expense: 0, total_emi: 0, total_loan: 0, net_flow: 0 }
   );
   const totalExpense = totals.total_expense + totals.total_emi;
-  const hasData = !!rangeData && rangeData.some((r) => r.total_income > 0 || r.total_expense > 0 || r.total_emi > 0);
-  const monthsWithData = (rangeData ?? []).filter((r) => r.total_income > 0 || r.total_expense > 0 || r.total_emi > 0).length;
+  const hasData = !!rangeData && rangeData.some((r) => r.total_income > 0 || r.total_expense > 0 || r.total_emi > 0 || r.total_loan > 0);
+  const monthsWithData = (rangeData ?? []).filter((r) => r.total_income > 0 || r.total_expense > 0 || r.total_emi > 0 || r.total_loan > 0).length;
   const avgExpense = monthsWithData > 0 ? totalExpense / monthsWithData : 0;
 
   return (
@@ -212,7 +224,7 @@ export default function SummaryPage() {
             <div className="grid grid-cols-4 gap-2 text-center">
               <div>
                 <p className="text-xs text-blue-200 mb-1">Income</p>
-                <p className="text-sm font-bold text-green-300">{fmt(totals.total_income)}</p>
+                <p className="text-sm font-bold text-green-300">{fmt(totals.total_income + totals.total_loan)}</p>
               </div>
               <div className="border-l border-blue-500">
                 <p className="text-xs text-blue-200 mb-1">Expense</p>

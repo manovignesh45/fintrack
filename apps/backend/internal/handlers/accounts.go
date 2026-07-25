@@ -26,15 +26,24 @@ func (h *AccountHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	query := `SELECT id, ledger_id, name, type, initial_balance, current_balance, interest_rate, is_active, created_at
-		 FROM accounts WHERE ledger_id = $1`
+	query := `SELECT a.id, a.ledger_id, a.name, a.type, a.initial_balance, a.current_balance,
+			a.initial_balance + COALESCE(disb.total, 0) AS total_disbursed,
+			a.interest_rate, a.is_active, a.created_at
+		 FROM accounts a
+		 LEFT JOIN (
+			SELECT source_account_id, SUM(amount) AS total
+			FROM transactions
+			WHERE nature = 'LOAN_DISBURSEMENT'
+			GROUP BY source_account_id
+		 ) disb ON disb.source_account_id = a.id
+		 WHERE a.ledger_id = $1`
 	args := []interface{}{ledgerID}
 
 	if t := r.URL.Query().Get("type"); t == "ASSET" || t == "LIABILITY" {
-		query += " AND type = $2"
+		query += " AND a.type = $2"
 		args = append(args, t)
 	}
-	query += " ORDER BY type, name"
+	query += " ORDER BY a.type, a.name"
 
 	rows, err := h.db.Query(r.Context(), query, args...)
 	if err != nil {
@@ -46,7 +55,7 @@ func (h *AccountHandler) List(w http.ResponseWriter, r *http.Request) {
 	var accounts []models.Account
 	for rows.Next() {
 		var a models.Account
-		if err := rows.Scan(&a.ID, &a.LedgerID, &a.Name, &a.Type, &a.InitialBalance, &a.CurrentBalance, &a.InterestRate, &a.IsActive, &a.CreatedAt); err != nil {
+		if err := rows.Scan(&a.ID, &a.LedgerID, &a.Name, &a.Type, &a.InitialBalance, &a.CurrentBalance, &a.TotalDisbursed, &a.InterestRate, &a.IsActive, &a.CreatedAt); err != nil {
 			writeError(w, http.StatusInternalServerError, "Failed to scan account")
 			return
 		}
@@ -102,20 +111,35 @@ func (h *AccountHandler) Get(w http.ResponseWriter, r *http.Request) {
 				SELECT COALESCE(SUM(principal_amount), 0) as total
 				FROM transactions
 				WHERE target_account_id = $1 AND nature = 'EMI_PAYMENT' AND ledger_id = $2 AND transaction_date <= $3
+			),
+			disbursed AS (
+				SELECT COALESCE(SUM(amount), 0) as total
+				FROM transactions
+				WHERE source_account_id = $1 AND nature = 'LOAN_DISBURSEMENT' AND ledger_id = $2 AND transaction_date <= $3
 			)
-			SELECT 
+			SELECT
 				ai.id, ai.ledger_id, ai.name, ai.type, ai.initial_balance,
 				ai.initial_balance + inflow.total - outflow.total - loan_reduction.total as current_balance,
+				ai.initial_balance + disbursed.total as total_disbursed,
 				ai.interest_rate, ai.is_active, ai.created_at
-			FROM account_info ai, inflow, outflow, loan_reduction`
+			FROM account_info ai, inflow, outflow, loan_reduction, disbursed`
 		args = append(args, dateTo)
 	} else {
-		query = `SELECT id, ledger_id, name, type, initial_balance, current_balance, interest_rate, is_active, created_at
-		         FROM accounts WHERE id = $1 AND ledger_id = $2`
+		query = `SELECT a.id, a.ledger_id, a.name, a.type, a.initial_balance, a.current_balance,
+				a.initial_balance + COALESCE(disb.total, 0) AS total_disbursed,
+				a.interest_rate, a.is_active, a.created_at
+			 FROM accounts a
+			 LEFT JOIN (
+				SELECT source_account_id, SUM(amount) AS total
+				FROM transactions
+				WHERE nature = 'LOAN_DISBURSEMENT'
+				GROUP BY source_account_id
+			 ) disb ON disb.source_account_id = a.id
+			 WHERE a.id = $1 AND a.ledger_id = $2`
 	}
 
 	err = h.db.QueryRow(r.Context(), query, args...).Scan(
-		&a.ID, &a.LedgerID, &a.Name, &a.Type, &a.InitialBalance, &a.CurrentBalance, &a.InterestRate, &a.IsActive, &a.CreatedAt)
+		&a.ID, &a.LedgerID, &a.Name, &a.Type, &a.InitialBalance, &a.CurrentBalance, &a.TotalDisbursed, &a.InterestRate, &a.IsActive, &a.CreatedAt)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "Account not found")
 		return
@@ -157,6 +181,7 @@ func (h *AccountHandler) Create(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "Failed to create account")
 		return
 	}
+	a.TotalDisbursed = a.InitialBalance
 
 	writeJSON(w, http.StatusCreated, a)
 }
@@ -198,9 +223,18 @@ func (h *AccountHandler) Update(w http.ResponseWriter, r *http.Request) {
 	// Return updated account
 	var updatedAccount models.Account
 	err = h.db.QueryRow(r.Context(),
-		`SELECT id, ledger_id, name, type, initial_balance, current_balance, interest_rate, is_active, created_at
-		 FROM accounts WHERE id = $1 AND ledger_id = $2`, id, ledgerID).Scan(
-		&updatedAccount.ID, &updatedAccount.LedgerID, &updatedAccount.Name, &updatedAccount.Type, &updatedAccount.InitialBalance, &updatedAccount.CurrentBalance, &updatedAccount.InterestRate, &updatedAccount.IsActive, &updatedAccount.CreatedAt)
+		`SELECT a.id, a.ledger_id, a.name, a.type, a.initial_balance, a.current_balance,
+			a.initial_balance + COALESCE(disb.total, 0) AS total_disbursed,
+			a.interest_rate, a.is_active, a.created_at
+		 FROM accounts a
+		 LEFT JOIN (
+			SELECT source_account_id, SUM(amount) AS total
+			FROM transactions
+			WHERE nature = 'LOAN_DISBURSEMENT'
+			GROUP BY source_account_id
+		 ) disb ON disb.source_account_id = a.id
+		 WHERE a.id = $1 AND a.ledger_id = $2`, id, ledgerID).Scan(
+		&updatedAccount.ID, &updatedAccount.LedgerID, &updatedAccount.Name, &updatedAccount.Type, &updatedAccount.InitialBalance, &updatedAccount.CurrentBalance, &updatedAccount.TotalDisbursed, &updatedAccount.InterestRate, &updatedAccount.IsActive, &updatedAccount.CreatedAt)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "Account not found")
 		return

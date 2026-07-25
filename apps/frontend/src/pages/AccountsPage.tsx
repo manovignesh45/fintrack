@@ -50,6 +50,15 @@ export default function AccountsPage() {
     }
   };
 
+  const handleUpdateRate = async (a: Account, rate: number) => {
+    try {
+      await accountsApi.update(a.id, { interest_rate: rate });
+      load();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to update interest rate');
+    }
+  };
+
   const handleDelete = async (a: Account) => {
     if (!window.confirm(`Delete "${a.name}"? This cannot be undone.`)) return;
     try {
@@ -77,14 +86,14 @@ export default function AccountsPage() {
           <input
             type="text" placeholder="Loan name (e.g. SBI Home Loan)" value={newName}
             onChange={(e) => setNewName(e.target.value)} required
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm outline-none"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm outline-none dark:bg-gray-700 dark:text-white"
           />
           <div>
             <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Total Loan Amount (₹)</label>
             <input
               type="number" step="0.01" placeholder="e.g. 200000" value={newBalance}
               onChange={(e) => setNewBalance(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm outline-none"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm outline-none dark:bg-gray-700 dark:text-white"
             />
           </div>
           <div>
@@ -92,7 +101,7 @@ export default function AccountsPage() {
             <input
               type="number" step="0.01" min="0" max="100" placeholder="e.g. 12.5" value={newInterestRate}
               onChange={(e) => setNewInterestRate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm outline-none"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm outline-none dark:bg-gray-700 dark:text-white"
             />
           </div>
           <button
@@ -124,6 +133,7 @@ export default function AccountsPage() {
                 onToggle={handleToggle}
                 onDelete={handleDelete}
                 onClick={handleAccountClick}
+                onUpdateRate={handleUpdateRate}
                 colorClass="text-orange-600"
                 editMode={editMode}
               />
@@ -151,6 +161,7 @@ function AccountCard({
   onToggle,
   onDelete,
   onClick,
+  onUpdateRate,
   colorClass = 'text-green-600 dark:text-green-400',
   editMode = false,
 }: {
@@ -158,9 +169,19 @@ function AccountCard({
   onToggle: (a: Account) => void;
   onDelete: (a: Account) => void;
   onClick: (a: Account) => void;
+  onUpdateRate: (a: Account, rate: number) => void;
   colorClass?: string;
   editMode?: boolean;
 }) {
+  const [editingRate, setEditingRate] = useState(false);
+  const [rateValue, setRateValue] = useState(String(account.interest_rate));
+
+  const saveRate = () => {
+    const rate = parseFloat(rateValue);
+    if (!isNaN(rate) && rate >= 0) onUpdateRate(account, rate);
+    setEditingRate(false);
+  };
+
   return (
     <div 
       className={`bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 cursor-pointer hover:border-blue-300 transition-colors ${!account.is_active ? 'opacity-50' : ''}`}
@@ -189,14 +210,44 @@ function AccountCard({
         </p>
       </div>
       <div className="flex justify-between items-center mt-2">
-        <div className="flex gap-3">
+        <div className="flex items-center gap-3">
           <p className="text-xs text-gray-400">
-            Total: ₹{account.initial_balance.toLocaleString('en-IN')}
+            Total: ₹{account.total_disbursed.toLocaleString('en-IN')}
           </p>
-          {account.interest_rate > 0 && (
-            <p className="text-xs font-medium text-orange-500">
-              {account.interest_rate}% p.a.
-            </p>
+          {editingRate ? (
+            <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+              <input
+                type="number" step="0.01" min="0" max="100" autoFocus value={rateValue}
+                onChange={(e) => setRateValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') saveRate();
+                  if (e.key === 'Escape') setEditingRate(false);
+                }}
+                className="w-14 px-1.5 py-0.5 border border-gray-300 dark:border-gray-600 rounded text-xs outline-none dark:bg-gray-700 dark:text-white"
+              />
+              <span className="text-xs text-gray-400">%</span>
+              <button onClick={saveRate} className="text-xs text-blue-600 dark:text-blue-400 font-medium">✓</button>
+              <button onClick={() => setEditingRate(false)} className="text-xs text-gray-400">✕</button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1">
+              {account.interest_rate > 0 && (
+                <p className="text-xs font-medium text-orange-500">
+                  {account.interest_rate}% p.a.
+                </p>
+              )}
+              {editMode && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); setRateValue(String(account.interest_rate)); setEditingRate(true); }}
+                  className="text-gray-300 hover:text-blue-500 transition-colors p-0.5"
+                  title="Edit interest rate"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </button>
+              )}
+            </div>
           )}
         </div>
         <label 

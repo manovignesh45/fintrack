@@ -30,6 +30,7 @@ export interface Account {
   type: AccountType;
   initial_balance: number;
   current_balance: number;
+  total_disbursed: number;
   interest_rate: number;
   is_active: boolean;
   created_at: string;
@@ -104,6 +105,7 @@ export interface SummaryResponse {
   total_income: number;
   total_expense: number;
   total_emi: number;
+  total_loan: number;
   net_flow: number;
 }
 

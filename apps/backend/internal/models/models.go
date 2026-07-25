@@ -23,6 +23,7 @@ type Account struct {
 	Type           AccountType `json:"type"`
 	InitialBalance float64     `json:"initial_balance"`
 	CurrentBalance float64     `json:"current_balance"`
+	TotalDisbursed float64     `json:"total_disbursed"`
 	InterestRate   float64     `json:"interest_rate"`
 	IsActive       bool        `json:"is_active"`
 	CreatedAt      time.Time   `json:"created_at"`
@@ -210,6 +211,7 @@ type SummaryResponse struct {
 	TotalIncome  float64 `json:"total_income"`
 	TotalExpense float64 `json:"total_expense"`
 	TotalEMI     float64 `json:"total_emi"`
+	TotalLoan    float64 `json:"total_loan"`
 	NetFlow      float64 `json:"net_flow"`
 }
 
