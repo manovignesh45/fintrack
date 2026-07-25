@@ -375,8 +375,10 @@ export default function TransactionForm({ initial, onSubmit, submitLabel, scroll
             onChange={(_, selectedDate) => {
               setShowDatePicker(Platform.OS === 'ios');
               if (selectedDate) {
-                const d = selectedDate.toISOString().split('T')[0];
-                set('transaction_date', d);
+                const y = selectedDate.getFullYear();
+                const m = String(selectedDate.getMonth() + 1).padStart(2, '0');
+                const day = String(selectedDate.getDate()).padStart(2, '0');
+                set('transaction_date', `${y}-${m}-${day}`);
               }
             }}
           />

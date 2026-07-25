@@ -537,7 +537,7 @@ func (h *TransactionHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	// Get existing transaction to reverse its balance
 	row := tx.QueryRow(r.Context(),
 		`SELECT id, ledger_id, title, amount, nature, source_account_id,
-			target_account_id, sub_category_id, payment_method,
+			target_account_id, sub_category_id, payment_method_id,
 			notes, principal_amount, interest_amount, transaction_date, created_at
 		 FROM transactions WHERE id = $1 AND ledger_id = $2 FOR UPDATE`, id, ledgerID)
 	old, err := scanTransactionRow(row)

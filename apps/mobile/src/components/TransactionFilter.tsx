@@ -270,7 +270,7 @@ const TransactionFilter = forwardRef<TransactionFilterRef, Props>(({ filters, on
                           display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                           onChange={(_, d) => {
                             setShowDateFrom(Platform.OS === 'ios');
-                            if (d) set('date_from', d.toISOString().split('T')[0]);
+                            if (d) set('date_from', `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
                           }}
                         />
                       )}
@@ -292,7 +292,7 @@ const TransactionFilter = forwardRef<TransactionFilterRef, Props>(({ filters, on
                           display={Platform.OS === 'ios' ? 'spinner' : 'default'}
                           onChange={(_, d) => {
                             setShowDateTo(Platform.OS === 'ios');
-                            if (d) set('date_to', d.toISOString().split('T')[0]);
+                            if (d) set('date_to', `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
                           }}
                         />
                       )}
