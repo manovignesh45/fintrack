@@ -132,3 +132,84 @@ func (h *TallyHandler) Summary(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, resp)
 }
+
+// SummaryRange returns monthly totals for each month in [from, to], zero-filled for months with no transactions
+func (h *TallyHandler) SummaryRange(w http.ResponseWriter, r *http.Request) {
+	ledgerID, err := GetLedgerID(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	from := r.URL.Query().Get("from")
+	to := r.URL.Query().Get("to")
+	if from == "" || to == "" {
+		writeError(w, http.StatusBadRequest, "from and to query parameters are required (format: YYYY-MM)")
+		return
+	}
+
+	fromT, err := time.Parse("2006-01", from)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "Invalid from format, expected YYYY-MM")
+		return
+	}
+	toT, err := time.Parse("2006-01", to)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "Invalid to format, expected YYYY-MM")
+		return
+	}
+	if toT.Before(fromT) {
+		writeError(w, http.StatusBadRequest, "to must not be before from")
+		return
+	}
+
+	months := int(toT.Year()-fromT.Year())*12 + int(toT.Month()-fromT.Month()) + 1
+	if months > 60 {
+		writeError(w, http.StatusBadRequest, "Range too large, maximum 60 months")
+		return
+	}
+
+	dateFrom := fromT.Format("2006-01-02")
+	firstOfNextAfterTo := time.Date(toT.Year(), toT.Month()+1, 1, 0, 0, 0, 0, time.UTC)
+	dateTo := firstOfNextAfterTo.AddDate(0, 0, -1).Format("2006-01-02")
+
+	rows, err := h.db.Query(r.Context(), `
+		SELECT
+			to_char(date_trunc('month', transaction_date), 'YYYY-MM') as month,
+			COALESCE(SUM(CASE WHEN nature = 'INCOME' THEN amount ELSE 0 END), 0) as total_income,
+			COALESCE(SUM(CASE WHEN nature = 'EXPENSE' THEN amount ELSE 0 END), 0) as total_expense,
+			COALESCE(SUM(CASE WHEN nature = 'EMI_PAYMENT' THEN amount ELSE 0 END), 0) as total_emi
+		FROM transactions
+		WHERE ledger_id = $1 AND transaction_date >= $2 AND transaction_date <= $3
+		GROUP BY date_trunc('month', transaction_date)`,
+		ledgerID, dateFrom, dateTo)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Failed to fetch summary range")
+		return
+	}
+	defer rows.Close()
+
+	byMonth := make(map[string]models.SummaryResponse)
+	for rows.Next() {
+		var s models.SummaryResponse
+		if err := rows.Scan(&s.Month, &s.TotalIncome, &s.TotalExpense, &s.TotalEMI); err != nil {
+			writeError(w, http.StatusInternalServerError, "Failed to fetch summary range")
+			return
+		}
+		s.NetFlow = s.TotalIncome - s.TotalExpense - s.TotalEMI
+		byMonth[s.Month] = s
+	}
+
+	result := make([]models.SummaryResponse, 0, months)
+	for i := 0; i < months; i++ {
+		d := time.Date(fromT.Year(), fromT.Month()+time.Month(i), 1, 0, 0, 0, 0, time.UTC)
+		key := d.Format("2006-01")
+		if s, ok := byMonth[key]; ok {
+			result = append(result, s)
+		} else {
+			result = append(result, models.SummaryResponse{Month: key})
+		}
+	}
+
+	writeJSON(w, http.StatusOK, result)
+}

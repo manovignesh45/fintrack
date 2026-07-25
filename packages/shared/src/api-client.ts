@@ -219,6 +219,8 @@ export function createApiClient(config: ApiClientConfig) {
 
   const summaryApi = {
     get: (month: string) => request<SummaryResponse>(`/summary?month=${month}`),
+    getRange: (from: string, to: string) =>
+      request<SummaryResponse[]>(`/summary/range?from=${from}&to=${to}`),
   };
 
   return {

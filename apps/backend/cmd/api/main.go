@@ -158,6 +158,7 @@ func main() {
 			r.Get("/tally/{id}", tallyH.GetTally)
 			r.Post("/tally/{id}", tallyH.CheckTally)
 			r.Get("/summary", tallyH.Summary)
+			r.Get("/summary/range", tallyH.SummaryRange)
 			})
 		})
 	})

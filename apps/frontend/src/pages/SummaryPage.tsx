@@ -6,21 +6,19 @@ function fmt(n: number) {
   return '₹' + Math.abs(n).toLocaleString('en-IN');
 }
 
-function prevMonth(m: string) {
+function addMonths(m: string, delta: number) {
   const [y, mo] = m.split('-').map(Number);
-  const d = new Date(y, mo - 2, 1);
+  const d = new Date(y, mo - 1 + delta, 1);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
-function nextMonth(m: string) {
+function shortMonthLabel(m: string) {
   const [y, mo] = m.split('-').map(Number);
-  const d = new Date(y, mo, 1);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  return new Date(y, mo - 1, 1).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
 }
 
-function monthLabel(m: string) {
-  const [y, mo] = m.split('-').map(Number);
-  return new Date(y, mo - 1, 1).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+function rangeLabel(from: string, to: string) {
+  return from === to ? shortMonthLabel(from) : `${shortMonthLabel(from)} – ${shortMonthLabel(to)}`;
 }
 
 function currentMonth() {
@@ -89,79 +87,130 @@ function BreakdownCard({ data }: { data: SummaryResponse }) {
   );
 }
 
+function CompareTable({ rows }: { rows: SummaryResponse[] }) {
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="bg-gray-50 dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wide">
+            <th className="text-left px-4 py-2 font-semibold">Month</th>
+            <th className="text-right px-4 py-2 font-semibold">Income</th>
+            <th className="text-right px-4 py-2 font-semibold">Expense</th>
+            <th className="text-right px-4 py-2 font-semibold">EMI</th>
+            <th className="text-right px-4 py-2 font-semibold">Net</th>
+          </tr>
+        </thead>
+        <tbody>
+          {[...rows].reverse().map((r) => (
+            <tr key={r.month} className="border-b border-gray-50 dark:border-gray-800 last:border-0">
+              <td className="px-4 py-2 text-gray-700 dark:text-gray-300 font-medium">{shortMonthLabel(r.month)}</td>
+              <td className="px-4 py-2 text-right text-green-600 dark:text-green-400">
+                {r.total_income > 0 ? fmt(r.total_income) : '—'}
+              </td>
+              <td className="px-4 py-2 text-right text-red-500">{r.total_expense > 0 ? fmt(r.total_expense) : '—'}</td>
+              <td className="px-4 py-2 text-right text-orange-500">{r.total_emi > 0 ? fmt(r.total_emi) : '—'}</td>
+              <td className={`px-4 py-2 text-right font-semibold ${r.net_flow >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500'}`}>
+                {r.net_flow >= 0 ? '+' : '-'}{fmt(r.net_flow)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export default function SummaryPage() {
-  const [month, setMonth] = useState(currentMonth);
-  const [data, setData] = useState<SummaryResponse | null>(null);
+  const [rangeFrom, setRangeFrom] = useState(() => addMonths(currentMonth(), -11));
+  const [rangeTo, setRangeTo] = useState(currentMonth);
+  const [rangeData, setRangeData] = useState<SummaryResponse[] | null>(null);
   const [loading, setLoading] = useState(false);
-  const isCurrentMonth = month === currentMonth();
 
   useEffect(() => {
+    if (rangeFrom > rangeTo) return;
     const load = async () => {
       setLoading(true);
       try {
-        const res = await summaryApi.get(month);
-        setData(res);
+        const res = await summaryApi.getRange(rangeFrom, rangeTo);
+        setRangeData(res);
       } catch {
-        setData(null);
+        setRangeData(null);
       } finally {
         setLoading(false);
       }
     };
     load();
-  }, [month]);
+  }, [rangeFrom, rangeTo]);
 
-  const totalIncome = data?.total_income ?? 0;
-  const totalExpense = (data?.total_expense ?? 0) + (data?.total_emi ?? 0);
-  const totalNet = totalIncome - totalExpense;
-  const hasData = !!data && (data.total_income > 0 || data.total_expense > 0 || data.total_emi > 0);
+  const totals = (rangeData ?? []).reduce(
+    (acc, r) => ({
+      total_income: acc.total_income + r.total_income,
+      total_expense: acc.total_expense + r.total_expense,
+      total_emi: acc.total_emi + r.total_emi,
+      net_flow: acc.net_flow + r.net_flow,
+    }),
+    { total_income: 0, total_expense: 0, total_emi: 0, net_flow: 0 }
+  );
+  const totalExpense = totals.total_expense + totals.total_emi;
+  const hasData = !!rangeData && rangeData.some((r) => r.total_income > 0 || r.total_expense > 0 || r.total_emi > 0);
 
   return (
     <div className="space-y-4">
-      {/* Month navigation */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Monthly Summary</h2>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => setMonth(prevMonth)}
-            className="w-8 h-8 flex items-center justify-center rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:bg-gray-900 active:scale-95 text-lg"
-          >
-            ‹
-          </button>
+      {/* Header */}
+      <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Monthly Summary</h2>
+
+      {/* Date range selection */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <label className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+          From
           <input
             type="month"
-            value={month}
-            onChange={(e) => setMonth(e.target.value)}
-            className="px-2 py-1 border border-gray-200 dark:border-gray-700 rounded-lg text-xs font-medium text-gray-600 dark:text-gray-400 focus:ring-2 focus:ring-blue-500 outline-none w-32 text-center dark:bg-gray-800 dark:text-white"
+            value={rangeFrom}
+            max={rangeTo}
+            onChange={(e) => setRangeFrom(e.target.value)}
+            className="px-2 py-1 border border-gray-200 dark:border-gray-700 rounded-lg text-xs font-medium text-gray-600 dark:text-gray-400 focus:ring-2 focus:ring-blue-500 outline-none dark:bg-gray-800"
           />
-          <button
-            onClick={() => setMonth(nextMonth)}
-            disabled={isCurrentMonth}
-            className="w-8 h-8 flex items-center justify-center rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:bg-gray-900 disabled:opacity-30 active:scale-95 text-lg"
-          >
-            ›
-          </button>
-        </div>
+        </label>
+        <label className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+          To
+          <input
+            type="month"
+            value={rangeTo}
+            min={rangeFrom}
+            max={currentMonth()}
+            onChange={(e) => setRangeTo(e.target.value)}
+            className="px-2 py-1 border border-gray-200 dark:border-gray-700 rounded-lg text-xs font-medium text-gray-600 dark:text-gray-400 focus:ring-2 focus:ring-blue-500 outline-none dark:bg-gray-800"
+          />
+        </label>
+        <button
+          onClick={() => {
+            setRangeFrom(addMonths(currentMonth(), -11));
+            setRangeTo(currentMonth());
+          }}
+          className="px-2.5 py-1 rounded-lg text-xs font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30"
+        >
+          Last 12 months
+        </button>
       </div>
-
-      {/* Month label */}
-      <p className="text-sm text-gray-500 dark:text-gray-400 -mt-2">{monthLabel(month)}</p>
 
       {loading ? (
         <p className="text-gray-400 text-center py-12">Loading...</p>
       ) : !hasData ? (
         <div className="text-center py-12 text-gray-400">
           <p className="text-3xl mb-2">📭</p>
-          <p className="text-sm">No transactions for {monthLabel(month)}</p>
+          <p className="text-sm">No transactions in this range</p>
         </div>
       ) : (
         <>
           {/* Grand total banner */}
           <div className="bg-linear-to-r from-blue-600 to-blue-700 rounded-xl p-4 text-white shadow-md">
-            <p className="text-xs font-semibold uppercase tracking-wider text-blue-200 mb-3">Grand Total</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-blue-200 mb-3">
+              Grand Total <span className="normal-case font-normal text-blue-300">· {rangeLabel(rangeFrom, rangeTo)}</span>
+            </p>
             <div className="grid grid-cols-3 gap-2 text-center">
               <div>
                 <p className="text-xs text-blue-200 mb-1">Income</p>
-                <p className="text-sm font-bold text-green-300">{fmt(totalIncome)}</p>
+                <p className="text-sm font-bold text-green-300">{fmt(totals.total_income)}</p>
               </div>
               <div className="border-x border-blue-500">
                 <p className="text-xs text-blue-200 mb-1">Expense</p>
@@ -169,17 +218,18 @@ export default function SummaryPage() {
               </div>
               <div>
                 <p className="text-xs text-blue-200 mb-1">Net</p>
-                <p className={`text-sm font-bold ${totalNet >= 0 ? 'text-green-300' : 'text-red-300'}`}>
-                  {totalNet >= 0 ? '+' : '-'}{fmt(totalNet)}
+                <p className={`text-sm font-bold ${totals.net_flow >= 0 ? 'text-green-300' : 'text-red-300'}`}>
+                  {totals.net_flow >= 0 ? '+' : '-'}{fmt(totals.net_flow)}
                 </p>
               </div>
             </div>
           </div>
 
           {/* Breakdown */}
-          <div className="space-y-3">
-            <BreakdownCard data={data!} />
-          </div>
+          <BreakdownCard data={{ month: rangeTo, ...totals }} />
+
+          {/* Month-by-month comparison */}
+          <CompareTable rows={rangeData!} />
         </>
       )}
     </div>
