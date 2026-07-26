@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { summaryApi } from '../api/client';
 import type { SummaryResponse } from '../api/types';
+import { useCachedList } from '../hooks/useCachedList';
 
 function fmt(n: number) {
   return '₹' + Math.round(Math.abs(n)).toLocaleString('en-IN');
@@ -134,24 +135,12 @@ function CompareTable({ rows }: { rows: SummaryResponse[] }) {
 export default function SummaryPage() {
   const [rangeFrom, setRangeFrom] = useState(() => addMonths(currentMonth(), -11));
   const [rangeTo, setRangeTo] = useState(currentMonth);
-  const [rangeData, setRangeData] = useState<SummaryResponse[] | null>(null);
-  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (rangeFrom > rangeTo) return;
-    const load = async () => {
-      setLoading(true);
-      try {
-        const res = await summaryApi.getRange(rangeFrom, rangeTo);
-        setRangeData(res);
-      } catch {
-        setRangeData(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, [rangeFrom, rangeTo]);
+  const { data: rangeData, loading } = useCachedList<SummaryResponse[]>(
+    `summary:${rangeFrom}:${rangeTo}`,
+    () => (rangeFrom > rangeTo ? Promise.resolve([]) : summaryApi.getRange(rangeFrom, rangeTo)),
+    []
+  );
 
   const totals = (rangeData ?? []).reduce(
     (acc, r) => ({

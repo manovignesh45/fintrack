@@ -1,29 +1,24 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { accountsApi } from '../api/client';
 import type { Account } from '../api/types';
 import { useAuth } from '../context/AuthContext';
+import { useCachedList } from '../hooks/useCachedList';
 
 export default function AccountsPage() {
   const navigate = useNavigate();
   const { editMode } = useAuth();
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [newName, setNewName] = useState('');
   const [newBalance, setNewBalance] = useState('0');
   const [newInterestRate, setNewInterestRate] = useState('0');
   const [saving, setSaving] = useState(false);
 
-  const load = () => {
-    setLoading(true);
-    accountsApi.list({ type: 'LIABILITY' })
-      .then((data) => setAccounts(data || []))
-      .catch(() => setAccounts([]))
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(() => { load(); }, []);
+  const { data: accounts, loading, reload: load } = useCachedList<Account[]>(
+    'accounts:liability',
+    () => accountsApi.list({ type: 'LIABILITY' }),
+    []
+  );
 
   const liabilities = accounts.filter((a) => a.type === 'LIABILITY');
 

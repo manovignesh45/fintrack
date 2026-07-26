@@ -1,28 +1,21 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { paymentMethodsApi } from '../api/client';
 import type { PaymentMethod } from '../api/types';
 import { useAuth } from '../context/AuthContext';
+import { useCachedList } from '../hooks/useCachedList';
 
 export default function PaymentMethodsPage() {
   const { editMode } = useAuth();
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
-  const [loading, setLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
   const [newName, setNewName] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const load = () => {
-    setLoading(true);
-    paymentMethodsApi.list()
-      .then((data) => setPaymentMethods(data || []))
-      .catch(() => setPaymentMethods([]))
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(() => {
-    load();
-  }, []);
+  const { data: paymentMethods, loading, reload: load } = useCachedList<PaymentMethod[]>(
+    'payment-methods',
+    () => paymentMethodsApi.list(),
+    []
+  );
 
   const handleDelete = async (id: number) => {
     if (!confirm('Delete this payment method?')) return;

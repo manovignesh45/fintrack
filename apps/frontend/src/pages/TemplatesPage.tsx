@@ -1,32 +1,26 @@
-import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { templatesApi, paymentMethodsApi } from '../api/client';
 import type { TransactionTemplate, PaymentMethod } from '../api/types';
 import { useAuth } from '../context/AuthContext';
+import { useCachedList } from '../hooks/useCachedList';
 
 const natureLabels: Record<string, string> = {
   INCOME: 'Income', EXPENSE: 'Expense', EMI_PAYMENT: 'EMI', LOAN_DISBURSEMENT: 'Loan',
 };
 
 export default function TemplatesPage() {
-  const [templates, setTemplates] = useState<TransactionTemplate[]>([]);
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
-  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { editMode } = useAuth();
-
-  const load = () => {
-    setLoading(true);
-    templatesApi.list()
-      .then((data) => setTemplates(data || []))
-      .catch(() => setTemplates([]))
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(() => { 
-    load(); 
-    paymentMethodsApi.list().then(setPaymentMethods).catch(() => {});
-  }, []);
+  const { data: templates, loading, reload: load } = useCachedList<TransactionTemplate[]>(
+    'templates',
+    () => templatesApi.list(),
+    []
+  );
+  const { data: paymentMethods } = useCachedList<PaymentMethod[]>(
+    'payment-methods',
+    () => paymentMethodsApi.list(),
+    []
+  );
 
   const handleUse = (t: TransactionTemplate) => {
     navigate('/add', {

@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { transactionsApi, paymentMethodsApi } from '../api/client';
 import type { Transaction, TxNature, PaymentMethod } from '../api/types';
 import { useAuth } from '../context/AuthContext';
 import TransactionFilter, { DEFAULT_FILTERS, countActiveFilters, DATE_PRESET_LABELS } from '../components/TransactionFilter';
 import type { FilterState } from '../components/TransactionFilter';
+import { useCachedList } from '../hooks/useCachedList';
 
 const natureColors: Record<TxNature, string> = {
   INCOME: 'text-green-600 dark:text-green-400',
@@ -22,40 +23,34 @@ const natureLabels: Record<TxNature, string> = {
   LOAN_DISBURSEMENT: 'Loan Disbursement',
 };
 
+function filterParams(f: FilterState): Record<string, string> {
+  const params: Record<string, string> = {};
+  if (f.nature) params.nature = f.nature;
+  if (f.category_id) params.category_id = f.category_id;
+  if (f.sub_category_id) params.sub_category_id = f.sub_category_id;
+  if (f.date_from) params.date_from = f.date_from;
+  if (f.date_to) params.date_to = f.date_to;
+  if (f.search) params.search = f.search;
+  return params;
+}
+
 export default function TransactionsPage() {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [showExportOptions, setShowExportOptions] = useState(false);
   const navigate = useNavigate();
   const { editMode } = useAuth();
 
-  const load = async (f: FilterState = filters) => {
-    setLoading(true);
-    try {
-      const params: Record<string, string> = {};
-      if (f.nature) params.nature = f.nature;
-      if (f.category_id) params.category_id = f.category_id;
-      if (f.sub_category_id) params.sub_category_id = f.sub_category_id;
-      if (f.date_from) params.date_from = f.date_from;
-      if (f.date_to) params.date_to = f.date_to;
-      if (f.search) params.search = f.search;
-
-      const data = await transactionsApi.list(params);
-      setTransactions(data || []);
-    } catch {
-      setTransactions([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { 
-    load(); 
-    paymentMethodsApi.list().then(setPaymentMethods).catch(() => {});
-  }, [filters]);
+  const { data: transactions, loading, reload: load } = useCachedList<Transaction[]>(
+    `transactions:${JSON.stringify(filters)}`,
+    () => transactionsApi.list(filterParams(filters)),
+    []
+  );
+  const { data: paymentMethods } = useCachedList<PaymentMethod[]>(
+    'payment-methods',
+    () => paymentMethodsApi.list(),
+    []
+  );
 
   const summary = transactions.reduce(
     (acc, t) => {

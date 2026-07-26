@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { categoriesApi } from '../api/client';
 import type { Category, TxNature } from '../api/types';
 import { useAuth } from '../context/AuthContext';
+import { useCachedList } from '../hooks/useCachedList';
 
 const STORAGE_NATURE_KEY = 'cat_filter_nature';
 
@@ -12,23 +13,18 @@ export default function CategoriesPage() {
   const [selectedNature, setSelectedNature] = useState<TxNature>(
     () => (sessionStorage.getItem(STORAGE_NATURE_KEY) as TxNature) || 'EXPENSE'
   );
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
   const [addingSubFor, setAddingSubFor] = useState<number | null>(null);
   const [newSubName, setNewSubName] = useState('');
   const [subSubmitting, setSubSubmitting] = useState(false);
 
-  const load = () => {
-    setLoading(true);
-    categoriesApi.list({ nature: selectedNature })
-      .then((data) => setCategories(data || []))
-      .catch(() => setCategories([]))
-      .finally(() => setLoading(false));
-  };
+  const { data: categories, loading, reload: load } = useCachedList<Category[]>(
+    `categories:${selectedNature}`,
+    () => categoriesApi.list({ nature: selectedNature }),
+    []
+  );
 
   useEffect(() => {
     sessionStorage.setItem(STORAGE_NATURE_KEY, selectedNature);
-    load();
   }, [selectedNature]);
 
   const deleteCategory = async (id: number) => {

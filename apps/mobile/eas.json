@@ -7,7 +7,7 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_API_BASE_URL": "https://fintrack-seg6.onrender.com/api"
+        "EXPO_PUBLIC_API_BASE_URL": "https://api.fintrack.devnerds.co.in/api"
       },
       "android": {
         "buildType": "apk"
@@ -16,7 +16,7 @@
     "preview": {
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_API_BASE_URL": "https://fintrack-seg6.onrender.com/api"
+        "EXPO_PUBLIC_API_BASE_URL": "https://api.fintrack.devnerds.co.in/api"
       },
       "android": {
         "buildType": "apk"
@@ -24,7 +24,7 @@
     },
     "production": {
       "env": {
-        "EXPO_PUBLIC_API_BASE_URL": "https://fintrack-seg6.onrender.com/api"
+        "EXPO_PUBLIC_API_BASE_URL": "https://api.fintrack.devnerds.co.in/api"
       },
       "android": {
         "buildType": "app-bundle"

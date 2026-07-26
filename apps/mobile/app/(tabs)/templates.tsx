@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { View, Text, SectionList, TouchableOpacity, Alert, ActivityIndicator, RefreshControl } from 'react-native';
 import { FAB } from '@/src/components/ui/FAB';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -24,13 +24,13 @@ export default function TemplatesScreen() {
 
   const { activeLedgerId, refreshLedgers } = useLedgers();
 
-  const load = () => {
-    setLoading(true);
+  const load = useCallback((showSpinner = false) => {
+    if (showSpinner) setLoading(true);
     templatesApi.list()
       .then((data) => setTemplates(data || []))
       .catch(() => setTemplates([]))
-      .finally(() => setLoading(false));
-  };
+      .finally(() => { if (showSpinner) setLoading(false); });
+  }, []);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -47,7 +47,9 @@ export default function TemplatesScreen() {
     }
   }, [activeLedgerId, refreshLedgers]);
 
-  useFocusEffect(useCallback(() => { load(); }, [activeLedgerId]));
+  useEffect(() => { load(true); }, [activeLedgerId, load]);
+
+  useFocusEffect(useCallback(() => { load(false); }, [load]));
 
   const handleUse = (t: TransactionTemplate) => {
     router.push({
@@ -78,7 +80,7 @@ export default function TemplatesScreen() {
         onPress: async () => {
           try {
             await templatesApi.delete(id);
-            load();
+            load(false);
           } catch {
             Alert.alert('Error', 'Failed to delete');
           }
