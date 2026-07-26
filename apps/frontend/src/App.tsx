@@ -468,12 +468,18 @@ function SwipeableTabs() {
           {navPaths.map((path, index) => {
             const Page = tabPages[index];
             return (
-              <div key={path} className="h-full shrink-0 overflow-y-auto relative" style={{ width: `${SLIDE_PCT}%` }}>
-                {mounted.has(index) && (
-                  <div className="max-w-lg mx-auto px-4 py-4">
-                    <Page />
-                  </div>
-                )}
+              <div key={path} className="h-full shrink-0 relative" style={{ width: `${SLIDE_PCT}%` }}>
+                {/* Scrolling happens on this inner div, kept unpositioned so
+                    the outer div (which doesn't scroll) is what a page's
+                    `absolute` FAB anchors to — anchoring to this div instead
+                    would drag the FAB along with the content on scroll. */}
+                <div className="h-full overflow-y-auto">
+                  {mounted.has(index) && (
+                    <div className="max-w-lg mx-auto px-4 py-4">
+                      <Page />
+                    </div>
+                  )}
+                </div>
               </div>
             );
           })}
