@@ -101,33 +101,27 @@ function BreakdownCard({ data }: { data: SummaryResponse }) {
 
 function CompareTable({ rows }: { rows: SummaryResponse[] }) {
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="bg-gray-50 dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wide">
-            <th className="text-left px-4 py-2 font-semibold">Month</th>
-            <th className="text-right px-4 py-2 font-semibold">Income</th>
-            <th className="text-right px-4 py-2 font-semibold">Expense</th>
-            <th className="text-right px-4 py-2 font-semibold">EMI</th>
-            <th className="text-right px-4 py-2 font-semibold">Net</th>
-          </tr>
-        </thead>
-        <tbody>
-          {[...rows].reverse().map((r) => (
-            <tr key={r.month} className="border-b border-gray-50 dark:border-gray-800 last:border-0">
-              <td className="px-4 py-2 text-gray-700 dark:text-gray-300 font-medium">{shortMonthLabel(r.month)}</td>
-              <td className="px-4 py-2 text-right text-green-600 dark:text-green-400">
-                {r.total_income + r.total_loan > 0 ? fmt(r.total_income + r.total_loan) : '—'}
-              </td>
-              <td className="px-4 py-2 text-right text-red-500">{r.total_expense > 0 ? fmt(r.total_expense) : '—'}</td>
-              <td className="px-4 py-2 text-right text-orange-500">{r.total_emi > 0 ? fmt(r.total_emi) : '—'}</td>
-              <td className={`px-4 py-2 text-right font-semibold ${r.net_flow >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500'}`}>
-                {r.net_flow >= 0 ? '+' : '-'}{fmt(r.net_flow)}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+      <div className="flex bg-gray-50 dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 px-3 py-2">
+        <span className="flex-[1.2] text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Month</span>
+        <span className="flex-1 text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 text-right">Income</span>
+        <span className="flex-1 text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 text-right">Expense</span>
+        <span className="flex-1 text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 text-right">EMI</span>
+        <span className="flex-[1.1] text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 text-right">Net</span>
+      </div>
+      {[...rows].reverse().map((r) => (
+        <div key={r.month} className="flex px-3 py-2 border-b border-gray-50 dark:border-gray-800 last:border-0">
+          <span className="flex-[1.2] text-xs font-medium text-gray-700 dark:text-gray-300">{shortMonthLabel(r.month)}</span>
+          <span className="flex-1 text-xs text-green-600 dark:text-green-400 text-right">
+            {r.total_income + r.total_loan > 0 ? fmt(r.total_income + r.total_loan) : '—'}
+          </span>
+          <span className="flex-1 text-xs text-red-500 text-right">{r.total_expense > 0 ? fmt(r.total_expense) : '—'}</span>
+          <span className="flex-1 text-xs text-orange-500 text-right">{r.total_emi > 0 ? fmt(r.total_emi) : '—'}</span>
+          <span className={`flex-[1.1] text-xs font-semibold text-right ${r.net_flow >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500'}`}>
+            {r.net_flow >= 0 ? '+' : '-'}{fmt(r.net_flow)}
+          </span>
+        </div>
+      ))}
     </div>
   );
 }
