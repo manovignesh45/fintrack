@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, NavLink, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, NavLink, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useState, useRef, useEffect } from 'react';
 import TransactionsPage from './pages/TransactionsPage';
 import AddTransactionPage from './pages/AddTransactionPage';
@@ -27,6 +27,8 @@ const navItems = [
   { to: '/summary', label: 'Summary', icon: '📊' },
   { to: '/more', label: 'More', icon: '⋯' },
 ];
+
+const navPaths = navItems.map((item) => item.to);
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading: authLoading } = useAuth();
@@ -80,6 +82,8 @@ function AppShell() {
   const [newLedgerName, setNewLedgerName] = useState('');
   const menuRef = useRef<HTMLDivElement>(null);
   const ledgerDropdownRef = useRef<HTMLDivElement>(null);
+  const location = useLocation();
+  const isTabRoute = navPaths.includes(location.pathname);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -101,8 +105,8 @@ function AppShell() {
     : '?';
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-20 transition-colors">
-      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 sticky top-0 z-10 flex justify-between items-center transition-colors">
+    <div className="h-dvh flex flex-col bg-gray-50 dark:bg-gray-900 transition-colors">
+      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 shrink-0 z-10 flex justify-between items-center transition-colors">
         <div className="flex items-center gap-2 relative" ref={ledgerDropdownRef}>
           <h1 className="text-lg font-bold text-gray-800 dark:text-white leading-none">FinTrack</h1>
           {isAuthenticated && activeLedger && (
@@ -129,7 +133,7 @@ function AppShell() {
                   className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex justify-between items-center capitalize"
                 >
                   <span className="truncate">{l.name}</span>
-                  {activeLedger?.id === l.id && <span className="text-blue-600 dark:text-blue-400 flex-shrink-0">✓</span>}
+                  {activeLedger?.id === l.id && <span className="text-blue-600 dark:text-blue-400 shrink-0">✓</span>}
                 </button>
               ))}
               {editMode && (
@@ -231,28 +235,36 @@ function AppShell() {
         )}
       </header>
 
-      <main className="max-w-lg mx-auto px-4 py-4">
-        <Routes>
-          <Route path="/" element={<ProtectedRoute><TransactionsPage /></ProtectedRoute>} />
-          <Route path="/add" element={<ProtectedRoute><AddTransactionPage /></ProtectedRoute>} />
-          <Route path="/edit/:id" element={<ProtectedRoute><EditTransactionPage /></ProtectedRoute>} />
-          <Route path="/accounts" element={<ProtectedRoute><AccountsPage /></ProtectedRoute>} />
-          <Route path="/accounts/:id" element={<ProtectedRoute><AccountDetailsPage /></ProtectedRoute>} />
-          <Route path="/categories" element={<ProtectedRoute><CategoriesPage /></ProtectedRoute>} />
-          <Route path="/categories/new" element={<ProtectedRoute><CreateCategoryPage /></ProtectedRoute>} />
-          <Route path="/categories/:catId/sub/new" element={<ProtectedRoute><CreateSubCategoryPage /></ProtectedRoute>} />
-          <Route path="/summary" element={<ProtectedRoute><SummaryPage /></ProtectedRoute>} />
-          <Route path="/tally" element={<ProtectedRoute><TallyPage /></ProtectedRoute>} />
-          <Route path="/templates" element={<ProtectedRoute><TemplatesPage /></ProtectedRoute>} />
-          <Route path="/templates/new" element={<ProtectedRoute><CreateTemplatePage /></ProtectedRoute>} />
-          <Route path="/import" element={<ProtectedRoute><ImportPage /></ProtectedRoute>} />
-          <Route path="/payment-methods" element={<ProtectedRoute><PaymentMethodsPage /></ProtectedRoute>} />
-          <Route path="/more" element={<ProtectedRoute><MorePage /></ProtectedRoute>} />
-        </Routes>
-      </main>
+      <div className="flex-1 min-h-0">
+        {isAuthenticated && isTabRoute ? (
+          <SwipeableTabs />
+        ) : (
+          <div className="h-full overflow-y-auto">
+            <div className="max-w-lg mx-auto px-4 py-4">
+              <Routes>
+                <Route path="/" element={<ProtectedRoute><TransactionsPage /></ProtectedRoute>} />
+                <Route path="/add" element={<ProtectedRoute><AddTransactionPage /></ProtectedRoute>} />
+                <Route path="/edit/:id" element={<ProtectedRoute><EditTransactionPage /></ProtectedRoute>} />
+                <Route path="/accounts" element={<ProtectedRoute><AccountsPage /></ProtectedRoute>} />
+                <Route path="/accounts/:id" element={<ProtectedRoute><AccountDetailsPage /></ProtectedRoute>} />
+                <Route path="/categories" element={<ProtectedRoute><CategoriesPage /></ProtectedRoute>} />
+                <Route path="/categories/new" element={<ProtectedRoute><CreateCategoryPage /></ProtectedRoute>} />
+                <Route path="/categories/:catId/sub/new" element={<ProtectedRoute><CreateSubCategoryPage /></ProtectedRoute>} />
+                <Route path="/summary" element={<ProtectedRoute><SummaryPage /></ProtectedRoute>} />
+                <Route path="/tally" element={<ProtectedRoute><TallyPage /></ProtectedRoute>} />
+                <Route path="/templates" element={<ProtectedRoute><TemplatesPage /></ProtectedRoute>} />
+                <Route path="/templates/new" element={<ProtectedRoute><CreateTemplatePage /></ProtectedRoute>} />
+                <Route path="/import" element={<ProtectedRoute><ImportPage /></ProtectedRoute>} />
+                <Route path="/payment-methods" element={<ProtectedRoute><PaymentMethodsPage /></ProtectedRoute>} />
+                <Route path="/more" element={<ProtectedRoute><MorePage /></ProtectedRoute>} />
+              </Routes>
+            </div>
+          </div>
+        )}
+      </div>
 
       {isAuthenticated && (
-        <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-10 transition-colors">
+        <nav className="shrink-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-10 transition-colors">
           <div className="max-w-lg mx-auto flex justify-around">
             {navItems.map((item) => (
               <NavLink
@@ -323,6 +335,151 @@ function AppShell() {
         </div>
       )}
     </div>
+  );
+}
+
+const tabPages = [TransactionsPage, TemplatesPage, AccountsPage, SummaryPage, MorePage];
+const SLIDE_PCT = 100 / navPaths.length;
+const SETTLE_TRANSITION = 'transform 280ms cubic-bezier(0.22, 1, 0.36, 1)';
+
+function SwipeableTabs() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const activeIndex = navPaths.indexOf(location.pathname);
+  const activeIndexRef = useRef(activeIndex);
+  const [mounted, setMounted] = useState<Set<number>>(() => new Set([activeIndex]));
+
+  // Keep the current tab plus its immediate neighbors mounted so a swipe
+  // in either direction has something to drag to without a blank frame.
+  useEffect(() => {
+    activeIndexRef.current = activeIndex;
+    setMounted((prev) => {
+      const next = new Set(prev);
+      next.add(activeIndex);
+      if (activeIndex > 0) next.add(activeIndex - 1);
+      if (activeIndex < navPaths.length - 1) next.add(activeIndex + 1);
+      return next;
+    });
+  }, [activeIndex]);
+
+  // Settle the track on the active slide whenever the route changes from
+  // outside a drag (tab bar tap, browser back/forward). A drag-driven
+  // change already sits here, so this just animates external navigation.
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track) return;
+    track.style.transition = SETTLE_TRANSITION;
+    track.style.transform = `translateX(-${activeIndex * SLIDE_PCT}%)`;
+  }, [activeIndex]);
+
+  // Drag the track 1:1 with the finger; release past a distance/velocity
+  // threshold moves exactly one tab, otherwise it springs back. Mirrors a
+  // native pager view instead of letting a fast flick sail past several tabs.
+  useEffect(() => {
+    const container = containerRef.current;
+    const track = trackRef.current;
+    if (!container || !track) return;
+
+    let startX = 0;
+    let startY = 0;
+    let startTime = 0;
+    let containerWidth = 0;
+    let dragging = false;
+    let axis: 'x' | 'y' | null = null;
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return;
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      startTime = Date.now();
+      containerWidth = container.clientWidth;
+      dragging = true;
+      axis = null;
+      track.style.transition = 'none';
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (!dragging) return;
+      const dx = e.touches[0].clientX - startX;
+      const dy = e.touches[0].clientY - startY;
+
+      if (!axis) {
+        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+        axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+        if (axis === 'y') {
+          dragging = false;
+          return;
+        }
+      }
+
+      e.preventDefault();
+      const index = activeIndexRef.current;
+      const dragPct = (dx / containerWidth) * SLIDE_PCT;
+      let offsetPct = index * SLIDE_PCT - dragPct;
+      const maxPct = (navPaths.length - 1) * SLIDE_PCT;
+      if (offsetPct < 0) offsetPct *= 0.35; // rubber-band past the first tab
+      if (offsetPct > maxPct) offsetPct = maxPct + (offsetPct - maxPct) * 0.35; // and the last
+      track.style.transform = `translateX(-${offsetPct}%)`;
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (!dragging) return;
+      dragging = false;
+      if (axis !== 'x') return;
+
+      const dx = e.changedTouches[0].clientX - startX;
+      const elapsed = Date.now() - startTime;
+      const velocity = Math.abs(dx) / Math.max(elapsed, 1);
+      const index = activeIndexRef.current;
+
+      let nextIndex = index;
+      if (Math.abs(dx) > containerWidth * 0.2 || velocity > 0.5) {
+        if (dx < 0 && index < navPaths.length - 1) nextIndex = index + 1;
+        else if (dx > 0 && index > 0) nextIndex = index - 1;
+      }
+
+      track.style.transition = SETTLE_TRANSITION;
+      track.style.transform = `translateX(-${nextIndex * SLIDE_PCT}%)`;
+      if (nextIndex !== index) navigate(navPaths[nextIndex]);
+    };
+
+    container.addEventListener('touchstart', onTouchStart, { passive: true });
+    container.addEventListener('touchmove', onTouchMove, { passive: false });
+    container.addEventListener('touchend', onTouchEnd, { passive: true });
+    container.addEventListener('touchcancel', onTouchEnd, { passive: true });
+    return () => {
+      container.removeEventListener('touchstart', onTouchStart);
+      container.removeEventListener('touchmove', onTouchMove);
+      container.removeEventListener('touchend', onTouchEnd);
+      container.removeEventListener('touchcancel', onTouchEnd);
+    };
+  }, [navigate]);
+
+  return (
+    <ProtectedRoute>
+      <div ref={containerRef} className="h-full w-full overflow-hidden">
+        <div
+          ref={trackRef}
+          className="h-full flex"
+          style={{ width: `${navPaths.length * 100}%`, transform: `translateX(-${activeIndex * SLIDE_PCT}%)` }}
+        >
+          {navPaths.map((path, index) => {
+            const Page = tabPages[index];
+            return (
+              <div key={path} className="h-full shrink-0 overflow-y-auto" style={{ width: `${SLIDE_PCT}%` }}>
+                {mounted.has(index) && (
+                  <div className="max-w-lg mx-auto px-4 py-4">
+                    <Page />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </ProtectedRoute>
   );
 }
 
