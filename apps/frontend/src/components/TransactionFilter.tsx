@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { categoriesApi } from '../api/client';
 import type { Category, TxNature } from '../api/types';
 
@@ -179,7 +180,11 @@ export default function TransactionFilter({ isOpen, filters, onApply, onClose }:
 
   if (!isOpen) return null;
 
-  return (
+  // Portal straight to <body>: this panel is mounted inside SwipeableTabs'
+  // translateX track, and a `transform` on an ancestor makes `position:
+  // fixed` size/position against that ancestor instead of the viewport
+  // (the panel was rendering 5x the viewport width — one per swipe tab).
+  return createPortal(
     <>
       {/* Backdrop */}
       <div
@@ -353,6 +358,7 @@ export default function TransactionFilter({ isOpen, filters, onApply, onClose }:
           </button>
         </div>
       </div>
-    </>
+    </>,
+    document.body
   );
 }
