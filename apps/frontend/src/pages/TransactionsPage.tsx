@@ -266,7 +266,7 @@ export default function TransactionsPage() {
       {/* Floating Action Button */}
       <button
         onClick={() => navigate('/add')}
-        className="fixed bottom-24 right-6 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center text-3xl hover:bg-blue-700 transition-colors z-20"
+        className="absolute bottom-6 right-6 w-14 h-14 bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center text-3xl hover:bg-blue-700 transition-colors z-20"
         aria-label="Add Transaction"
       >
         +

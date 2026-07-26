@@ -468,7 +468,7 @@ function SwipeableTabs() {
           {navPaths.map((path, index) => {
             const Page = tabPages[index];
             return (
-              <div key={path} className="h-full shrink-0 overflow-y-auto" style={{ width: `${SLIDE_PCT}%` }}>
+              <div key={path} className="h-full shrink-0 overflow-y-auto relative" style={{ width: `${SLIDE_PCT}%` }}>
                 {mounted.has(index) && (
                   <div className="max-w-lg mx-auto px-4 py-4">
                     <Page />
