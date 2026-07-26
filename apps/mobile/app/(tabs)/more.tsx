@@ -25,7 +25,7 @@ export default function MoreScreen() {
   const router = useRouter();
   const { user, logout } = useAuth();
   const { theme, setTheme } = useTheme();
-  const { lockEnabled, biometricEnabled, refreshLockConfig } = useAppLock();
+  const { lockEnabled, biometricEnabled, refreshLockConfig, lockNow } = useAppLock();
   const { showToast } = useToast();
   const [biometric, setBiometric] = useState<BiometricCapability | null>(null);
 
@@ -196,14 +196,28 @@ export default function MoreScreen() {
         ))}
       </View>
 
-      {/* Logout */}
+      {/* Lock (only when app lock is set up) — keeps the session, returns to the
+          PIN/biometric screen. */}
+      {lockEnabled && (
+        <TouchableOpacity
+          onPress={lockNow}
+          className="bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800 p-4 flex-row items-center justify-center gap-2 mt-6"
+          activeOpacity={0.7}
+        >
+          <Ionicons name="lock-closed-outline" size={18} color="#2563eb" />
+          <Text className="text-sm font-medium text-blue-600 dark:text-blue-400">Lock App</Text>
+        </TouchableOpacity>
+      )}
+
+      {/* Full sign-out: clears the session AND the device PIN/biometric. Labeled
+          "Switch account" when a lock exists to distinguish it from Lock above. */}
       <TouchableOpacity
-        onPress={logout}
-        className="bg-red-50 rounded-lg border border-red-200 p-4 flex-row items-center justify-center gap-2 mt-6"
+        onPress={() => logout({ clearLock: true })}
+        className={`bg-red-50 rounded-lg border border-red-200 p-4 flex-row items-center justify-center gap-2 ${lockEnabled ? 'mt-3' : 'mt-6'}`}
         activeOpacity={0.7}
       >
         <Ionicons name="log-out-outline" size={18} color="#dc2626" />
-        <Text className="text-sm font-medium text-red-600">Log Out</Text>
+        <Text className="text-sm font-medium text-red-600">{lockEnabled ? 'Switch account' : 'Log Out'}</Text>
       </TouchableOpacity>
 
       {/* App Version Info */}

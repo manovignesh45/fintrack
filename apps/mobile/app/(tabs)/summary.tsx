@@ -6,7 +6,7 @@ import { useLedgers } from '@/src/context/LedgerContext';
 import type { SummaryResponse } from '@fintrack/shared';
 
 function fmt(n: number) {
-  return '₹' + Math.abs(n).toLocaleString('en-IN');
+  return '₹' + Math.round(Math.abs(n)).toLocaleString('en-IN');
 }
 
 function addMonths(m: string, delta: number) {

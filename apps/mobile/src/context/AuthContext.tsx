@@ -9,7 +9,9 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   login: (user: User, token: string) => Promise<void>;
-  logout: () => Promise<void>;
+  /** Pass { clearLock: true } for an explicit user logout so the device PIN /
+   *  biometric is removed too. Transient/401 logouts keep the lock configured. */
+  logout: (opts?: { clearLock?: boolean }) => Promise<void>;
   isAuthenticated: boolean;
   loading: boolean;
   editMode: boolean;
@@ -24,15 +26,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(true);
 
-  const logout = useCallback(async () => {
+  const logout = useCallback(async (opts?: { clearLock?: boolean }) => {
     setUser(null);
     setToken(null);
     setApiLedgerId(null);
     await tokenCache.clear();
     await AsyncStorage.removeItem('fintrack_ledger_id');
-    // Clear the device-local PIN/biometric so a fresh login starts clean and the
-    // lock feature is opt-in again for the next user of this device.
-    await clearPin();
+    // Only an explicit user logout wipes the device-local PIN/biometric. A
+    // transient startup failure or an automatic 401 keeps it configured so the
+    // user can unlock again on the next launch / re-login.
+    if (opts?.clearLock) {
+      await clearPin();
+    }
   }, []);
 
   useEffect(() => {
@@ -51,24 +56,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return;
         }
 
-        // Validate the persisted token BEFORE activating the session. The token
-        // is already in tokenCache (from tokenCache.load()), so authApi.me()
-        // uses it without needing React state. Only mark the session active if
-        // it's valid — this prevents ledger-scoped requests (LedgerContext keys
-        // off `token`) from firing with a stale/invalid token and 401'ing.
+        // Restore the session from the cached user immediately so the app opens
+        // (and the PIN / biometric lock screen appears) even when the backend is
+        // cold-starting or the device is offline. Validation happens in the
+        // background below.
+        let cachedUser: User;
         try {
-          const freshUser = await authApi.me();
-          await SecureStore.setItemAsync('fintrack_user', JSON.stringify(freshUser));
-          setUser(freshUser);
-          setToken(savedToken);
-          if (freshUser.preferences?.editMode !== undefined) {
-            setEditMode(freshUser.preferences.editMode);
-          }
+          cachedUser = JSON.parse(savedUserStr);
         } catch {
-          // Token invalid/expired (e.g. issued by a different backend). Clear it
-          // and fall through to the login screen.
-          await logout();
+          // Corrupt cache — clear everything and fall through to login.
+          await logout({ clearLock: true });
+          return;
         }
+        setUser(cachedUser);
+        setToken(savedToken);
+        if (cachedUser.preferences?.editMode !== undefined) {
+          setEditMode(cachedUser.preferences.editMode);
+        }
+
+        // Background validation. A genuine 401 fires the global onUnauthorized
+        // handler (-> logout), clearing the invalid session. Network/timeout
+        // errors are swallowed so a slow backend never signs the user out.
+        authApi
+          .me()
+          .then((freshUser) => {
+            SecureStore.setItemAsync('fintrack_user', JSON.stringify(freshUser)).catch(() => {});
+            setUser(freshUser);
+            if (freshUser.preferences?.editMode !== undefined) {
+              setEditMode(freshUser.preferences.editMode);
+            }
+          })
+          .catch(() => {
+            // Keep the cached session on transient failures.
+          });
       } catch {
         // Failed to load auth state
       } finally {

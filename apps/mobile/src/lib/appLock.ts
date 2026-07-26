@@ -82,11 +82,15 @@ export async function getBiometricCapability(): Promise<BiometricCapability> {
     LocalAuthentication.supportedAuthenticationTypesAsync(),
   ]);
 
+  // Prefer Fingerprint: many Android devices report FACIAL_RECOGNITION as a
+  // supported type even when only a fingerprint is enrolled, so checking facial
+  // first mislabels them. iPhones with Face ID never report FINGERPRINT, so they
+  // still fall through to the correct label.
   let label = 'Biometrics';
-  if (types.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)) {
-    label = 'Face ID';
-  } else if (types.includes(LocalAuthentication.AuthenticationType.FINGERPRINT)) {
+  if (types.includes(LocalAuthentication.AuthenticationType.FINGERPRINT)) {
     label = 'Fingerprint';
+  } else if (types.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)) {
+    label = 'Face ID';
   } else if (types.includes(LocalAuthentication.AuthenticationType.IRIS)) {
     label = 'Iris';
   }

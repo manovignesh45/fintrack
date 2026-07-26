@@ -90,6 +90,7 @@ function HeaderLeft() {
 
 function HeaderRight() {
   const { editMode, setEditMode, user, logout } = useAuth();
+  const { lockEnabled, lockNow } = useAppLock();
   const { theme, setTheme } = useTheme();
   const router = useRouter();
   const [menuVisible, setMenuVisible] = React.useState(false);
@@ -131,17 +132,46 @@ function HeaderRight() {
                       <Text className="text-sm text-gray-700 dark:text-gray-300">Settings</Text>
                       <Ionicons name="chevron-forward" size={16} color="#9ca3af" />
                     </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={async () => { 
-                        setMenuVisible(false); 
-                        setMenuView('main'); 
-                        await logout();
-                        router.replace('/login');
-                      }}
-                      className="px-4 py-3 bg-white dark:bg-gray-800"
-                    >
-                      <Text className="text-sm text-red-600 dark:text-red-500">Logout</Text>
-                    </TouchableOpacity>
+                    {lockEnabled ? (
+                      <>
+                        {/* App lock is on: the primary action locks (keeps the
+                            session, returns to the PIN/biometric screen). */}
+                        <TouchableOpacity
+                          onPress={() => {
+                            setMenuVisible(false);
+                            setMenuView('main');
+                            lockNow();
+                          }}
+                          className="flex-row items-center gap-2 px-4 py-3 border-b border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800"
+                        >
+                          <Ionicons name="lock-closed-outline" size={16} color="#4b5563" />
+                          <Text className="text-sm text-gray-700 dark:text-gray-300">Lock</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={async () => {
+                            setMenuVisible(false);
+                            setMenuView('main');
+                            await logout({ clearLock: true });
+                            router.replace('/login');
+                          }}
+                          className="px-4 py-3 bg-white dark:bg-gray-800"
+                        >
+                          <Text className="text-sm text-red-600 dark:text-red-500">Switch account</Text>
+                        </TouchableOpacity>
+                      </>
+                    ) : (
+                      <TouchableOpacity
+                        onPress={async () => {
+                          setMenuVisible(false);
+                          setMenuView('main');
+                          await logout({ clearLock: true });
+                          router.replace('/login');
+                        }}
+                        className="px-4 py-3 bg-white dark:bg-gray-800"
+                      >
+                        <Text className="text-sm text-red-600 dark:text-red-500">Logout</Text>
+                      </TouchableOpacity>
+                    )}
                   </>
                 )}
                 {menuView === 'settings' && (

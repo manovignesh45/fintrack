@@ -85,7 +85,7 @@ export default function LockScreen() {
 
       {/* Forgot-PIN escape hatch */}
       <View className="items-center pb-4">
-        <TouchableOpacity onPress={logout} activeOpacity={0.7} className="py-3 px-6">
+        <TouchableOpacity onPress={() => logout({ clearLock: true })} activeOpacity={0.7} className="py-3 px-6">
           <Text className="text-sm font-medium text-blue-600 dark:text-blue-400">Log in with password</Text>
         </TouchableOpacity>
       </View>
