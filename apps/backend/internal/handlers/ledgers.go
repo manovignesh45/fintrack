@@ -86,8 +86,22 @@ func SeedDefaultCategories(ctx context.Context, db *pgxpool.Pool, ledgerID int) 
 		Label   string
 		SubCats []string
 	}{
-		{Nature: models.NatureIncome, Label: "Income", SubCats: []string{"Salary", "Other Income"}},
-		{Nature: models.NatureExpense, Label: "Expense", SubCats: []string{"Food & Dining", "Transport", "Utilities", "Shopping", "Health", "Entertainment", "Housing"}},
+		// Income
+		{Nature: models.NatureIncome, Label: "Salary", SubCats: []string{}},
+		{Nature: models.NatureIncome, Label: "Business Income", SubCats: []string{}},
+		{Nature: models.NatureIncome, Label: "Investments", SubCats: []string{"Dividends", "Interest"}},
+		{Nature: models.NatureIncome, Label: "Other Income", SubCats: []string{}},
+
+		// Expense
+		{Nature: models.NatureExpense, Label: "Food & Dining", SubCats: []string{"Groceries", "Restaurants & Takeout"}},
+		{Nature: models.NatureExpense, Label: "Transport", SubCats: []string{"Fuel", "Public Transport"}},
+		{Nature: models.NatureExpense, Label: "Utilities", SubCats: []string{"Electricity", "Water", "Internet & Phone"}},
+		{Nature: models.NatureExpense, Label: "Shopping", SubCats: []string{}},
+		{Nature: models.NatureExpense, Label: "Health", SubCats: []string{"Medical", "Insurance"}},
+		{Nature: models.NatureExpense, Label: "Entertainment", SubCats: []string{}},
+		{Nature: models.NatureExpense, Label: "Housing", SubCats: []string{"Rent/Mortgage", "Maintenance"}},
+
+		// Transfer — unchanged, not part of the reported confusion
 		{Nature: models.NatureTransfer, Label: "Transfer", SubCats: []string{"Bank Transfer"}},
 	}
 

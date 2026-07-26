@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import TransactionFilter, { DEFAULT_FILTERS, countActiveFilters, DATE_PRESET_LABELS } from '../components/TransactionFilter';
 import type { FilterState } from '../components/TransactionFilter';
 import { useCachedList } from '../hooks/useCachedList';
+import GettingStartedCard from '../components/GettingStartedCard';
 
 const natureColors: Record<TxNature, string> = {
   INCOME: 'text-green-600 dark:text-green-400',
@@ -111,6 +112,8 @@ export default function TransactionsPage() {
 
   return (
     <div className="space-y-4">
+      <GettingStartedCard />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Transactions</h2>

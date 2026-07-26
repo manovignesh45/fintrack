@@ -9,6 +9,7 @@ import { useAuth } from '@/src/context/AuthContext';
 import { useLedgers } from '@/src/context/LedgerContext';
 import TransactionFilter, { TransactionFilterRef } from '@/src/components/TransactionFilter';
 import { FAB } from '@/src/components/ui/FAB';
+import { GettingStartedCard } from '@/src/components/ui/GettingStartedCard';
 import type { TxNature, FilterState, Transaction } from '@fintrack/shared';
 import { DEFAULT_FILTERS, countActiveFilters, DATE_PRESET_LABELS } from '@fintrack/shared';
 
@@ -151,6 +152,8 @@ export default function TransactionsScreen() {
 
   const ListHeader = () => (
     <View className="px-4 pt-4 pb-2">
+      <GettingStartedCard />
+
       <View className="flex-row items-center justify-between mb-3">
         <Text className="text-lg font-semibold text-gray-800 dark:text-gray-100">Transactions</Text>
         <TransactionFilter ref={filterRef} filters={filters} onChange={setFilters} />

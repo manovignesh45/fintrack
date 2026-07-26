@@ -11,6 +11,7 @@ interface AuthContextType {
   loading: boolean;
   editMode: boolean;
   setEditMode: (v: boolean) => void;
+  updatePreferences: (partial: Record<string, any>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -36,15 +37,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     authApi
       .me()
       .then((freshUser) => {
+        // A newer login/register may have replaced this session while the
+        // request was in flight — don't clobber it with the stale result.
+        if (localStorage.getItem('fintrack_token') !== savedToken) return;
         const u = freshUser as User;
         localStorage.setItem('fintrack_user', JSON.stringify(u));
         setUser(u);
         setToken(savedToken);
-        if (u.preferences?.editMode !== undefined) {
-          setEditMode(u.preferences.editMode);
-        }
+        // Unconditional: a prior session in this same tab may have left
+        // editMode at a stale value that this user's preferences don't
+        // mention, so always resolve it (defaulting true) rather than only
+        // overwriting when the key is present.
+        setEditMode(u.preferences?.editMode ?? true);
       })
       .catch(() => {
+        // Same race: if a newer session has already taken over, don't wipe it.
+        if (localStorage.getItem('fintrack_token') !== savedToken) return;
         // Token invalid/expired (e.g. issued by a different backend). Clear it.
         setUser(null);
         setToken(null);
@@ -55,14 +63,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       .finally(() => setLoading(false));
   }, []);
 
+  const updatePreferences = (partial: Record<string, any>) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const updatedUser = { ...prev, preferences: { ...prev.preferences, ...partial } };
+      localStorage.setItem('fintrack_user', JSON.stringify(updatedUser));
+      return updatedUser;
+    });
+    authApi.updatePreferences(partial).catch(console.error);
+  };
+
   const handleSetEditMode = (v: boolean) => {
     setEditMode(v);
-    if (user) {
-      const updatedUser = { ...user, preferences: { ...user.preferences, editMode: v } };
-      setUser(updatedUser);
-      localStorage.setItem('fintrack_user', JSON.stringify(updatedUser));
-      authApi.updatePreferences({ editMode: v }).catch(console.error);
-    }
+    updatePreferences({ editMode: v });
   };
 
   const login = (newUser: User, newToken: string) => {
@@ -78,9 +91,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     setUser(newUser);
     setToken(newToken);
-    if (newUser.preferences?.editMode !== undefined) {
-      setEditMode(newUser.preferences.editMode);
-    }
+    // Unconditional (see comment in the mount-validation effect above): a
+    // previous user's session in this tab must not leak its editMode into
+    // this login.
+    setEditMode(newUser.preferences?.editMode ?? true);
   };
 
   const logout = () => {
@@ -102,6 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         loading,
         editMode,
         setEditMode: handleSetEditMode,
+        updatePreferences,
       }}
     >
       {children}

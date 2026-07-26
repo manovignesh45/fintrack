@@ -16,6 +16,7 @@ interface AuthContextType {
   loading: boolean;
   editMode: boolean;
   setEditMode: (v: boolean) => void;
+  updatePreferences: (partial: Record<string, any>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -70,9 +71,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         setUser(cachedUser);
         setToken(savedToken);
-        if (cachedUser.preferences?.editMode !== undefined) {
-          setEditMode(cachedUser.preferences.editMode);
-        }
+        // Unconditional: a prior session in this app run may have left
+        // editMode stale, so always resolve it (defaulting true) rather
+        // than only overwriting when the preference key is present.
+        setEditMode(cachedUser.preferences?.editMode ?? true);
 
         // Background validation. A genuine 401 fires the global onUnauthorized
         // handler (-> logout), clearing the invalid session. Network/timeout
@@ -80,11 +82,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         authApi
           .me()
           .then((freshUser) => {
+            // A newer login may have replaced this session while the request
+            // was in flight — don't clobber it with the stale result.
+            if (tokenCache.get() !== savedToken) return;
             SecureStore.setItemAsync('fintrack_user', JSON.stringify(freshUser)).catch(() => {});
             setUser(freshUser);
-            if (freshUser.preferences?.editMode !== undefined) {
-              setEditMode(freshUser.preferences.editMode);
-            }
+            setEditMode(freshUser.preferences?.editMode ?? true);
           })
           .catch(() => {
             // Keep the cached session on transient failures.
@@ -99,14 +102,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loadAuth();
   }, [logout]);
 
+  const updatePreferences = (partial: Record<string, any>) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const updatedUser = { ...prev, preferences: { ...prev.preferences, ...partial } };
+      SecureStore.setItemAsync('fintrack_user', JSON.stringify(updatedUser)).catch(console.error);
+      return updatedUser;
+    });
+    authApi.updatePreferences(partial).catch(console.error);
+  };
+
   const handleSetEditMode = (v: boolean) => {
     setEditMode(v);
-    if (user) {
-      const updatedUser = { ...user, preferences: { ...user.preferences, editMode: v } };
-      setUser(updatedUser);
-      SecureStore.setItemAsync('fintrack_user', JSON.stringify(updatedUser)).catch(console.error);
-      authApi.updatePreferences({ editMode: v }).catch(console.error);
-    }
+    updatePreferences({ editMode: v });
   };
 
   const login = async (newUser: User, newToken: string) => {
@@ -126,9 +134,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Now activate the session — LedgerContext fetches with the token in place.
     setUser(newUser);
     setToken(newToken);
-    if (newUser.preferences?.editMode !== undefined) {
-      setEditMode(newUser.preferences.editMode);
-    }
+    // Unconditional (see comment in loadAuth above): a previous user's
+    // session in this app run must not leak its editMode into this login.
+    setEditMode(newUser.preferences?.editMode ?? true);
   };
 
   return (
@@ -142,6 +150,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         loading,
         editMode,
         setEditMode: handleSetEditMode,
+        updatePreferences,
       }}
     >
       {children}
