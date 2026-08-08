@@ -12,6 +12,8 @@ import TallyPage from './pages/TallyPage';
 import TemplatesPage from './pages/TemplatesPage';
 import CreateTemplatePage from './pages/CreateTemplatePage';
 import PaymentMethodsPage from './pages/PaymentMethodsPage';
+import CommitmentsPage from './pages/CommitmentsPage';
+import CommitmentFormPage from './pages/CommitmentFormPage';
 import EditTransactionPage from './pages/EditTransactionPage';
 import LoginPage from './pages/LoginPage';
 import ImportPage from './pages/ImportPage';
@@ -256,6 +258,9 @@ function AppShell() {
                 <Route path="/templates/new" element={<ProtectedRoute><CreateTemplatePage /></ProtectedRoute>} />
                 <Route path="/import" element={<ProtectedRoute><ImportPage /></ProtectedRoute>} />
                 <Route path="/payment-methods" element={<ProtectedRoute><PaymentMethodsPage /></ProtectedRoute>} />
+                <Route path="/commitments" element={<ProtectedRoute><CommitmentsPage /></ProtectedRoute>} />
+                <Route path="/commitments/new" element={<ProtectedRoute><CommitmentFormPage /></ProtectedRoute>} />
+                <Route path="/commitments/:id/edit" element={<ProtectedRoute><CommitmentFormPage /></ProtectedRoute>} />
                 <Route path="/more" element={<ProtectedRoute><MorePage /></ProtectedRoute>} />
               </Routes>
             </div>
@@ -493,6 +498,9 @@ function MorePage() {
   return (
     <div className="space-y-3">
       <h2 className="text-lg font-semibold text-gray-800 dark:text-white">More</h2>
+      <NavLink to="/commitments" className="block p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-200">
+        📆 Monthly Commitments
+      </NavLink>
       <NavLink to="/categories" className="block p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-200">
         📁 Categories & Sub-categories
       </NavLink>

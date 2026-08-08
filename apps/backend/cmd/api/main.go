@@ -51,6 +51,7 @@ func main() {
 	paymentMethodH := handlers.NewPaymentMethodHandler(pool)
 	transactionH := handlers.NewTransactionHandler(pool)
 	templateH := handlers.NewTemplateHandler(pool)
+	commitmentH := handlers.NewCommitmentHandler(pool)
 	tallyH := handlers.NewTallyHandler(pool)
 
 	// Setup router
@@ -152,6 +153,16 @@ func main() {
 				r.Post("/", templateH.Create)
 				r.Delete("/{id}", templateH.Delete)
 				r.Post("/{id}/execute", templateH.Execute)
+			})
+
+			// Monthly Commitments
+			r.Route("/commitments", func(r chi.Router) {
+				r.Get("/", commitmentH.List)
+				r.Post("/", commitmentH.Create)
+				r.Put("/{id}", commitmentH.Update)
+				r.Delete("/{id}", commitmentH.Delete)
+				r.Post("/{id}/pay", commitmentH.Pay)
+				r.Delete("/{id}/pay", commitmentH.Unpay)
 			})
 
 			// Tally & Summary

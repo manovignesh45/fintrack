@@ -92,6 +92,83 @@ export interface TransactionTemplate {
   created_at: string;
 }
 
+export type CommitmentStatusValue = 'PAID' | 'DUE' | 'INACTIVE';
+
+/** A fixed obligation that recurs every month (EMI, bill, subscription, chit fund). */
+export interface Commitment {
+  id: number;
+  ledger_id: number;
+  name: string;
+  amount: number;
+  nature: TxNature;
+  due_day: number;
+  source_account_id?: number;
+  target_account_id?: number;
+  sub_category_id?: number;
+  payment_method_id?: number;
+  principal_amount: number;
+  interest_amount: number;
+  notes?: string;
+  is_active: boolean;
+  start_month?: string;
+  end_month?: string;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CommitmentPayment {
+  id: number;
+  ledger_id: number;
+  commitment_id: number;
+  period: string;
+  transaction_id?: number;
+  amount: number;
+  paid_on: string;
+  created_at: string;
+}
+
+/** A commitment resolved against a specific month. */
+export interface CommitmentStatus extends Commitment {
+  status: CommitmentStatusValue;
+  due_date: string;
+  payment?: CommitmentPayment;
+}
+
+export interface CommitmentsMonthResponse {
+  month: string;
+  total: number;
+  paid_total: number;
+  due_total: number;
+  items: CommitmentStatus[];
+}
+
+/** Body for creating/updating a commitment. */
+export interface CommitmentInput {
+  name: string;
+  amount: number;
+  nature: TxNature;
+  due_day: number;
+  source_account_id: number;
+  target_account_id?: number | null;
+  sub_category_id?: number | null;
+  payment_method_id?: number | null;
+  principal_amount: number;
+  interest_amount: number;
+  notes?: string;
+  is_active?: boolean;
+  start_month?: string | null;
+  end_month?: string | null;
+  sort_order?: number;
+}
+
+export interface PayCommitmentInput {
+  month: string;
+  amount?: number;
+  transaction_date?: string;
+  notes?: string;
+}
+
 export interface TallyResponse {
   account_id: number;
   account_name: string;

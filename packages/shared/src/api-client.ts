@@ -10,6 +10,11 @@ import type {
   RegisterReq,
   PaymentMethod,
   User,
+  CommitmentsMonthResponse,
+  CommitmentStatus,
+  Commitment,
+  CommitmentInput,
+  PayCommitmentInput,
 } from './types';
 
 export interface ApiClientConfig {
@@ -208,6 +213,22 @@ export function createApiClient(config: ApiClientConfig) {
       request<Transaction>(`/templates/${id}/execute`, { method: 'POST' }),
   };
 
+  const commitmentsApi = {
+    /** month is `YYYY-MM`; omit for the current month. */
+    list: (month?: string) =>
+      request<CommitmentsMonthResponse>(`/commitments${month ? `?month=${month}` : ''}`),
+    create: (data: CommitmentInput) =>
+      request<Commitment>('/commitments', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: number, data: CommitmentInput) =>
+      request<Commitment>(`/commitments/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: number) =>
+      request<void>(`/commitments/${id}`, { method: 'DELETE' }),
+    pay: (id: number, data: PayCommitmentInput) =>
+      request<CommitmentStatus>(`/commitments/${id}/pay`, { method: 'POST', body: JSON.stringify(data) }),
+    unpay: (id: number, month: string) =>
+      request<void>(`/commitments/${id}/pay?month=${month}`, { method: 'DELETE' }),
+  };
+
   const tallyApi = {
     get: (accountId: number) => request<TallyResponse>(`/tally/${accountId}`),
     check: (accountId: number, actualBalance: number) =>
@@ -232,6 +253,7 @@ export function createApiClient(config: ApiClientConfig) {
     paymentMethodsApi,
     transactionsApi,
     templatesApi,
+    commitmentsApi,
     tallyApi,
     summaryApi,
     adminApi,
