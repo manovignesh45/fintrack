@@ -43,7 +43,7 @@ func (h *CategoryHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	rows, err := h.db.Query(r.Context(), query, args...)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to fetch categories")
+		writeInternalError(w, err, "Failed to fetch categories")
 		return
 	}
 	defer rows.Close()
@@ -51,7 +51,7 @@ func (h *CategoryHandler) List(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var c models.Category
 		if err := rows.Scan(&c.ID, &c.LedgerID, &c.Name, &c.Nature, &c.CreatedAt); err != nil {
-			writeError(w, http.StatusInternalServerError, "Failed to scan category")
+			writeInternalError(w, err, "Failed to scan category")
 			return
 		}
 		categories = append(categories, c)
@@ -106,7 +106,7 @@ func (h *CategoryHandler) Create(w http.ResponseWriter, r *http.Request) {
 		 RETURNING id, ledger_id, name, nature, created_at`,
 		ledgerID, req.Name, req.Nature).Scan(&c.ID, &c.LedgerID, &c.Name, &c.Nature, &c.CreatedAt)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to create category: "+err.Error())
+		writeInternalError(w, err, "Failed to create category: "+err.Error())
 		return
 	}
 
@@ -205,7 +205,7 @@ func (h *CategoryHandler) CreateSubCategory(w http.ResponseWriter, r *http.Reque
 		 RETURNING id, category_id, ledger_id, name, created_at`,
 		categoryID, ledgerID, req.Name).Scan(&sc.ID, &sc.CategoryID, &sc.LedgerID, &sc.Name, &sc.CreatedAt)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to create sub-category")
+		writeInternalError(w, err, "Failed to create sub-category")
 		return
 	}
 

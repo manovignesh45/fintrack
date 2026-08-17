@@ -47,7 +47,7 @@ func (h *AccountHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	rows, err := h.db.Query(r.Context(), query, args...)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to fetch accounts")
+		writeInternalError(w, err, "Failed to fetch accounts")
 		return
 	}
 	defer rows.Close()
@@ -56,7 +56,7 @@ func (h *AccountHandler) List(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var a models.Account
 		if err := rows.Scan(&a.ID, &a.LedgerID, &a.Name, &a.Type, &a.InitialBalance, &a.CurrentBalance, &a.TotalDisbursed, &a.InterestRate, &a.IsActive, &a.CreatedAt); err != nil {
-			writeError(w, http.StatusInternalServerError, "Failed to scan account")
+			writeInternalError(w, err, "Failed to scan account")
 			return
 		}
 		accounts = append(accounts, a)
@@ -178,7 +178,7 @@ func (h *AccountHandler) Create(w http.ResponseWriter, r *http.Request) {
 		ledgerID, req.Name, req.Type, req.InitialBalance, req.InterestRate).Scan(
 		&a.ID, &a.LedgerID, &a.Name, &a.Type, &a.InitialBalance, &a.CurrentBalance, &a.InterestRate, &a.IsActive, &a.CreatedAt)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to create account")
+		writeInternalError(w, err, "Failed to create account")
 		return
 	}
 	a.TotalDisbursed = a.InitialBalance
@@ -216,7 +216,7 @@ func (h *AccountHandler) Update(w http.ResponseWriter, r *http.Request) {
 		_, err = h.db.Exec(r.Context(), "UPDATE accounts SET is_active = $1 WHERE id = $2 AND ledger_id = $3", *req.IsActive, id, ledgerID)
 	}
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to update account")
+		writeInternalError(w, err, "Failed to update account")
 		return
 	}
 
@@ -266,7 +266,7 @@ func (h *AccountHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		) refs`,
 		id).Scan(&count)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to check account transactions")
+		writeInternalError(w, err, "Failed to check account transactions")
 		return
 	}
 
@@ -277,7 +277,7 @@ func (h *AccountHandler) Delete(w http.ResponseWriter, r *http.Request) {
 
 	tag, err := h.db.Exec(r.Context(), "DELETE FROM accounts WHERE id = $1 AND ledger_id = $2", id, ledgerID)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to delete account")
+		writeInternalError(w, err, "Failed to delete account")
 		return
 	}
 

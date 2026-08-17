@@ -31,7 +31,7 @@ func (h *PaymentMethodHandler) List(w http.ResponseWriter, r *http.Request) {
 	query := `SELECT id, ledger_id, name, created_at FROM payment_methods WHERE ledger_id = $1 ORDER BY name`
 	rows, err := h.db.Query(r.Context(), query, ledgerID)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to fetch payment methods")
+		writeInternalError(w, err, "Failed to fetch payment methods")
 		return
 	}
 	defer rows.Close()
@@ -39,7 +39,7 @@ func (h *PaymentMethodHandler) List(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var pm models.PaymentMethod
 		if err := rows.Scan(&pm.ID, &pm.LedgerID, &pm.Name, &pm.CreatedAt); err != nil {
-			writeError(w, http.StatusInternalServerError, "Failed to scan payment method")
+			writeInternalError(w, err, "Failed to scan payment method")
 			return
 		}
 		paymentMethods = append(paymentMethods, pm)
@@ -72,7 +72,7 @@ func (h *PaymentMethodHandler) Create(w http.ResponseWriter, r *http.Request) {
 		 RETURNING id, ledger_id, name, created_at`,
 		ledgerID, req.Name).Scan(&pm.ID, &pm.LedgerID, &pm.Name, &pm.CreatedAt)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to create payment method (name might be taken)")
+		writeInternalError(w, err, "Failed to create payment method (name might be taken)")
 		return
 	}
 

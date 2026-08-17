@@ -64,7 +64,7 @@ func (h *CommitmentHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	rows, err := h.db.Query(r.Context(), query, ledgerID, month)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to fetch commitments")
+		writeInternalError(w, err, "Failed to fetch commitments")
 		return
 	}
 	defer rows.Close()
@@ -77,7 +77,7 @@ func (h *CommitmentHandler) List(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		item, err := scanCommitmentWithPayment(rows, month)
 		if err != nil {
-			writeError(w, http.StatusInternalServerError, "Failed to scan commitment")
+			writeInternalError(w, err, "Failed to scan commitment")
 			return
 		}
 
@@ -93,7 +93,7 @@ func (h *CommitmentHandler) List(w http.ResponseWriter, r *http.Request) {
 		resp.Items = append(resp.Items, item)
 	}
 	if rows.Err() != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to fetch commitments")
+		writeInternalError(w, err, "Failed to fetch commitments")
 		return
 	}
 
@@ -147,7 +147,7 @@ func (h *CommitmentHandler) Create(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusConflict, "A commitment named \""+req.Name+"\" already exists")
 			return
 		}
-		writeError(w, http.StatusInternalServerError, "Failed to create commitment")
+		writeInternalError(w, err, "Failed to create commitment")
 		return
 	}
 
@@ -272,7 +272,7 @@ func (h *CommitmentHandler) Pay(w http.ResponseWriter, r *http.Request) {
 
 	dbTx, err := h.db.Begin(r.Context())
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to begin transaction")
+		writeInternalError(w, err, "Failed to begin transaction")
 		return
 	}
 	defer dbTx.Rollback(r.Context())
@@ -290,7 +290,7 @@ func (h *CommitmentHandler) Pay(w http.ResponseWriter, r *http.Request) {
 	if err := dbTx.QueryRow(r.Context(),
 		`SELECT COUNT(*) FROM commitment_payments WHERE commitment_id = $1 AND period = $2`,
 		id, month).Scan(&existing); err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to check existing payment")
+		writeInternalError(w, err, "Failed to check existing payment")
 		return
 	}
 	if existing > 0 {
@@ -359,13 +359,13 @@ func (h *CommitmentHandler) Pay(w http.ResponseWriter, r *http.Request) {
 
 	created, err := scanTransactionRow(createdRow)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to create transaction for commitment")
+		writeInternalError(w, err, "Failed to create transaction for commitment")
 		return
 	}
 
 	if err := applyBalanceChange(r.Context(), dbTx, ledgerID, txReq.Nature, txReq.SourceAccountID,
 		txReq.TargetAccountID, txReq.Amount, txReq.PrincipalAmount); err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to update balances")
+		writeInternalError(w, err, "Failed to update balances")
 		return
 	}
 
@@ -377,12 +377,12 @@ func (h *CommitmentHandler) Pay(w http.ResponseWriter, r *http.Request) {
 
 	payment, err := scanCommitmentPaymentRow(payRow)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to record commitment payment")
+		writeInternalError(w, err, "Failed to record commitment payment")
 		return
 	}
 
 	if err := dbTx.Commit(r.Context()); err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to commit")
+		writeInternalError(w, err, "Failed to commit")
 		return
 	}
 
@@ -417,7 +417,7 @@ func (h *CommitmentHandler) Unpay(w http.ResponseWriter, r *http.Request) {
 
 	dbTx, err := h.db.Begin(r.Context())
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to begin transaction")
+		writeInternalError(w, err, "Failed to begin transaction")
 		return
 	}
 	defer dbTx.Rollback(r.Context())
@@ -448,22 +448,22 @@ func (h *CommitmentHandler) Unpay(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if err := reverseBalanceChange(r.Context(), dbTx, ledgerID, nature, sourceID, targetID, amount, principal); err != nil {
-			writeError(w, http.StatusInternalServerError, "Failed to restore balances")
+			writeInternalError(w, err, "Failed to restore balances")
 			return
 		}
 
 		// Deleting the transaction cascades the commitment_payments row away.
 		if _, err := dbTx.Exec(r.Context(), "DELETE FROM transactions WHERE id = $1 AND ledger_id = $2", *transactionID, ledgerID); err != nil {
-			writeError(w, http.StatusInternalServerError, "Failed to delete transaction")
+			writeInternalError(w, err, "Failed to delete transaction")
 			return
 		}
 	} else if _, err := dbTx.Exec(r.Context(), "DELETE FROM commitment_payments WHERE id = $1", paymentID); err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to delete payment")
+		writeInternalError(w, err, "Failed to delete payment")
 		return
 	}
 
 	if err := dbTx.Commit(r.Context()); err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to commit")
+		writeInternalError(w, err, "Failed to commit")
 		return
 	}
 

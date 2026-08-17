@@ -126,7 +126,7 @@ func (h *TallyHandler) Summary(w http.ResponseWriter, r *http.Request) {
 		WHERE ledger_id = $1 AND transaction_date >= $2 AND transaction_date <= $3`,
 		ledgerID, dateFrom, dateTo).Scan(&resp.TotalIncome, &resp.TotalExpense, &resp.TotalEMI, &resp.TotalLoan)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to fetch summary")
+		writeInternalError(w, err, "Failed to fetch summary")
 		return
 	}
 	resp.NetFlow = resp.TotalIncome + resp.TotalLoan - resp.TotalExpense - resp.TotalEMI
@@ -186,7 +186,7 @@ func (h *TallyHandler) SummaryRange(w http.ResponseWriter, r *http.Request) {
 		GROUP BY date_trunc('month', transaction_date)`,
 		ledgerID, dateFrom, dateTo)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to fetch summary range")
+		writeInternalError(w, err, "Failed to fetch summary range")
 		return
 	}
 	defer rows.Close()
@@ -195,7 +195,7 @@ func (h *TallyHandler) SummaryRange(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var s models.SummaryResponse
 		if err := rows.Scan(&s.Month, &s.TotalIncome, &s.TotalExpense, &s.TotalEMI, &s.TotalLoan); err != nil {
-			writeError(w, http.StatusInternalServerError, "Failed to fetch summary range")
+			writeInternalError(w, err, "Failed to fetch summary range")
 			return
 		}
 		s.NetFlow = s.TotalIncome + s.TotalLoan - s.TotalExpense - s.TotalEMI

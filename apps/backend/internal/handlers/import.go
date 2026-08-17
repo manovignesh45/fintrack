@@ -73,7 +73,7 @@ func (h *AccountHandler) ImportCSV(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	tx, err := h.db.Begin(ctx)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to start transaction")
+		writeInternalError(w, err, "Failed to start transaction")
 		return
 	}
 	defer tx.Rollback(ctx)
@@ -271,7 +271,7 @@ func (h *AccountHandler) ImportCSV(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to commit import")
+		writeInternalError(w, err, "Failed to commit import")
 		return
 	}
 

@@ -92,7 +92,7 @@ func (h *AccountHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to hash password")
+		writeInternalError(w, err, "Failed to hash password")
 		return
 	}
 
@@ -163,7 +163,7 @@ func (h *AccountHandler) Login(w http.ResponseWriter, r *http.Request) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString(signingKey())
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to generate token")
+		writeInternalError(w, err, "Failed to generate token")
 		return
 	}
 
@@ -256,13 +256,13 @@ func (h *AccountHandler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to hash new password")
+		writeInternalError(w, err, "Failed to hash new password")
 		return
 	}
 
 	_, err = h.db.Exec(r.Context(), `UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2`, string(hashedPassword), userID)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to update password")
+		writeInternalError(w, err, "Failed to update password")
 		return
 	}
 
@@ -284,7 +284,7 @@ func (h *AccountHandler) UpdatePreferences(w http.ResponseWriter, r *http.Reques
 
 	prefsJSON, err := json.Marshal(req.Preferences)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to encode preferences")
+		writeInternalError(w, err, "Failed to encode preferences")
 		return
 	}
 
@@ -293,7 +293,7 @@ func (h *AccountHandler) UpdatePreferences(w http.ResponseWriter, r *http.Reques
 	var prefsBytes []byte
 	err = h.db.QueryRow(r.Context(), query, prefsJSON, userID).Scan(&prefsBytes)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to update preferences")
+		writeInternalError(w, err, "Failed to update preferences")
 		return
 	}
 

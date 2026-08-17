@@ -32,7 +32,7 @@ func (h *TemplateHandler) List(w http.ResponseWriter, r *http.Request) {
 			sub_category_id, payment_method_id, principal_amount, interest_amount, created_at
 		 FROM transaction_templates WHERE ledger_id = $1 ORDER BY title`, ledgerID)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to fetch templates")
+		writeInternalError(w, err, "Failed to fetch templates")
 		return
 	}
 	defer rows.Close()
@@ -44,7 +44,7 @@ func (h *TemplateHandler) List(w http.ResponseWriter, r *http.Request) {
 		if err := rows.Scan(&t.ID, &t.LedgerID, &t.Title, &t.Amount, &t.Nature, &t.SourceAccountID,
 			&t.TargetAccountID, &t.SubCategoryID, &paymentMethodID,
 			&t.PrincipalAmount, &t.InterestAmount, &t.CreatedAt); err != nil {
-			writeError(w, http.StatusInternalServerError, "Failed to scan template")
+			writeInternalError(w, err, "Failed to scan template")
 			return
 		}
 		if paymentMethodID != nil {
@@ -103,7 +103,7 @@ func (h *TemplateHandler) Create(w http.ResponseWriter, r *http.Request) {
 		&t.TargetAccountID, &t.SubCategoryID, &createPM,
 		&t.PrincipalAmount, &t.InterestAmount, &t.CreatedAt)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to create template")
+		writeInternalError(w, err, "Failed to create template")
 		return
 	}
 	if createPM != nil {
@@ -184,7 +184,7 @@ func (h *TemplateHandler) Execute(w http.ResponseWriter, r *http.Request) {
 	// Create the transaction using a DB transaction
 	dbTx, err := h.db.Begin(r.Context())
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to begin transaction")
+		writeInternalError(w, err, "Failed to begin transaction")
 		return
 	}
 	defer dbTx.Rollback(r.Context())
@@ -202,17 +202,17 @@ func (h *TemplateHandler) Execute(w http.ResponseWriter, r *http.Request) {
 	)
 	created, err := scanTransactionRow(createdRow)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to create transaction from template")
+		writeInternalError(w, err, "Failed to create transaction from template")
 		return
 	}
 
 	if err := applyBalanceChange(r.Context(), dbTx, ledgerID, req.Nature, req.SourceAccountID, req.TargetAccountID, req.Amount, req.PrincipalAmount); err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to update balances")
+		writeInternalError(w, err, "Failed to update balances")
 		return
 	}
 
 	if err := dbTx.Commit(r.Context()); err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to commit")
+		writeInternalError(w, err, "Failed to commit")
 		return
 	}
 

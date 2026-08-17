@@ -14,7 +14,7 @@ func (h *AccountHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
 	query := `SELECT id, username, role, created_at, updated_at FROM users ORDER BY created_at DESC`
 	rows, err := h.db.Query(r.Context(), query)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to fetch users")
+		writeInternalError(w, err, "Failed to fetch users")
 		return
 	}
 	defer rows.Close()
@@ -23,7 +23,7 @@ func (h *AccountHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var user models.User
 		if err := rows.Scan(&user.ID, &user.Username, &user.Role, &user.CreatedAt, &user.UpdatedAt); err != nil {
-			writeError(w, http.StatusInternalServerError, "Failed to parse user data")
+			writeInternalError(w, err, "Failed to parse user data")
 			return
 		}
 		users = append(users, user)
@@ -51,13 +51,13 @@ func (h *AccountHandler) AdminResetPassword(w http.ResponseWriter, r *http.Reque
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.TempPassword), bcrypt.DefaultCost)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to hash password")
+		writeInternalError(w, err, "Failed to hash password")
 		return
 	}
 
 	res, err := h.db.Exec(r.Context(), `UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2`, string(hashedPassword), req.UserID)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to update password")
+		writeInternalError(w, err, "Failed to update password")
 		return
 	}
 	
@@ -92,7 +92,7 @@ func (h *AccountHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 
 	res, err := h.db.Exec(r.Context(), "DELETE FROM users WHERE id = $1", userID)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to delete user")
+		writeInternalError(w, err, "Failed to delete user")
 		return
 	}
 

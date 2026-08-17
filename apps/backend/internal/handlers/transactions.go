@@ -95,7 +95,7 @@ func (h *TransactionHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	rows, err := h.db.Query(r.Context(), query, args...)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to fetch transactions")
+		writeInternalError(w, err, "Failed to fetch transactions")
 		return
 	}
 	defer rows.Close()
@@ -104,7 +104,7 @@ func (h *TransactionHandler) List(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		t, err := scanTransaction(rows)
 		if err != nil {
-			writeError(w, http.StatusInternalServerError, "Failed to scan transaction")
+			writeInternalError(w, err, "Failed to scan transaction")
 			return
 		}
 		transactions = append(transactions, t)
@@ -165,7 +165,7 @@ func (h *TransactionHandler) Export(w http.ResponseWriter, r *http.Request) {
 
 	rows, err := h.db.Query(r.Context(), query, args...)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to fetch transactions for export")
+		writeInternalError(w, err, "Failed to fetch transactions for export")
 		return
 	}
 	defer rows.Close()
@@ -188,7 +188,7 @@ func (h *TransactionHandler) Export(w http.ResponseWriter, r *http.Request) {
 			&notes, &er.PrincipalAmount, &er.InterestAmount, &txDate, &er.CreatedAt,
 			&targetName, &subCatName, &catName)
 		if err != nil {
-			writeError(w, http.StatusInternalServerError, "Failed to scan row")
+			writeInternalError(w, err, "Failed to scan row")
 			return
 		}
 		if paymentMethodID != nil {
@@ -315,7 +315,7 @@ func (h *TransactionHandler) Export(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 		w.Header().Set("Content-Disposition", "attachment;filename=transactions.xlsx")
 		if err := f.Write(w); err != nil {
-			writeError(w, http.StatusInternalServerError, "Failed to write excel file")
+			writeInternalError(w, err, "Failed to write excel file")
 		}
 		return
 	}
@@ -384,7 +384,7 @@ func (h *TransactionHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	tx, err := h.db.Begin(r.Context())
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to begin transaction")
+		writeInternalError(w, err, "Failed to begin transaction")
 		return
 	}
 	defer tx.Rollback(r.Context())
@@ -404,18 +404,18 @@ func (h *TransactionHandler) Create(w http.ResponseWriter, r *http.Request) {
 	)
 	t, err = scanTransactionRow(row)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to create transaction: " + err.Error())
+		writeInternalError(w, err, "Failed to create transaction: " + err.Error())
 		return
 	}
 
 	// Apply balance changes
 	if err := applyBalanceChange(r.Context(), tx, ledgerID, req.Nature, req.SourceAccountID, req.TargetAccountID, req.Amount, req.PrincipalAmount); err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to update account balances")
+		writeInternalError(w, err, "Failed to update account balances")
 		return
 	}
 
 	if err := tx.Commit(r.Context()); err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to commit transaction")
+		writeInternalError(w, err, "Failed to commit transaction")
 		return
 	}
 
@@ -457,7 +457,7 @@ func (h *TransactionHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	tx, err := h.db.Begin(r.Context())
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to begin transaction")
+		writeInternalError(w, err, "Failed to begin transaction")
 		return
 	}
 	defer tx.Rollback(r.Context())
@@ -476,7 +476,7 @@ func (h *TransactionHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	// Reverse old balance impact
 	if err := reverseBalanceChange(r.Context(), tx, ledgerID, old.Nature, old.SourceAccountID, old.TargetAccountID, old.Amount, old.PrincipalAmount); err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to reverse old balance")
+		writeInternalError(w, err, "Failed to reverse old balance")
 		return
 	}
 
@@ -496,18 +496,18 @@ func (h *TransactionHandler) Update(w http.ResponseWriter, r *http.Request) {
 	)
 	t, err = scanTransactionRow(updateRow)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to update transaction")
+		writeInternalError(w, err, "Failed to update transaction")
 		return
 	}
 
 	// Apply new balance changes
 	if err := applyBalanceChange(r.Context(), tx, ledgerID, req.Nature, req.SourceAccountID, req.TargetAccountID, req.Amount, req.PrincipalAmount); err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to update account balances")
+		writeInternalError(w, err, "Failed to update account balances")
 		return
 	}
 
 	if err := tx.Commit(r.Context()); err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to commit transaction")
+		writeInternalError(w, err, "Failed to commit transaction")
 		return
 	}
 
@@ -529,7 +529,7 @@ func (h *TransactionHandler) Delete(w http.ResponseWriter, r *http.Request) {
 
 	tx, err := h.db.Begin(r.Context())
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to begin transaction")
+		writeInternalError(w, err, "Failed to begin transaction")
 		return
 	}
 	defer tx.Rollback(r.Context())
@@ -548,19 +548,19 @@ func (h *TransactionHandler) Delete(w http.ResponseWriter, r *http.Request) {
 
 	// Reverse balance impact
 	if err := reverseBalanceChange(r.Context(), tx, ledgerID, old.Nature, old.SourceAccountID, old.TargetAccountID, old.Amount, old.PrincipalAmount); err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to reverse balance")
+		writeInternalError(w, err, "Failed to reverse balance")
 		return
 	}
 
 	// Delete the transaction
 	_, err = tx.Exec(r.Context(), "DELETE FROM transactions WHERE id = $1 AND ledger_id = $2", id, ledgerID)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to delete transaction")
+		writeInternalError(w, err, "Failed to delete transaction")
 		return
 	}
 
 	if err := tx.Commit(r.Context()); err != nil {
-		writeError(w, http.StatusInternalServerError, "Failed to commit")
+		writeInternalError(w, err, "Failed to commit")
 		return
 	}
 
