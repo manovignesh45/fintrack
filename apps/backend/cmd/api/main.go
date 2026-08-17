@@ -113,63 +113,64 @@ func main() {
 				r.Route("/accounts", func(r chi.Router) {
 					r.Get("/", accountH.List)
 					r.Post("/", accountH.Create)
-				r.Get("/{id}", accountH.Get)
-				r.Put("/{id}", accountH.Update)
-				r.Delete("/{id}", accountH.Delete)
-			})
+					r.Get("/{id}", accountH.Get)
+					r.Put("/{id}", accountH.Update)
+					r.Delete("/{id}", accountH.Delete)
+				})
 
-			// Categories & Sub-categories
-			r.Route("/categories", func(r chi.Router) {
-				r.Get("/", categoryH.List)
-				r.Post("/", categoryH.Create)
-				r.Put("/{id}", categoryH.Update)
-				r.Delete("/{id}", categoryH.Delete)
-				r.Post("/{id}/subcategories", categoryH.CreateSubCategory)
-				r.Put("/{id}/subcategories/{subId}", categoryH.UpdateSubCategory)
-				r.Delete("/{id}/subcategories/{subId}", categoryH.DeleteSubCategory)
-			})
+				// Categories & Sub-categories
+				r.Route("/categories", func(r chi.Router) {
+					r.Get("/", categoryH.List)
+					r.Post("/", categoryH.Create)
+					r.Put("/{id}", categoryH.Update)
+					r.Delete("/{id}", categoryH.Delete)
+					r.Post("/{id}/subcategories", categoryH.CreateSubCategory)
+					r.Put("/{id}/subcategories/{subId}", categoryH.UpdateSubCategory)
+					r.Delete("/{id}/subcategories/{subId}", categoryH.DeleteSubCategory)
+				})
 
-			// Payment Methods
-			r.Route("/payment-methods", func(r chi.Router) {
-				r.Get("/", paymentMethodH.List)
-				r.Post("/", paymentMethodH.Create)
-				r.Put("/{id}", paymentMethodH.Update)
-				r.Delete("/{id}", paymentMethodH.Delete)
-			})
+				// Payment Methods
+				r.Route("/payment-methods", func(r chi.Router) {
+					r.Get("/", paymentMethodH.List)
+					r.Post("/", paymentMethodH.Create)
+					r.Put("/{id}", paymentMethodH.Update)
+					r.Delete("/{id}", paymentMethodH.Delete)
+				})
 
-			// Transactions
-			r.Route("/transactions", func(r chi.Router) {
-				r.Get("/", transactionH.List)
-				r.Get("/export/{format}", transactionH.Export)
-				r.Post("/", transactionH.Create)
-				r.Get("/{id}", transactionH.Get)
-				r.Put("/{id}", transactionH.Update)
-				r.Delete("/{id}", transactionH.Delete)
-			})
+				// Transactions
+				r.Route("/transactions", func(r chi.Router) {
+					r.Get("/", transactionH.List)
+					r.Get("/export/{format}", transactionH.Export)
+					r.Post("/", transactionH.Create)
+					r.Get("/{id}", transactionH.Get)
+					r.Put("/{id}", transactionH.Update)
+					r.Delete("/{id}", transactionH.Delete)
+				})
 
-			// Templates
-			r.Route("/templates", func(r chi.Router) {
-				r.Get("/", templateH.List)
-				r.Post("/", templateH.Create)
-				r.Delete("/{id}", templateH.Delete)
-				r.Post("/{id}/execute", templateH.Execute)
-			})
+				// Templates
+				r.Route("/templates", func(r chi.Router) {
+					r.Get("/", templateH.List)
+					r.Post("/", templateH.Create)
+					r.Delete("/{id}", templateH.Delete)
+					r.Post("/{id}/execute", templateH.Execute)
+				})
 
-			// Monthly Commitments
-			r.Route("/commitments", func(r chi.Router) {
-				r.Get("/", commitmentH.List)
-				r.Post("/", commitmentH.Create)
-				r.Put("/{id}", commitmentH.Update)
-				r.Delete("/{id}", commitmentH.Delete)
-				r.Post("/{id}/pay", commitmentH.Pay)
-				r.Delete("/{id}/pay", commitmentH.Unpay)
-			})
+				// Monthly Commitments
+				r.Route("/commitments", func(r chi.Router) {
+					r.Get("/", commitmentH.List)
+					r.Post("/", commitmentH.Create)
+					r.Put("/{id}", commitmentH.Update)
+					r.Delete("/{id}", commitmentH.Delete)
+					r.Post("/{id}/pay", commitmentH.Pay)
+					r.Delete("/{id}/pay", commitmentH.Unpay)
+				})
 
-			// Tally & Summary
-			r.Get("/tally/{id}", tallyH.GetTally)
-			r.Post("/tally/{id}", tallyH.CheckTally)
-			r.Get("/summary", tallyH.Summary)
-			r.Get("/summary/range", tallyH.SummaryRange)
+				// Tally & Summary
+				r.Get("/tally/{id}", tallyH.GetTally)
+				r.Post("/tally/{id}", tallyH.CheckTally)
+				r.Get("/summary", tallyH.Summary)
+				r.Get("/summary/range", tallyH.SummaryRange)
+				r.Get("/summary/by-category", tallyH.CategoryBreakdown)
 			})
 		})
 	})

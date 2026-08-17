@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"sort"
 	"strconv"
 	"time"
 
@@ -211,6 +212,149 @@ func (h *TallyHandler) SummaryRange(w http.ResponseWriter, r *http.Request) {
 		} else {
 			result = append(result, models.SummaryResponse{Month: key})
 		}
+	}
+
+	writeJSON(w, http.StatusOK, result)
+}
+
+// CategoryBreakdown returns, for the given [from, to] month range and nature,
+// per-category totals (with their sub-category totals nested) so the
+// frontend can chart "where did the money go" and drill into a category.
+// Categories/sub-categories with no transactions in range are omitted.
+func (h *TallyHandler) CategoryBreakdown(w http.ResponseWriter, r *http.Request) {
+	ledgerID, err := GetLedgerID(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	from := r.URL.Query().Get("from")
+	to := r.URL.Query().Get("to")
+	if from == "" || to == "" {
+		writeError(w, http.StatusBadRequest, "from and to query parameters are required (format: YYYY-MM)")
+		return
+	}
+	nature := models.TxNature(r.URL.Query().Get("nature"))
+	if nature == "" {
+		nature = models.NatureExpense
+	}
+
+	fromT, err := time.Parse("2006-01", from)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "Invalid from format, expected YYYY-MM")
+		return
+	}
+	toT, err := time.Parse("2006-01", to)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "Invalid to format, expected YYYY-MM")
+		return
+	}
+	if toT.Before(fromT) {
+		writeError(w, http.StatusBadRequest, "to must not be before from")
+		return
+	}
+
+	dateFrom := fromT.Format("2006-01-02")
+	firstOfNextAfterTo := time.Date(toT.Year(), toT.Month()+1, 1, 0, 0, 0, 0, time.UTC)
+	dateTo := firstOfNextAfterTo.AddDate(0, 0, -1).Format("2006-01-02")
+
+	rows, err := h.db.Query(r.Context(), `
+		SELECT c.id, c.name, sc.id, sc.name,
+			COALESCE(SUM(t.amount), 0) AS total
+		FROM sub_categories sc
+		JOIN categories c ON c.id = sc.category_id
+		LEFT JOIN transactions t ON t.sub_category_id = sc.id
+			AND t.ledger_id = $1 AND t.transaction_date >= $2 AND t.transaction_date <= $3
+		WHERE c.ledger_id = $1 AND c.nature = $4
+		GROUP BY c.id, c.name, sc.id, sc.name`,
+		ledgerID, dateFrom, dateTo, nature)
+	if err != nil {
+		writeInternalError(w, err, "Failed to fetch category breakdown")
+		return
+	}
+	defer rows.Close()
+
+	byCategory := make(map[int]*models.CategoryBreakdown)
+	var order []int
+	for rows.Next() {
+		var catID, subID int
+		var catName, subName string
+		var total float64
+		if err := rows.Scan(&catID, &catName, &subID, &subName, &total); err != nil {
+			writeInternalError(w, err, "Failed to scan category breakdown")
+			return
+		}
+		if total == 0 {
+			continue
+		}
+		cat, ok := byCategory[catID]
+		if !ok {
+			cat = &models.CategoryBreakdown{CategoryID: catID, CategoryName: catName}
+			byCategory[catID] = cat
+			order = append(order, catID)
+		}
+		cat.Total += total
+		cat.SubCategories = append(cat.SubCategories, models.SubCategoryBreakdown{
+			SubCategoryID:   subID,
+			SubCategoryName: subName,
+			Total:           total,
+		})
+	}
+
+	result := make([]models.CategoryBreakdown, 0, len(order)+1)
+	for _, id := range order {
+		result = append(result, *byCategory[id])
+	}
+
+	// EMI payments aren't categorized like expenses — they're tied to the
+	// target loan account instead (see validateTransactionReq/applyBalanceChange),
+	// so they never carry a sub_category_id and are invisible to the query
+	// above. "Expense" already means "expense + EMI" everywhere else on the
+	// summary page (grand total, monthly trend), so fold EMI in here too,
+	// grouped by loan account standing in for a sub-category.
+	if nature == models.NatureExpense {
+		emiRows, err := h.db.Query(r.Context(), `
+			SELECT a.id, a.name, COALESCE(SUM(t.amount), 0) AS total
+			FROM transactions t
+			JOIN accounts a ON a.id = t.target_account_id
+			WHERE t.ledger_id = $1 AND t.nature = 'EMI_PAYMENT'
+				AND t.transaction_date >= $2 AND t.transaction_date <= $3
+			GROUP BY a.id, a.name`,
+			ledgerID, dateFrom, dateTo)
+		if err != nil {
+			writeInternalError(w, err, "Failed to fetch EMI breakdown")
+			return
+		}
+		defer emiRows.Close()
+
+		emi := models.CategoryBreakdown{CategoryID: -1, CategoryName: "EMI Payments"}
+		for emiRows.Next() {
+			var accountID int
+			var accountName string
+			var total float64
+			if err := emiRows.Scan(&accountID, &accountName, &total); err != nil {
+				writeInternalError(w, err, "Failed to scan EMI breakdown")
+				return
+			}
+			if total == 0 {
+				continue
+			}
+			emi.Total += total
+			emi.SubCategories = append(emi.SubCategories, models.SubCategoryBreakdown{
+				SubCategoryID:   accountID,
+				SubCategoryName: accountName,
+				Total:           total,
+			})
+		}
+		if emi.Total > 0 {
+			result = append(result, emi)
+		}
+	}
+
+	sort.Slice(result, func(i, j int) bool { return result[i].Total > result[j].Total })
+	for i := range result {
+		subs := result[i].SubCategories
+		sort.Slice(subs, func(a, b int) bool { return subs[a].Total > subs[b].Total })
 	}
 
 	writeJSON(w, http.StatusOK, result)

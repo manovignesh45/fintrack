@@ -54,35 +54,35 @@ type PaymentMethod struct {
 }
 
 type Transaction struct {
-	ID              int        `json:"id"`
-	LedgerID        int        `json:"ledger_id"`
-	Title           string     `json:"title"`
-	Amount          float64    `json:"amount"`
-	Nature          TxNature   `json:"nature"`
-	SourceAccountID int        `json:"source_account_id"`
-	TargetAccountID *int       `json:"target_account_id,omitempty"`
-	SubCategoryID   *int       `json:"sub_category_id,omitempty"`
-	PaymentMethodID *int       `json:"payment_method_id,omitempty"`
-	Notes           string     `json:"notes,omitempty"`
-	PrincipalAmount float64    `json:"principal_amount"`
-	InterestAmount  float64    `json:"interest_amount"`
-	TransactionDate string     `json:"transaction_date"`
-	CreatedAt       time.Time  `json:"created_at"`
+	ID              int       `json:"id"`
+	LedgerID        int       `json:"ledger_id"`
+	Title           string    `json:"title"`
+	Amount          float64   `json:"amount"`
+	Nature          TxNature  `json:"nature"`
+	SourceAccountID int       `json:"source_account_id"`
+	TargetAccountID *int      `json:"target_account_id,omitempty"`
+	SubCategoryID   *int      `json:"sub_category_id,omitempty"`
+	PaymentMethodID *int      `json:"payment_method_id,omitempty"`
+	Notes           string    `json:"notes,omitempty"`
+	PrincipalAmount float64   `json:"principal_amount"`
+	InterestAmount  float64   `json:"interest_amount"`
+	TransactionDate string    `json:"transaction_date"`
+	CreatedAt       time.Time `json:"created_at"`
 }
 
 type TransactionTemplate struct {
-	ID              int        `json:"id"`
-	LedgerID        int        `json:"ledger_id"`
-	Title           string     `json:"title"`
-	Amount          float64    `json:"amount"`
-	Nature          TxNature   `json:"nature"`
-	SourceAccountID int        `json:"source_account_id"`
-	TargetAccountID *int       `json:"target_account_id,omitempty"`
-	SubCategoryID   *int       `json:"sub_category_id,omitempty"`
-	PaymentMethodID *int       `json:"payment_method_id,omitempty"`
-	PrincipalAmount float64    `json:"principal_amount"`
-	InterestAmount  float64    `json:"interest_amount"`
-	CreatedAt       time.Time  `json:"created_at"`
+	ID              int       `json:"id"`
+	LedgerID        int       `json:"ledger_id"`
+	Title           string    `json:"title"`
+	Amount          float64   `json:"amount"`
+	Nature          TxNature  `json:"nature"`
+	SourceAccountID int       `json:"source_account_id"`
+	TargetAccountID *int      `json:"target_account_id,omitempty"`
+	SubCategoryID   *int      `json:"sub_category_id,omitempty"`
+	PaymentMethodID *int      `json:"payment_method_id,omitempty"`
+	PrincipalAmount float64   `json:"principal_amount"`
+	InterestAmount  float64   `json:"interest_amount"`
+	CreatedAt       time.Time `json:"created_at"`
 }
 
 // Commitment is a fixed obligation that recurs every month (loan EMI, broadband
@@ -194,8 +194,8 @@ type UpdateAccountReq struct {
 }
 
 type CreateCategoryReq struct {
-	Name   string     `json:"name"`
-	Nature TxNature   `json:"nature"`
+	Name   string   `json:"name"`
+	Nature TxNature `json:"nature"`
 }
 
 type UpdateCategoryReq struct {
@@ -219,31 +219,31 @@ type UpdatePaymentMethodReq struct {
 }
 
 type CreateTransactionReq struct {
-	Title           string     `json:"title"`
-	Amount          float64    `json:"amount"`
-	Nature          TxNature   `json:"nature"`
-	SourceAccountID int        `json:"source_account_id"`
-	TargetAccountID *int       `json:"target_account_id,omitempty"`
-	SubCategoryID   *int       `json:"sub_category_id,omitempty"`
-	PaymentMethodID *int       `json:"payment_method_id,omitempty"`
-	Notes           string     `json:"notes,omitempty"`
-	PrincipalAmount float64    `json:"principal_amount"`
-	InterestAmount  float64    `json:"interest_amount"`
-	TransactionDate string     `json:"transaction_date"`
+	Title           string   `json:"title"`
+	Amount          float64  `json:"amount"`
+	Nature          TxNature `json:"nature"`
+	SourceAccountID int      `json:"source_account_id"`
+	TargetAccountID *int     `json:"target_account_id,omitempty"`
+	SubCategoryID   *int     `json:"sub_category_id,omitempty"`
+	PaymentMethodID *int     `json:"payment_method_id,omitempty"`
+	Notes           string   `json:"notes,omitempty"`
+	PrincipalAmount float64  `json:"principal_amount"`
+	InterestAmount  float64  `json:"interest_amount"`
+	TransactionDate string   `json:"transaction_date"`
 }
 
 type UpdateTransactionReq = CreateTransactionReq
 
 type CreateTemplateReq struct {
-	Title           string     `json:"title"`
-	Amount          float64    `json:"amount"`
-	Nature          TxNature   `json:"nature"`
-	SourceAccountID int        `json:"source_account_id"`
-	TargetAccountID *int       `json:"target_account_id,omitempty"`
-	SubCategoryID   *int       `json:"sub_category_id,omitempty"`
-	PaymentMethodID *int       `json:"payment_method_id,omitempty"`
-	PrincipalAmount float64    `json:"principal_amount"`
-	InterestAmount  float64    `json:"interest_amount"`
+	Title           string   `json:"title"`
+	Amount          float64  `json:"amount"`
+	Nature          TxNature `json:"nature"`
+	SourceAccountID int      `json:"source_account_id"`
+	TargetAccountID *int     `json:"target_account_id,omitempty"`
+	SubCategoryID   *int     `json:"sub_category_id,omitempty"`
+	PaymentMethodID *int     `json:"payment_method_id,omitempty"`
+	PrincipalAmount float64  `json:"principal_amount"`
+	InterestAmount  float64  `json:"interest_amount"`
 }
 
 type CreateCommitmentReq struct {
@@ -292,6 +292,19 @@ type SummaryResponse struct {
 	TotalEMI     float64 `json:"total_emi"`
 	TotalLoan    float64 `json:"total_loan"`
 	NetFlow      float64 `json:"net_flow"`
+}
+
+type SubCategoryBreakdown struct {
+	SubCategoryID   int     `json:"sub_category_id"`
+	SubCategoryName string  `json:"sub_category_name"`
+	Total           float64 `json:"total"`
+}
+
+type CategoryBreakdown struct {
+	CategoryID    int                    `json:"category_id"`
+	CategoryName  string                 `json:"category_name"`
+	Total         float64                `json:"total"`
+	SubCategories []SubCategoryBreakdown `json:"sub_categories"`
 }
 
 type TransactionFilter struct {

@@ -11,6 +11,8 @@ export type {
   TransactionTemplate,
   TallyResponse,
   SummaryResponse,
+  CategoryBreakdown,
+  SubCategoryBreakdown,
   LoginReq,
   RegisterReq,
   TransactionFormData,

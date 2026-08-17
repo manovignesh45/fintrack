@@ -1,31 +1,10 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { summaryApi } from '../api/client';
 import type { SummaryResponse } from '../api/types';
 import { useCachedList } from '../hooks/useCachedList';
-
-function fmt(n: number) {
-  return '₹' + Math.round(Math.abs(n)).toLocaleString('en-IN');
-}
-
-function addMonths(m: string, delta: number) {
-  const [y, mo] = m.split('-').map(Number);
-  const d = new Date(y, mo - 1 + delta, 1);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-}
-
-function shortMonthLabel(m: string) {
-  const [y, mo] = m.split('-').map(Number);
-  return new Date(y, mo - 1, 1).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' });
-}
-
-function rangeLabel(from: string, to: string) {
-  return from === to ? shortMonthLabel(from) : `${shortMonthLabel(from)} – ${shortMonthLabel(to)}`;
-}
-
-function currentMonth() {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-}
+import { fmt, addMonths, shortMonthLabel, rangeLabel, currentMonth } from '../lib/monthRange';
+import MonthRangePicker from '../components/MonthRangePicker';
 
 function BreakdownCard({ data }: { data: SummaryResponse }) {
   const totalOut = data.total_expense + data.total_emi;
@@ -154,41 +133,14 @@ export default function SummaryPage() {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Monthly Summary</h2>
-
-      {/* Date range selection */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <label className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-          From
-          <input
-            type="month"
-            value={rangeFrom}
-            max={rangeTo}
-            onChange={(e) => setRangeFrom(e.target.value)}
-            className="px-2 py-1 border border-gray-200 dark:border-gray-700 rounded-lg text-xs font-medium text-gray-600 dark:text-gray-400 focus:ring-2 focus:ring-blue-500 outline-none dark:bg-gray-800"
-          />
-        </label>
-        <label className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-          To
-          <input
-            type="month"
-            value={rangeTo}
-            min={rangeFrom}
-            max={currentMonth()}
-            onChange={(e) => setRangeTo(e.target.value)}
-            className="px-2 py-1 border border-gray-200 dark:border-gray-700 rounded-lg text-xs font-medium text-gray-600 dark:text-gray-400 focus:ring-2 focus:ring-blue-500 outline-none dark:bg-gray-800"
-          />
-        </label>
-        <button
-          onClick={() => {
-            setRangeFrom(addMonths(currentMonth(), -11));
-            setRangeTo(currentMonth());
-          }}
-          className="px-2.5 py-1 rounded-lg text-xs font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30"
-        >
-          Last 12 months
-        </button>
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200">Monthly Summary</h2>
+        <Link to="/summary/charts" className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1">
+          📊 Charts
+        </Link>
       </div>
+
+      <MonthRangePicker from={rangeFrom} to={rangeTo} onFromChange={setRangeFrom} onToChange={setRangeTo} />
 
       {loading ? (
         <p className="text-gray-400 text-center py-12">Loading...</p>

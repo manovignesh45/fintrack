@@ -8,6 +8,7 @@ import CategoriesPage from './pages/CategoriesPage';
 import CreateCategoryPage from './pages/CreateCategoryPage';
 import CreateSubCategoryPage from './pages/CreateSubCategoryPage';
 import SummaryPage from './pages/SummaryPage';
+import ChartsPage from './pages/ChartsPage';
 import TallyPage from './pages/TallyPage';
 import TemplatesPage from './pages/TemplatesPage';
 import CreateTemplatePage from './pages/CreateTemplatePage';
@@ -298,6 +299,7 @@ function AppShell() {
                 <Route path="/categories/new" element={<ProtectedRoute><CreateCategoryPage /></ProtectedRoute>} />
                 <Route path="/categories/:catId/sub/new" element={<ProtectedRoute><CreateSubCategoryPage /></ProtectedRoute>} />
                 <Route path="/summary" element={<ProtectedRoute><SummaryPage /></ProtectedRoute>} />
+                <Route path="/summary/charts" element={<ProtectedRoute><ChartsPage /></ProtectedRoute>} />
                 <Route path="/tally" element={<ProtectedRoute><TallyPage /></ProtectedRoute>} />
                 <Route path="/templates" element={<ProtectedRoute><TemplatesPage /></ProtectedRoute>} />
                 <Route path="/templates/new" element={<ProtectedRoute><CreateTemplatePage /></ProtectedRoute>} />

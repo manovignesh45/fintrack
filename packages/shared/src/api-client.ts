@@ -5,6 +5,8 @@ import type {
   TransactionTemplate,
   TallyResponse,
   SummaryResponse,
+  CategoryBreakdown,
+  TxNature,
   AuthResponse,
   LoginReq,
   RegisterReq,
@@ -242,6 +244,10 @@ export function createApiClient(config: ApiClientConfig) {
     get: (month: string) => request<SummaryResponse>(`/summary?month=${month}`),
     getRange: (from: string, to: string) =>
       request<SummaryResponse[]>(`/summary/range?from=${from}&to=${to}`),
+    getByCategory: (from: string, to: string, nature?: TxNature) =>
+      request<CategoryBreakdown[]>(
+        `/summary/by-category?from=${from}&to=${to}${nature ? `&nature=${nature}` : ''}`
+      ),
   };
 
   return {
