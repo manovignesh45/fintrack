@@ -226,11 +226,11 @@ export default function SummaryPage() {
             </div>
           </div>
 
-          {/* Breakdown */}
-          <BreakdownCard data={{ month: rangeTo, ...totals }} />
-
-          {/* Month-by-month comparison */}
-          <CompareTable rows={rangeData!} />
+          {/* Breakdown + month-by-month comparison, side by side on wide screens */}
+          <div className="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-4 lg:items-start">
+            <BreakdownCard data={{ month: rangeTo, ...totals }} />
+            <CompareTable rows={rangeData!} />
+          </div>
         </>
       )}
     </div>

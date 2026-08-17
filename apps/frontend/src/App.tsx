@@ -21,6 +21,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { LedgerProvider, useLedgers } from './context/LedgerContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import SuperAdminShell from './components/SuperAdminShell';
+import { useMediaQuery } from './hooks/useMediaQuery';
 
 const navItems = [
   { to: '/', label: 'Transactions', icon: '📋' },
@@ -30,7 +31,25 @@ const navItems = [
   { to: '/more', label: 'More', icon: '⋯' },
 ];
 
+// Surfaced only in the desktop sidebar, which has room to show everything
+// the mobile "More" page keeps tucked away. Excludes Templates since that's
+// already a primary nav item.
+const moreNavItems = [
+  { to: '/commitments', label: 'Monthly Commitments', icon: '📆' },
+  { to: '/categories', label: 'Categories & Sub-categories', icon: '📁' },
+  { to: '/payment-methods', label: 'Payment Methods', icon: '💳' },
+  { to: '/tally', label: 'Tally / Reconciliation', icon: '✅' },
+  { to: '/import', label: 'Import CSV', icon: '📥' },
+];
+
 const navPaths = navItems.map((item) => item.to);
+
+const sidebarLinkClass = ({ isActive }: { isActive: boolean }) =>
+  `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
+    isActive
+      ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium'
+      : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-gray-200'
+  }`;
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading: authLoading } = useAuth();
@@ -86,6 +105,7 @@ function AppShell() {
   const ledgerDropdownRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const isTabRoute = navPaths.includes(location.pathname);
+  const isDesktop = useMediaQuery('(min-width: 1024px)');
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -107,7 +127,32 @@ function AppShell() {
     : '?';
 
   return (
-    <div className="h-dvh flex flex-col bg-gray-50 dark:bg-gray-900 transition-colors">
+    <div className="h-dvh flex flex-col lg:flex-row bg-gray-50 dark:bg-gray-900 transition-colors">
+      {isAuthenticated && (
+        <aside className="hidden lg:flex lg:flex-col lg:w-56 lg:shrink-0 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 transition-colors">
+          <div className="px-5 py-4 border-b border-gray-200 dark:border-gray-700">
+            <h2 className="text-lg font-bold text-gray-800 dark:text-white leading-none">FinTrack</h2>
+          </div>
+          <nav className="flex-1 overflow-y-auto p-3 space-y-1">
+            {navItems.filter((item) => item.to !== '/more').map((item) => (
+              <NavLink key={item.to} to={item.to} end={item.to === '/'} className={sidebarLinkClass}>
+                <span className="text-lg leading-none">{item.icon}</span>
+                <span>{item.label}</span>
+              </NavLink>
+            ))}
+            <div className="pt-3 mt-3 border-t border-gray-100 dark:border-gray-700 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-3 mb-1">
+              More
+            </div>
+            {moreNavItems.map((item) => (
+              <NavLink key={item.to} to={item.to} className={sidebarLinkClass}>
+                <span className="text-lg leading-none">{item.icon}</span>
+                <span>{item.label}</span>
+              </NavLink>
+            ))}
+          </nav>
+        </aside>
+      )}
+      <div className="flex-1 min-h-0 flex flex-col">
       <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 shrink-0 z-10 flex justify-between items-center transition-colors">
         <div className="flex items-center gap-2 relative" ref={ledgerDropdownRef}>
           <h1 className="text-lg font-bold text-gray-800 dark:text-white leading-none">FinTrack</h1>
@@ -238,11 +283,11 @@ function AppShell() {
       </header>
 
       <div className="flex-1 min-h-0">
-        {isAuthenticated && isTabRoute ? (
+        {isAuthenticated && isTabRoute && !isDesktop ? (
           <SwipeableTabs />
         ) : (
           <div className="h-full overflow-y-auto">
-            <div className="max-w-lg mx-auto px-4 py-4">
+            <div className="max-w-lg lg:max-w-3xl mx-auto px-4 py-4">
               <Routes>
                 <Route path="/" element={<ProtectedRoute><TransactionsPage /></ProtectedRoute>} />
                 <Route path="/add" element={<ProtectedRoute><AddTransactionPage /></ProtectedRoute>} />
@@ -269,7 +314,7 @@ function AppShell() {
       </div>
 
       {isAuthenticated && (
-        <nav className="shrink-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-10 transition-colors">
+        <nav className="lg:hidden shrink-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-10 transition-colors">
           <div className="max-w-lg mx-auto flex justify-around">
             {navItems.map((item) => (
               <NavLink
@@ -339,6 +384,7 @@ function AppShell() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
