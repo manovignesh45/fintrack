@@ -94,10 +94,12 @@ export interface TransactionTemplate {
 
 export interface TransactionSuggestion {
   title: string;
+  amount?: number;
   nature: TxNature;
   category_id?: number;
   sub_category_id?: number;
   payment_method_id?: number;
+  is_template?: boolean;
   frequency: number;
   last_used: string;
 }

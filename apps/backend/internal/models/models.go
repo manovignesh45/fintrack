@@ -318,10 +318,12 @@ type TransactionFilter struct {
 
 type TransactionSuggestion struct {
 	Title           string   `json:"title"`
+	Amount          *float64 `json:"amount,omitempty"`
 	Nature          TxNature `json:"nature"`
 	CategoryID      *int     `json:"category_id,omitempty"`
 	SubCategoryID   *int     `json:"sub_category_id,omitempty"`
 	PaymentMethodID *int     `json:"payment_method_id,omitempty"`
+	IsTemplate      bool     `json:"is_template"`
 	Frequency       int      `json:"frequency"`
 	LastUsed        string   `json:"last_used"`
 }

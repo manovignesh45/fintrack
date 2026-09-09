@@ -58,12 +58,17 @@ export default function TransactionForm({ initial, onSubmit, submitLabel, enable
   const autoFillingRef = useRef(false);
   const [userTouchedCategory, setUserTouchedCategory] = useState(false);
   const [userTouchedPaymentMethod, setUserTouchedPaymentMethod] = useState(false);
+  const [userTouchedAmount, setUserTouchedAmount] = useState(false);
   const [autoFillNotice, setAutoFillNotice] = useState<{
     merchant: string;
+    amount?: number;
+    isTemplate?: boolean;
     categoryName?: string;
     subCategoryName?: string;
     paymentMethodName?: string;
     prev: {
+      title: string;
+      amount: string;
       nature: TxNature;
       categoryId: string;
       subCategoryId: string;
@@ -107,12 +112,19 @@ export default function TransactionForm({ initial, onSubmit, submitLabel, enable
   const handleSelectSuggestion = (s: TransactionSuggestion, isExplicit = false) => {
     const shouldFillCategory = isExplicit || !userTouchedCategory;
     const shouldFillPayment = isExplicit || !userTouchedPaymentMethod;
+    const shouldFillAmount =
+      s.is_template &&
+      s.amount !== undefined &&
+      s.amount > 0 &&
+      (isExplicit || !userTouchedAmount || !form.amount || parseFloat(form.amount) === 0);
 
-    if (!shouldFillCategory && !shouldFillPayment && !isExplicit) {
+    if (!shouldFillCategory && !shouldFillPayment && !shouldFillAmount && !isExplicit) {
       return;
     }
 
     const prev = {
+      title: form.title,
+      amount: form.amount,
       nature: form.nature,
       categoryId: selectedCategoryId,
       subCategoryId: form.sub_category_id,
@@ -125,9 +137,14 @@ export default function TransactionForm({ initial, onSubmit, submitLabel, enable
     let targetSubCategoryId = form.sub_category_id;
     let targetPaymentMethodId = form.payment_method_id;
     let targetNature = form.nature;
+    let targetAmount = form.amount;
 
     if (s.nature && s.nature !== form.nature) {
       targetNature = s.nature;
+    }
+
+    if (shouldFillAmount) {
+      targetAmount = s.amount!.toString();
     }
 
     if (shouldFillCategory) {
@@ -159,6 +176,7 @@ export default function TransactionForm({ initial, onSubmit, submitLabel, enable
     setForm((f) => ({
       ...f,
       title: s.title,
+      amount: targetAmount,
       nature: targetNature,
       sub_category_id: targetSubCategoryId,
       payment_method_id: targetPaymentMethodId,
@@ -170,6 +188,8 @@ export default function TransactionForm({ initial, onSubmit, submitLabel, enable
 
     setAutoFillNotice({
       merchant: s.title,
+      amount: s.is_template && s.amount !== undefined ? s.amount : undefined,
+      isTemplate: s.is_template,
       categoryName: cat?.name,
       subCategoryName: subCat?.name,
       paymentMethodName: pm?.name,
@@ -183,6 +203,8 @@ export default function TransactionForm({ initial, onSubmit, submitLabel, enable
     setSelectedCategoryId(prev.categoryId);
     setForm((f) => ({
       ...f,
+      title: prev.title,
+      amount: prev.amount,
       nature: prev.nature,
       sub_category_id: prev.subCategoryId,
       payment_method_id: prev.paymentMethodId,
@@ -454,7 +476,10 @@ export default function TransactionForm({ initial, onSubmit, submitLabel, enable
             min="0.01"
             placeholder="e.g. 1500.00"
             value={form.amount}
-            onChange={(e) => set('amount', e.target.value)}
+            onChange={(e) => {
+              setUserTouchedAmount(true);
+              set('amount', e.target.value);
+            }}
             required
             className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none dark:bg-gray-800 dark:text-white"
           />

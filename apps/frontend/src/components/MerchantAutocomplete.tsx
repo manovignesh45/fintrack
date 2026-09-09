@@ -4,6 +4,8 @@ import type { Category, PaymentMethod, TransactionSuggestion } from '../api/type
 
 interface AutoFillNotice {
   merchant: string;
+  amount?: number;
+  isTemplate?: boolean;
   categoryName?: string;
   subCategoryName?: string;
   paymentMethodName?: string;
@@ -234,6 +236,8 @@ export default function MerchantAutocomplete({
             <Sparkles className="w-3.5 h-3.5 text-blue-500 shrink-0" />
             <span className="truncate">
               Auto-filled from <strong>{autoFillNotice.merchant}</strong>
+              {autoFillNotice.isTemplate ? ' (template)' : ''}
+              {autoFillNotice.amount !== undefined ? ` · ₹${autoFillNotice.amount.toLocaleString('en-IN')}` : ''}
               {autoFillNotice.categoryName && ` · ${autoFillNotice.categoryName}`}
               {autoFillNotice.subCategoryName && ` › ${autoFillNotice.subCategoryName}`}
               {autoFillNotice.paymentMethodName && ` · ${autoFillNotice.paymentMethodName}`}
@@ -265,7 +269,13 @@ export default function MerchantAutocomplete({
               className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full bg-gray-100 hover:bg-blue-50 text-gray-700 hover:text-blue-700 dark:bg-gray-800 dark:hover:bg-blue-900/40 dark:text-gray-300 dark:hover:text-blue-300 border border-gray-200 dark:border-gray-700 transition-colors"
             >
               <span>{s.title}</span>
-              <span className="text-[10px] text-gray-400 dark:text-gray-500">{s.frequency}x</span>
+              {s.is_template && s.amount !== undefined ? (
+                <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+                  ₹{s.amount.toLocaleString('en-IN')}
+                </span>
+              ) : (
+                <span className="text-[10px] text-gray-400 dark:text-gray-500">{s.frequency}x</span>
+              )}
             </button>
           ))}
         </div>
@@ -296,10 +306,17 @@ export default function MerchantAutocomplete({
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-900 dark:text-white">
-                    {s.title}
-                  </span>
-                  <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-700/60 px-1.5 py-0.5 rounded">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                      {s.title}
+                    </span>
+                    {s.is_template && (
+                      <span className="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50">
+                        Template {s.amount !== undefined ? `· ₹${s.amount.toLocaleString('en-IN')}` : ''}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-700/60 px-1.5 py-0.5 rounded shrink-0 ml-2">
                     {s.frequency} {s.frequency === 1 ? 'time' : 'times'}
                   </span>
                 </div>

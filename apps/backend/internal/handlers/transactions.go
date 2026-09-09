@@ -361,7 +361,21 @@ func (h *TransactionHandler) GetSuggestions(w http.ResponseWriter, r *http.Reque
 	search := strings.TrimSpace(r.URL.Query().Get("q"))
 
 	query := `
-		WITH ranked AS (
+		WITH templates_data AS (
+			SELECT DISTINCT ON (LOWER(TRIM(tt.title)))
+				tt.title,
+				tt.amount,
+				tt.nature,
+				sc.category_id,
+				tt.sub_category_id,
+				tt.payment_method_id,
+				tt.created_at
+			FROM transaction_templates tt
+			LEFT JOIN sub_categories sc ON sc.id = tt.sub_category_id
+			WHERE tt.ledger_id = $1 AND TRIM(tt.title) != ''
+			ORDER BY LOWER(TRIM(tt.title)), tt.created_at DESC
+		),
+		ranked_tx AS (
 			SELECT
 				t.title,
 				t.nature,
@@ -377,28 +391,72 @@ func (h *TransactionHandler) GetSuggestions(w http.ResponseWriter, r *http.Reque
 				) AS rn
 			FROM transactions t
 			LEFT JOIN sub_categories sc ON sc.id = t.sub_category_id
-			WHERE t.ledger_id = $1 AND TRIM(t.title) != ''`
-	args := []interface{}{ledgerID}
+			WHERE t.ledger_id = $1 AND TRIM(t.title) != ''
+		),
+		tx_distinct AS (
+			SELECT
+				title,
+				nature,
+				category_id,
+				sub_category_id,
+				payment_method_id,
+				frequency,
+				transaction_date
+			FROM ranked_tx
+			WHERE rn = 1
+		),
+		combined AS (
+			SELECT
+				tx.title,
+				tmpl.amount,
+				COALESCE(tx.nature, tmpl.nature) AS nature,
+				COALESCE(tx.category_id, tmpl.category_id) AS category_id,
+				COALESCE(tx.sub_category_id, tmpl.sub_category_id) AS sub_category_id,
+				COALESCE(tx.payment_method_id, tmpl.payment_method_id) AS payment_method_id,
+				(tmpl.title IS NOT NULL) AS is_template,
+				tx.frequency,
+				tx.transaction_date AS last_used
+			FROM tx_distinct tx
+			LEFT JOIN templates_data tmpl ON LOWER(TRIM(tx.title)) = LOWER(TRIM(tmpl.title))
 
-	if search != "" {
-		query += " AND t.title ILIKE '%' || $2 || '%'"
-		args = append(args, search)
-	}
+			UNION ALL
 
-	query += `
+			SELECT
+				tmpl.title,
+				tmpl.amount,
+				tmpl.nature,
+				tmpl.category_id,
+				tmpl.sub_category_id,
+				tmpl.payment_method_id,
+				TRUE AS is_template,
+				1 AS frequency,
+				tmpl.created_at::date AS last_used
+			FROM templates_data tmpl
+			WHERE NOT EXISTS (
+				SELECT 1 FROM tx_distinct tx WHERE LOWER(TRIM(tx.title)) = LOWER(TRIM(tmpl.title))
+			)
 		)
 		SELECT
 			title,
+			amount,
 			nature,
 			category_id,
 			sub_category_id,
 			payment_method_id,
+			is_template,
 			frequency,
-			transaction_date
-		FROM ranked
-		WHERE rn = 1
-		ORDER BY frequency DESC, transaction_date DESC
-		LIMIT 50`
+			last_used
+		FROM combined
+		WHERE 1=1`
+
+	args := []interface{}{ledgerID}
+
+	if search != "" {
+		query += " AND title ILIKE '%' || $2 || '%'"
+		args = append(args, search)
+	}
+
+	query += " ORDER BY is_template DESC, frequency DESC, last_used DESC LIMIT 50"
 
 	rows, err := h.db.Query(r.Context(), query, args...)
 	if err != nil {
@@ -410,15 +468,18 @@ func (h *TransactionHandler) GetSuggestions(w http.ResponseWriter, r *http.Reque
 	suggestions := make([]models.TransactionSuggestion, 0)
 	for rows.Next() {
 		var s models.TransactionSuggestion
+		var amount *float64
 		var categoryID, subCategoryID, paymentMethodID *int
 		var txDate time.Time
 
 		if err := rows.Scan(
 			&s.Title,
+			&amount,
 			&s.Nature,
 			&categoryID,
 			&subCategoryID,
 			&paymentMethodID,
+			&s.IsTemplate,
 			&s.Frequency,
 			&txDate,
 		); err != nil {
@@ -426,6 +487,7 @@ func (h *TransactionHandler) GetSuggestions(w http.ResponseWriter, r *http.Reque
 			return
 		}
 
+		s.Amount = amount
 		s.CategoryID = categoryID
 		s.SubCategoryID = subCategoryID
 		s.PaymentMethodID = paymentMethodID
