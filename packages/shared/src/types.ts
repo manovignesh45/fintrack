@@ -96,9 +96,13 @@ export interface TransactionSuggestion {
   title: string;
   amount?: number;
   nature: TxNature;
+  source_account_id?: number;
+  target_account_id?: number;
   category_id?: number;
   sub_category_id?: number;
   payment_method_id?: number;
+  principal_amount?: number;
+  interest_amount?: number;
   is_template?: boolean;
   frequency: number;
   last_used: string;

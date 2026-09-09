@@ -1,10 +1,13 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { Sparkles, Tag, CreditCard, Clock } from 'lucide-react';
-import type { Category, PaymentMethod, TransactionSuggestion } from '../api/types';
+import { Sparkles, Tag, CreditCard, Clock, Landmark } from 'lucide-react';
+import type { Account, Category, PaymentMethod, TransactionSuggestion } from '../api/types';
 
 interface AutoFillNotice {
   merchant: string;
   amount?: number;
+  principalAmount?: number;
+  interestAmount?: number;
+  loanAccountName?: string;
   isTemplate?: boolean;
   categoryName?: string;
   subCategoryName?: string;
@@ -16,6 +19,7 @@ interface Props {
   onChange: (value: string) => void;
   onSelectSuggestion: (suggestion: TransactionSuggestion, isExplicit?: boolean) => void;
   suggestions: TransactionSuggestion[];
+  accounts: Account[];
   categories: Category[];
   paymentMethods: PaymentMethod[];
   autoFillNotice?: AutoFillNotice | null;
@@ -29,6 +33,7 @@ export default function MerchantAutocomplete({
   onChange,
   onSelectSuggestion,
   suggestions,
+  accounts,
   categories,
   paymentMethods,
   autoFillNotice,
@@ -41,7 +46,15 @@ export default function MerchantAutocomplete({
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Helper maps for instantaneous category & payment method name lookups
+  // Helper maps for instantaneous account, category & payment method name lookups
+  const accountMap = useMemo(() => {
+    const map = new Map<number, string>();
+    for (const a of accounts) {
+      map.set(a.id, a.name);
+    }
+    return map;
+  }, [accounts]);
+
   const categoryMap = useMemo(() => {
     const map = new Map<number, { catName: string; subCats: Map<number, string> }>();
     for (const c of categories) {
@@ -86,7 +99,15 @@ export default function MerchantAutocomplete({
     }
 
     const pmName = s.payment_method_id ? paymentMethodMap.get(s.payment_method_id) : undefined;
-    return { catName, subCatName, pmName };
+
+    let loanAccountName: string | undefined;
+    if (s.nature === 'EMI_PAYMENT' && s.target_account_id) {
+      loanAccountName = accountMap.get(s.target_account_id);
+    } else if (s.nature === 'LOAN_DISBURSEMENT' && s.source_account_id) {
+      loanAccountName = accountMap.get(s.source_account_id);
+    }
+
+    return { catName, subCatName, pmName, loanAccountName };
   };
 
   // Top 4 most frequent merchants for quick-fill chips
@@ -237,7 +258,11 @@ export default function MerchantAutocomplete({
             <span className="truncate">
               Auto-filled from <strong>{autoFillNotice.merchant}</strong>
               {autoFillNotice.isTemplate ? ' (template)' : ''}
+              {autoFillNotice.loanAccountName && ` · Loan: ${autoFillNotice.loanAccountName}`}
               {autoFillNotice.amount !== undefined ? ` · ₹${autoFillNotice.amount.toLocaleString('en-IN')}` : ''}
+              {autoFillNotice.principalAmount !== undefined && autoFillNotice.principalAmount > 0
+                ? ` (Principal: ₹${autoFillNotice.principalAmount.toLocaleString('en-IN')}, Interest: ₹${(autoFillNotice.interestAmount || 0).toLocaleString('en-IN')})`
+                : ''}
               {autoFillNotice.categoryName && ` · ${autoFillNotice.categoryName}`}
               {autoFillNotice.subCategoryName && ` › ${autoFillNotice.subCategoryName}`}
               {autoFillNotice.paymentMethodName && ` · ${autoFillNotice.paymentMethodName}`}
@@ -288,7 +313,7 @@ export default function MerchantAutocomplete({
             {value.trim() ? 'Matching history' : 'Frequent merchants'}
           </div>
           {filteredSuggestions.map((s, idx) => {
-            const { catName, subCatName, pmName } = resolveMeta(s);
+            const { catName, subCatName, pmName, loanAccountName } = resolveMeta(s);
             const isHighlighted = idx === highlightedIndex;
 
             return (
@@ -310,6 +335,11 @@ export default function MerchantAutocomplete({
                     <span className="text-sm font-medium text-gray-900 dark:text-white truncate">
                       {s.title}
                     </span>
+                    {s.nature === 'EMI_PAYMENT' && (
+                      <span className="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950/50 text-indigo-700 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800/50">
+                        EMI
+                      </span>
+                    )}
                     {s.is_template && (
                       <span className="shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50">
                         Template {s.amount !== undefined ? `· ₹${s.amount.toLocaleString('en-IN')}` : ''}
@@ -321,8 +351,19 @@ export default function MerchantAutocomplete({
                   </span>
                 </div>
 
-                {(catName || pmName) && (
+                {(catName || pmName || loanAccountName || (s.amount && s.nature === 'EMI_PAYMENT')) && (
                   <div className="flex flex-wrap items-center gap-1.5 mt-1 text-[11px] text-gray-500 dark:text-gray-400">
+                    {loanAccountName && (
+                      <span className="inline-flex items-center gap-0.5 text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 px-1.5 py-0.5 rounded font-medium">
+                        <Landmark className="w-2.5 h-2.5 shrink-0" />
+                        <span>Loan: {loanAccountName}</span>
+                      </span>
+                    )}
+                    {s.nature === 'EMI_PAYMENT' && s.principal_amount !== undefined && s.principal_amount > 0 && (
+                      <span className="text-[10px] text-gray-500 dark:text-gray-400">
+                        ₹{(s.amount || (s.principal_amount + (s.interest_amount || 0))).toLocaleString('en-IN')} (P: ₹{s.principal_amount.toLocaleString('en-IN')} + I: ₹{(s.interest_amount || 0).toLocaleString('en-IN')})
+                      </span>
+                    )}
                     {catName && (
                       <span className="inline-flex items-center gap-0.5 text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-1.5 py-0.5 rounded">
                         <Tag className="w-2.5 h-2.5 shrink-0" />

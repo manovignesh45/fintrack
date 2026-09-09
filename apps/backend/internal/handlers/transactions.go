@@ -366,9 +366,13 @@ func (h *TransactionHandler) GetSuggestions(w http.ResponseWriter, r *http.Reque
 				tt.title,
 				tt.amount,
 				tt.nature,
+				tt.source_account_id,
+				tt.target_account_id,
 				sc.category_id,
 				tt.sub_category_id,
 				tt.payment_method_id,
+				tt.principal_amount,
+				tt.interest_amount,
 				tt.created_at
 			FROM transaction_templates tt
 			LEFT JOIN sub_categories sc ON sc.id = tt.sub_category_id
@@ -378,10 +382,15 @@ func (h *TransactionHandler) GetSuggestions(w http.ResponseWriter, r *http.Reque
 		ranked_tx AS (
 			SELECT
 				t.title,
+				t.amount,
 				t.nature,
+				t.source_account_id,
+				t.target_account_id,
 				sc.category_id,
 				t.sub_category_id,
 				t.payment_method_id,
+				t.principal_amount,
+				t.interest_amount,
 				t.transaction_date,
 				t.created_at,
 				COUNT(*) OVER (PARTITION BY LOWER(TRIM(t.title))) AS frequency,
@@ -396,10 +405,15 @@ func (h *TransactionHandler) GetSuggestions(w http.ResponseWriter, r *http.Reque
 		tx_distinct AS (
 			SELECT
 				title,
+				amount,
 				nature,
+				source_account_id,
+				target_account_id,
 				category_id,
 				sub_category_id,
 				payment_method_id,
+				principal_amount,
+				interest_amount,
 				frequency,
 				transaction_date
 			FROM ranked_tx
@@ -408,11 +422,15 @@ func (h *TransactionHandler) GetSuggestions(w http.ResponseWriter, r *http.Reque
 		combined AS (
 			SELECT
 				tx.title,
-				tmpl.amount,
-				COALESCE(tx.nature, tmpl.nature) AS nature,
-				COALESCE(tx.category_id, tmpl.category_id) AS category_id,
-				COALESCE(tx.sub_category_id, tmpl.sub_category_id) AS sub_category_id,
-				COALESCE(tx.payment_method_id, tmpl.payment_method_id) AS payment_method_id,
+				COALESCE(tmpl.amount, CASE WHEN tx.nature = 'EMI_PAYMENT' THEN tx.amount ELSE NULL END) AS amount,
+				COALESCE(tmpl.nature, tx.nature) AS nature,
+				COALESCE(tmpl.source_account_id, tx.source_account_id) AS source_account_id,
+				COALESCE(tmpl.target_account_id, tx.target_account_id) AS target_account_id,
+				COALESCE(tmpl.category_id, tx.category_id) AS category_id,
+				COALESCE(tmpl.sub_category_id, tx.sub_category_id) AS sub_category_id,
+				COALESCE(tmpl.payment_method_id, tx.payment_method_id) AS payment_method_id,
+				COALESCE(tmpl.principal_amount, tx.principal_amount) AS principal_amount,
+				COALESCE(tmpl.interest_amount, tx.interest_amount) AS interest_amount,
 				(tmpl.title IS NOT NULL) AS is_template,
 				tx.frequency,
 				tx.transaction_date AS last_used
@@ -425,9 +443,13 @@ func (h *TransactionHandler) GetSuggestions(w http.ResponseWriter, r *http.Reque
 				tmpl.title,
 				tmpl.amount,
 				tmpl.nature,
+				tmpl.source_account_id,
+				tmpl.target_account_id,
 				tmpl.category_id,
 				tmpl.sub_category_id,
 				tmpl.payment_method_id,
+				tmpl.principal_amount,
+				tmpl.interest_amount,
 				TRUE AS is_template,
 				1 AS frequency,
 				tmpl.created_at::date AS last_used
@@ -440,9 +462,13 @@ func (h *TransactionHandler) GetSuggestions(w http.ResponseWriter, r *http.Reque
 			title,
 			amount,
 			nature,
+			source_account_id,
+			target_account_id,
 			category_id,
 			sub_category_id,
 			payment_method_id,
+			principal_amount,
+			interest_amount,
 			is_template,
 			frequency,
 			last_used
@@ -468,17 +494,21 @@ func (h *TransactionHandler) GetSuggestions(w http.ResponseWriter, r *http.Reque
 	suggestions := make([]models.TransactionSuggestion, 0)
 	for rows.Next() {
 		var s models.TransactionSuggestion
-		var amount *float64
-		var categoryID, subCategoryID, paymentMethodID *int
+		var amount, principalAmount, interestAmount *float64
+		var sourceAccountID, targetAccountID, categoryID, subCategoryID, paymentMethodID *int
 		var txDate time.Time
 
 		if err := rows.Scan(
 			&s.Title,
 			&amount,
 			&s.Nature,
+			&sourceAccountID,
+			&targetAccountID,
 			&categoryID,
 			&subCategoryID,
 			&paymentMethodID,
+			&principalAmount,
+			&interestAmount,
 			&s.IsTemplate,
 			&s.Frequency,
 			&txDate,
@@ -488,9 +518,13 @@ func (h *TransactionHandler) GetSuggestions(w http.ResponseWriter, r *http.Reque
 		}
 
 		s.Amount = amount
+		s.SourceAccountID = sourceAccountID
+		s.TargetAccountID = targetAccountID
 		s.CategoryID = categoryID
 		s.SubCategoryID = subCategoryID
 		s.PaymentMethodID = paymentMethodID
+		s.PrincipalAmount = principalAmount
+		s.InterestAmount = interestAmount
 		s.LastUsed = txDate.Format("2006-01-02")
 		suggestions = append(suggestions, s)
 	}

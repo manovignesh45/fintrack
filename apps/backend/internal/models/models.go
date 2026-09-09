@@ -320,9 +320,13 @@ type TransactionSuggestion struct {
 	Title           string   `json:"title"`
 	Amount          *float64 `json:"amount,omitempty"`
 	Nature          TxNature `json:"nature"`
+	SourceAccountID *int     `json:"source_account_id,omitempty"`
+	TargetAccountID *int     `json:"target_account_id,omitempty"`
 	CategoryID      *int     `json:"category_id,omitempty"`
 	SubCategoryID   *int     `json:"sub_category_id,omitempty"`
 	PaymentMethodID *int     `json:"payment_method_id,omitempty"`
+	PrincipalAmount *float64 `json:"principal_amount,omitempty"`
+	InterestAmount  *float64 `json:"interest_amount,omitempty"`
 	IsTemplate      bool     `json:"is_template"`
 	Frequency       int      `json:"frequency"`
 	LastUsed        string   `json:"last_used"`

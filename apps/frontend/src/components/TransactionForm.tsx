@@ -59,9 +59,14 @@ export default function TransactionForm({ initial, onSubmit, submitLabel, enable
   const [userTouchedCategory, setUserTouchedCategory] = useState(false);
   const [userTouchedPaymentMethod, setUserTouchedPaymentMethod] = useState(false);
   const [userTouchedAmount, setUserTouchedAmount] = useState(false);
+  const [userTouchedLoanAccount, setUserTouchedLoanAccount] = useState(false);
+  const [userTouchedEMI, setUserTouchedEMI] = useState(false);
   const [autoFillNotice, setAutoFillNotice] = useState<{
     merchant: string;
     amount?: number;
+    principalAmount?: number;
+    interestAmount?: number;
+    loanAccountName?: string;
     isTemplate?: boolean;
     categoryName?: string;
     subCategoryName?: string;
@@ -73,6 +78,10 @@ export default function TransactionForm({ initial, onSubmit, submitLabel, enable
       categoryId: string;
       subCategoryId: string;
       paymentMethodId: string;
+      sourceAccountId: string;
+      targetAccountId: string;
+      principalAmount: string;
+      interestAmount: string;
     };
   } | null>(null);
 
@@ -112,13 +121,24 @@ export default function TransactionForm({ initial, onSubmit, submitLabel, enable
   const handleSelectSuggestion = (s: TransactionSuggestion, isExplicit = false) => {
     const shouldFillCategory = isExplicit || !userTouchedCategory;
     const shouldFillPayment = isExplicit || !userTouchedPaymentMethod;
+    const shouldFillLoanAccount = isExplicit || !userTouchedLoanAccount;
+    const shouldFillEMI = isExplicit || !userTouchedEMI;
     const shouldFillAmount =
-      s.is_template &&
-      s.amount !== undefined &&
-      s.amount > 0 &&
-      (isExplicit || !userTouchedAmount || !form.amount || parseFloat(form.amount) === 0);
+      (isExplicit || !userTouchedAmount || !form.amount || parseFloat(form.amount) === 0) &&
+      ((s.is_template && s.amount !== undefined && s.amount > 0) ||
+        (s.nature === 'EMI_PAYMENT' &&
+          ((s.amount !== undefined && s.amount > 0) ||
+            (s.principal_amount !== undefined && s.principal_amount > 0) ||
+            (s.interest_amount !== undefined && s.interest_amount > 0))));
 
-    if (!shouldFillCategory && !shouldFillPayment && !shouldFillAmount && !isExplicit) {
+    if (
+      !shouldFillCategory &&
+      !shouldFillPayment &&
+      !shouldFillAmount &&
+      !shouldFillLoanAccount &&
+      !shouldFillEMI &&
+      !isExplicit
+    ) {
       return;
     }
 
@@ -129,40 +149,88 @@ export default function TransactionForm({ initial, onSubmit, submitLabel, enable
       categoryId: selectedCategoryId,
       subCategoryId: form.sub_category_id,
       paymentMethodId: form.payment_method_id,
+      sourceAccountId: form.source_account_id,
+      targetAccountId: form.target_account_id,
+      principalAmount: form.principal_amount,
+      interestAmount: form.interest_amount,
     };
 
     autoFillingRef.current = true;
+    setTimeout(() => {
+      autoFillingRef.current = false;
+    }, 100);
 
     let targetCategoryId = selectedCategoryId;
     let targetSubCategoryId = form.sub_category_id;
     let targetPaymentMethodId = form.payment_method_id;
     let targetNature = form.nature;
     let targetAmount = form.amount;
+    let targetSourceAccountId = form.source_account_id;
+    let targetTargetAccountId = form.target_account_id;
+    let targetPrincipalAmount = form.principal_amount;
+    let targetInterestAmount = form.interest_amount;
 
     if (s.nature && s.nature !== form.nature) {
       targetNature = s.nature;
     }
 
-    if (shouldFillAmount) {
-      targetAmount = s.amount!.toString();
-    }
-
-    if (shouldFillCategory) {
-      if (s.category_id) {
-        targetCategoryId = s.category_id.toString();
+    if (targetNature === 'EMI_PAYMENT') {
+      targetCategoryId = '';
+      targetSubCategoryId = '';
+      if (shouldFillLoanAccount && s.target_account_id) {
+        targetTargetAccountId = s.target_account_id.toString();
       }
-      if (s.sub_category_id) {
-        targetSubCategoryId = s.sub_category_id.toString();
-        if (!s.category_id) {
-          const matchedCategory = categories.find((c) =>
-            c.sub_categories?.some((sc) => sc.id === s.sub_category_id)
-          );
-          if (matchedCategory) {
-            targetCategoryId = matchedCategory.id.toString();
-          }
+      if (shouldFillEMI) {
+        if (s.principal_amount !== undefined) {
+          targetPrincipalAmount = s.principal_amount.toString();
         }
-      } else if (!s.category_id) {
-        targetSubCategoryId = '';
+        if (s.interest_amount !== undefined) {
+          targetInterestAmount = s.interest_amount.toString();
+        }
+      }
+      if (s.amount !== undefined && s.amount > 0) {
+        targetAmount = s.amount.toString();
+      } else {
+        const p = parseFloat(targetPrincipalAmount) || 0;
+        const i = parseFloat(targetInterestAmount) || 0;
+        targetAmount = (p + i).toString();
+      }
+    } else if (targetNature === 'LOAN_DISBURSEMENT') {
+      targetCategoryId = '';
+      targetSubCategoryId = '';
+      if (shouldFillLoanAccount && s.source_account_id) {
+        targetSourceAccountId = s.source_account_id.toString();
+      }
+      if (shouldFillAmount && s.amount !== undefined && s.amount > 0) {
+        targetAmount = s.amount.toString();
+      }
+    } else if (targetNature === 'TRANSFER') {
+      targetCategoryId = '';
+      targetSubCategoryId = '';
+      if (shouldFillAmount && s.amount !== undefined && s.amount > 0) {
+        targetAmount = s.amount.toString();
+      }
+    } else {
+      if (shouldFillAmount && s.amount !== undefined && s.amount > 0) {
+        targetAmount = s.amount.toString();
+      }
+      if (shouldFillCategory) {
+        if (s.category_id) {
+          targetCategoryId = s.category_id.toString();
+        }
+        if (s.sub_category_id) {
+          targetSubCategoryId = s.sub_category_id.toString();
+          if (!s.category_id) {
+            const matchedCategory = categories.find((c) =>
+              c.sub_categories?.some((sc) => sc.id === s.sub_category_id)
+            );
+            if (matchedCategory) {
+              targetCategoryId = matchedCategory.id.toString();
+            }
+          }
+        } else if (!s.category_id) {
+          targetSubCategoryId = '';
+        }
       }
     }
 
@@ -178,6 +246,10 @@ export default function TransactionForm({ initial, onSubmit, submitLabel, enable
       title: s.title,
       amount: targetAmount,
       nature: targetNature,
+      source_account_id: targetSourceAccountId,
+      target_account_id: targetTargetAccountId,
+      principal_amount: targetPrincipalAmount,
+      interest_amount: targetInterestAmount,
       sub_category_id: targetSubCategoryId,
       payment_method_id: targetPaymentMethodId,
     }));
@@ -185,10 +257,24 @@ export default function TransactionForm({ initial, onSubmit, submitLabel, enable
     const cat = categories.find((c) => c.id.toString() === targetCategoryId);
     const subCat = cat?.sub_categories?.find((sc) => sc.id.toString() === targetSubCategoryId);
     const pm = paymentMethods.find((p) => p.id.toString() === targetPaymentMethodId);
+    const loanAccId = targetNature === 'LOAN_DISBURSEMENT' ? targetSourceAccountId : targetTargetAccountId;
+    const loanAcc = loanAccId ? accounts.find((a) => a.id.toString() === loanAccId) : undefined;
 
     setAutoFillNotice({
       merchant: s.title,
-      amount: s.is_template && s.amount !== undefined ? s.amount : undefined,
+      amount:
+        targetNature === 'EMI_PAYMENT' || (s.is_template && s.amount !== undefined)
+          ? parseFloat(targetAmount) || undefined
+          : undefined,
+      principalAmount:
+        targetNature === 'EMI_PAYMENT' && s.principal_amount !== undefined
+          ? s.principal_amount
+          : undefined,
+      interestAmount:
+        targetNature === 'EMI_PAYMENT' && s.interest_amount !== undefined
+          ? s.interest_amount
+          : undefined,
+      loanAccountName: loanAcc?.name,
       isTemplate: s.is_template,
       categoryName: cat?.name,
       subCategoryName: subCat?.name,
@@ -208,6 +294,10 @@ export default function TransactionForm({ initial, onSubmit, submitLabel, enable
       nature: prev.nature,
       sub_category_id: prev.subCategoryId,
       payment_method_id: prev.paymentMethodId,
+      source_account_id: prev.sourceAccountId,
+      target_account_id: prev.targetAccountId,
+      principal_amount: prev.principalAmount,
+      interest_amount: prev.interestAmount,
     }));
     setAutoFillNotice(null);
   };
@@ -274,6 +364,7 @@ export default function TransactionForm({ initial, onSubmit, submitLabel, enable
   // Depends on `accounts` so it also fires when accounts finish loading after a
   // template is pre-populated (target_account_id already set, accounts was still empty).
   useEffect(() => {
+    if (autoFillingRef.current) return;
     if (form.nature !== 'EMI_PAYMENT' || !form.target_account_id) return;
     const account = accounts.find((a) => a.id.toString() === form.target_account_id);
     if (!account || account.interest_rate <= 0) return;
@@ -284,7 +375,6 @@ export default function TransactionForm({ initial, onSubmit, submitLabel, enable
   // Clear irrelevant fields when nature changes
   useEffect(() => {
     if (autoFillingRef.current) {
-      autoFillingRef.current = false;
       return;
     }
     // Check if this nature change is actually a "reset" or part of the initial load from template/edit
@@ -396,6 +486,9 @@ export default function TransactionForm({ initial, onSubmit, submitLabel, enable
               onClick={() => {
                 setUserTouchedCategory(false);
                 setUserTouchedPaymentMethod(false);
+                setUserTouchedAmount(false);
+                setUserTouchedLoanAccount(false);
+                setUserTouchedEMI(false);
                 setAutoFillNotice(null);
                 set('nature', n);
               }}
@@ -421,6 +514,7 @@ export default function TransactionForm({ initial, onSubmit, submitLabel, enable
           }}
           onSelectSuggestion={handleSelectSuggestion}
           suggestions={suggestions}
+          accounts={accounts}
           categories={categories}
           paymentMethods={paymentMethods}
           autoFillNotice={autoFillNotice}
@@ -447,6 +541,7 @@ export default function TransactionForm({ initial, onSubmit, submitLabel, enable
           <select
             value={form.nature === 'LOAN_DISBURSEMENT' ? form.source_account_id : form.target_account_id}
             onChange={(e) => {
+              setUserTouchedLoanAccount(true);
               if (form.nature === 'LOAN_DISBURSEMENT') {
                 set('source_account_id', e.target.value);
               } else {
@@ -501,7 +596,10 @@ export default function TransactionForm({ initial, onSubmit, submitLabel, enable
                 step="0.01"
                 min="0"
                 value={form.principal_amount}
-                onChange={(e) => set('principal_amount', e.target.value)}
+                onChange={(e) => {
+                  setUserTouchedEMI(true);
+                  set('principal_amount', e.target.value);
+                }}
                 className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none dark:bg-gray-800 dark:text-white"
               />
             </div>
@@ -519,7 +617,10 @@ export default function TransactionForm({ initial, onSubmit, submitLabel, enable
                 step="0.01"
                 min="0"
                 value={form.interest_amount}
-                onChange={(e) => set('interest_amount', e.target.value)}
+                onChange={(e) => {
+                  setUserTouchedEMI(true);
+                  set('interest_amount', e.target.value);
+                }}
                 className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none dark:bg-gray-800 dark:text-white"
               />
               {suggestedInterest !== null && (
