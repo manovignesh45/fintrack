@@ -1,6 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { transactionsApi } from '../api/client';
 import TransactionForm, { type TransactionFormData } from '../components/TransactionForm';
+import { invalidateCache } from '../hooks/useCachedList';
 
 export default function AddTransactionPage() {
   const navigate = useNavigate();
@@ -21,6 +22,7 @@ export default function AddTransactionPage() {
       interest_amount: parseFloat(form.interest_amount) || 0,
       transaction_date: form.transaction_date,
     });
+    invalidateCache('transaction');
     navigate('/');
   };
 

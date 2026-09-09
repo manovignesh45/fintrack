@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { transactionsApi } from '../api/client';
 import TransactionForm, { type TransactionFormData } from '../components/TransactionForm';
+import { invalidateCache } from '../hooks/useCachedList';
 import type { Transaction } from '../api/types';
 
 export default function EditTransactionPage() {
@@ -48,6 +49,7 @@ export default function EditTransactionPage() {
       interest_amount: parseFloat(form.interest_amount) || 0,
       transaction_date: form.transaction_date,
     });
+    invalidateCache('transaction');
     navigate('/');
   };
 
@@ -57,7 +59,12 @@ export default function EditTransactionPage() {
   return (
     <div>
       <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Edit Transaction</h2>
-      <TransactionForm initial={initial} onSubmit={handleSubmit} submitLabel="Update Transaction" />
+      <TransactionForm
+        initial={initial}
+        onSubmit={handleSubmit}
+        submitLabel="Update Transaction"
+        enableAutoSuggestions={false}
+      />
     </div>
   );
 }

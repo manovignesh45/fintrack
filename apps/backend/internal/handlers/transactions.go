@@ -351,6 +351,91 @@ func (h *TransactionHandler) Get(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, t)
 }
 
+func (h *TransactionHandler) GetSuggestions(w http.ResponseWriter, r *http.Request) {
+	ledgerID, err := GetLedgerID(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	search := strings.TrimSpace(r.URL.Query().Get("q"))
+
+	query := `
+		WITH ranked AS (
+			SELECT
+				t.title,
+				t.nature,
+				sc.category_id,
+				t.sub_category_id,
+				t.payment_method_id,
+				t.transaction_date,
+				t.created_at,
+				COUNT(*) OVER (PARTITION BY LOWER(TRIM(t.title))) AS frequency,
+				ROW_NUMBER() OVER (
+					PARTITION BY LOWER(TRIM(t.title))
+					ORDER BY t.transaction_date DESC, t.created_at DESC
+				) AS rn
+			FROM transactions t
+			LEFT JOIN sub_categories sc ON sc.id = t.sub_category_id
+			WHERE t.ledger_id = $1 AND TRIM(t.title) != ''`
+	args := []interface{}{ledgerID}
+
+	if search != "" {
+		query += " AND t.title ILIKE '%' || $2 || '%'"
+		args = append(args, search)
+	}
+
+	query += `
+		)
+		SELECT
+			title,
+			nature,
+			category_id,
+			sub_category_id,
+			payment_method_id,
+			frequency,
+			transaction_date
+		FROM ranked
+		WHERE rn = 1
+		ORDER BY frequency DESC, transaction_date DESC
+		LIMIT 50`
+
+	rows, err := h.db.Query(r.Context(), query, args...)
+	if err != nil {
+		writeInternalError(w, err, "Failed to fetch suggestions")
+		return
+	}
+	defer rows.Close()
+
+	suggestions := make([]models.TransactionSuggestion, 0)
+	for rows.Next() {
+		var s models.TransactionSuggestion
+		var categoryID, subCategoryID, paymentMethodID *int
+		var txDate time.Time
+
+		if err := rows.Scan(
+			&s.Title,
+			&s.Nature,
+			&categoryID,
+			&subCategoryID,
+			&paymentMethodID,
+			&s.Frequency,
+			&txDate,
+		); err != nil {
+			writeInternalError(w, err, "Failed to scan suggestion")
+			return
+		}
+
+		s.CategoryID = categoryID
+		s.SubCategoryID = subCategoryID
+		s.PaymentMethodID = paymentMethodID
+		s.LastUsed = txDate.Format("2006-01-02")
+		suggestions = append(suggestions, s)
+	}
+
+	writeJSON(w, http.StatusOK, suggestions)
+}
+
 func (h *TransactionHandler) Create(w http.ResponseWriter, r *http.Request) {
 	ledgerID, err := GetLedgerID(r)
 	if err != nil {

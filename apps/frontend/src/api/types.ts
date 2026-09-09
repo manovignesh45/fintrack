@@ -9,6 +9,7 @@ export type {
   SubCategory,
   Transaction,
   TransactionTemplate,
+  TransactionSuggestion,
   TallyResponse,
   SummaryResponse,
   CategoryBreakdown,

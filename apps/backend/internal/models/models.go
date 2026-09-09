@@ -315,3 +315,14 @@ type TransactionFilter struct {
 	Page      int
 	PerPage   int
 }
+
+type TransactionSuggestion struct {
+	Title           string   `json:"title"`
+	Nature          TxNature `json:"nature"`
+	CategoryID      *int     `json:"category_id,omitempty"`
+	SubCategoryID   *int     `json:"sub_category_id,omitempty"`
+	PaymentMethodID *int     `json:"payment_method_id,omitempty"`
+	Frequency       int      `json:"frequency"`
+	LastUsed        string   `json:"last_used"`
+}
+

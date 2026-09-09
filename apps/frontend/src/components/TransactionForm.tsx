@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { accountsApi, categoriesApi, paymentMethodsApi } from '../api/client';
-import type { Account, Category, TxNature, PaymentMethod } from '../api/types';
+import { accountsApi, categoriesApi, paymentMethodsApi, transactionsApi } from '../api/client';
+import type { Account, Category, TxNature, PaymentMethod, TransactionSuggestion } from '../api/types';
 import { NATURES } from '../api/types';
 import { useAuth } from '../context/AuthContext';
+import { useCachedList } from '../hooks/useCachedList';
+import MerchantAutocomplete from './MerchantAutocomplete';
 
 export interface TransactionFormData {
   title: string;
@@ -37,11 +39,12 @@ interface Props {
   initial?: TransactionFormData;
   onSubmit: (data: TransactionFormData) => Promise<void>;
   submitLabel: string;
+  enableAutoSuggestions?: boolean;
 }
 
 export { emptyForm };
 
-export default function TransactionForm({ initial, onSubmit, submitLabel }: Props) {
+export default function TransactionForm({ initial, onSubmit, submitLabel, enableAutoSuggestions = true }: Props) {
   const { editMode } = useAuth();
   const [form, setForm] = useState<TransactionFormData>(initial ?? emptyForm());
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -50,6 +53,142 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  // Auto-suggestion state tracking
+  const autoFillingRef = useRef(false);
+  const [userTouchedCategory, setUserTouchedCategory] = useState(false);
+  const [userTouchedPaymentMethod, setUserTouchedPaymentMethod] = useState(false);
+  const [autoFillNotice, setAutoFillNotice] = useState<{
+    merchant: string;
+    categoryName?: string;
+    subCategoryName?: string;
+    paymentMethodName?: string;
+    prev: {
+      nature: TxNature;
+      categoryId: string;
+      subCategoryId: string;
+      paymentMethodId: string;
+    };
+  } | null>(null);
+
+  // Suggestions list with offline localStorage caching for PWA
+  const { data: suggestions } = useCachedList<TransactionSuggestion[]>(
+    'transaction-suggestions',
+    async () => {
+      if (!enableAutoSuggestions) return [];
+      try {
+        const fetched = await transactionsApi.suggestions();
+        if (fetched && fetched.length > 0) {
+          localStorage.setItem('fintrack_suggestions', JSON.stringify(fetched));
+        }
+        return fetched || [];
+      } catch {
+        const stored = localStorage.getItem('fintrack_suggestions');
+        if (stored) {
+          try {
+            return JSON.parse(stored) as TransactionSuggestion[];
+          } catch {
+            return [];
+          }
+        }
+        return [];
+      }
+    },
+    (() => {
+      try {
+        const stored = localStorage.getItem('fintrack_suggestions');
+        return stored ? (JSON.parse(stored) as TransactionSuggestion[]) : [];
+      } catch {
+        return [];
+      }
+    })()
+  );
+
+  const handleSelectSuggestion = (s: TransactionSuggestion, isExplicit = false) => {
+    const shouldFillCategory = isExplicit || !userTouchedCategory;
+    const shouldFillPayment = isExplicit || !userTouchedPaymentMethod;
+
+    if (!shouldFillCategory && !shouldFillPayment && !isExplicit) {
+      return;
+    }
+
+    const prev = {
+      nature: form.nature,
+      categoryId: selectedCategoryId,
+      subCategoryId: form.sub_category_id,
+      paymentMethodId: form.payment_method_id,
+    };
+
+    autoFillingRef.current = true;
+
+    let targetCategoryId = selectedCategoryId;
+    let targetSubCategoryId = form.sub_category_id;
+    let targetPaymentMethodId = form.payment_method_id;
+    let targetNature = form.nature;
+
+    if (s.nature && s.nature !== form.nature) {
+      targetNature = s.nature;
+    }
+
+    if (shouldFillCategory) {
+      if (s.category_id) {
+        targetCategoryId = s.category_id.toString();
+      }
+      if (s.sub_category_id) {
+        targetSubCategoryId = s.sub_category_id.toString();
+        if (!s.category_id) {
+          const matchedCategory = categories.find((c) =>
+            c.sub_categories?.some((sc) => sc.id === s.sub_category_id)
+          );
+          if (matchedCategory) {
+            targetCategoryId = matchedCategory.id.toString();
+          }
+        }
+      } else if (!s.category_id) {
+        targetSubCategoryId = '';
+      }
+    }
+
+    if (shouldFillPayment) {
+      if (s.payment_method_id) {
+        targetPaymentMethodId = s.payment_method_id.toString();
+      }
+    }
+
+    setSelectedCategoryId(targetCategoryId);
+    setForm((f) => ({
+      ...f,
+      title: s.title,
+      nature: targetNature,
+      sub_category_id: targetSubCategoryId,
+      payment_method_id: targetPaymentMethodId,
+    }));
+
+    const cat = categories.find((c) => c.id.toString() === targetCategoryId);
+    const subCat = cat?.sub_categories?.find((sc) => sc.id.toString() === targetSubCategoryId);
+    const pm = paymentMethods.find((p) => p.id.toString() === targetPaymentMethodId);
+
+    setAutoFillNotice({
+      merchant: s.title,
+      categoryName: cat?.name,
+      subCategoryName: subCat?.name,
+      paymentMethodName: pm?.name,
+      prev,
+    });
+  };
+
+  const handleUndoAutoFill = () => {
+    if (!autoFillNotice) return;
+    const { prev } = autoFillNotice;
+    setSelectedCategoryId(prev.categoryId);
+    setForm((f) => ({
+      ...f,
+      nature: prev.nature,
+      sub_category_id: prev.subCategoryId,
+      payment_method_id: prev.paymentMethodId,
+    }));
+    setAutoFillNotice(null);
+  };
 
   // Custom Prompt Modal State
   const [promptConfig, setPromptConfig] = useState<{
@@ -71,6 +210,9 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
 
   useEffect(() => {
     categoriesApi.list({ nature: form.nature }).then((data) => setCategories(data || [])).catch(() => setCategories([]));
+    if (autoFillingRef.current) {
+      return;
+    }
     // Reset category and sub-category ONLY if nature actually changes from what was in initial
     // This allows pre-population of categories when using templates or editing
     setForm((f) => {
@@ -119,6 +261,10 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
 
   // Clear irrelevant fields when nature changes
   useEffect(() => {
+    if (autoFillingRef.current) {
+      autoFillingRef.current = false;
+      return;
+    }
     // Check if this nature change is actually a "reset" or part of the initial load from template/edit
     if (initial?.nature === form.nature && initial?.sub_category_id === form.sub_category_id) {
       return; 
@@ -161,6 +307,8 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
   const availableSubCategories = selectedCategory?.sub_categories ?? [];
 
   const handleCategoryChange = (categoryId: string) => {
+    setUserTouchedCategory(true);
+    setAutoFillNotice(null);
     setSelectedCategoryId(categoryId);
     // Reset sub-category when category changes
     set('sub_category_id', '');
@@ -223,7 +371,12 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
             <button
               key={n}
               type="button"
-              onClick={() => set('nature', n)}
+              onClick={() => {
+                setUserTouchedCategory(false);
+                setUserTouchedPaymentMethod(false);
+                setAutoFillNotice(null);
+                set('nature', n);
+              }}
               className={`py-2 rounded-lg text-xs font-medium ${
                 form.nature === n ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400'
               }`}
@@ -234,18 +387,36 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
         </div>
       </div>
 
-      {/* Title */}
-      <div>
-        <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Title *</label>
-        <input
-          type="text"
-          placeholder="e.g. Groceries, Salary"
+      {/* Title with Smart Auto-Suggestions */}
+      {enableAutoSuggestions ? (
+        <MerchantAutocomplete
           value={form.title}
-          onChange={(e) => set('title', e.target.value)}
-          required
-          className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none dark:bg-gray-800 dark:text-white"
+          onChange={(val) => {
+            set('title', val);
+            if (autoFillNotice && val.trim().toLowerCase() !== autoFillNotice.merchant.toLowerCase()) {
+              setAutoFillNotice(null);
+            }
+          }}
+          onSelectSuggestion={handleSelectSuggestion}
+          suggestions={suggestions}
+          categories={categories}
+          paymentMethods={paymentMethods}
+          autoFillNotice={autoFillNotice}
+          onUndoAutoFill={handleUndoAutoFill}
         />
-      </div>
+      ) : (
+        <div>
+          <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Title *</label>
+          <input
+            type="text"
+            placeholder="e.g. Groceries, Salary"
+            value={form.title}
+            onChange={(e) => set('title', e.target.value)}
+            required
+            className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none dark:bg-gray-800 dark:text-white"
+          />
+        </div>
+      )}
 
       {/* Loan Account - shown for EMI_PAYMENT and LOAN_DISBURSEMENT natures */}
       {(form.nature === 'EMI_PAYMENT' || form.nature === 'LOAN_DISBURSEMENT') && (
@@ -372,7 +543,11 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
             </div>
             <select
               value={form.sub_category_id}
-              onChange={(e) => set('sub_category_id', e.target.value)}
+              onChange={(e) => {
+                setUserTouchedCategory(true);
+                setAutoFillNotice(null);
+                set('sub_category_id', e.target.value);
+              }}
               disabled={!selectedCategoryId}
               className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-800 disabled:bg-gray-100 dark:disabled:bg-gray-700 dark:disabled:text-gray-400 dark:bg-gray-700 disabled:cursor-not-allowed dark:text-white"
             >
@@ -400,7 +575,11 @@ export default function TransactionForm({ initial, onSubmit, submitLabel }: Prop
           </div>
           <select
             value={form.payment_method_id}
-            onChange={(e) => set('payment_method_id', e.target.value)}
+            onChange={(e) => {
+              setUserTouchedPaymentMethod(true);
+              setAutoFillNotice(null);
+              set('payment_method_id', e.target.value);
+            }}
             className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none bg-white dark:bg-gray-800 dark:text-white"
           >
             <option value="">No payment method</option>

@@ -3,6 +3,7 @@ import type {
   Category,
   Transaction,
   TransactionTemplate,
+  TransactionSuggestion,
   TallyResponse,
   SummaryResponse,
   CategoryBreakdown,
@@ -195,6 +196,10 @@ export function createApiClient(config: ApiClientConfig) {
           .join('&');
       }
       return request<Transaction[]>(`/transactions${qs}`);
+    },
+    suggestions: (q?: string) => {
+      const qs = q ? `?q=${encodeURIComponent(q)}` : '';
+      return request<TransactionSuggestion[]>(`/transactions/suggestions${qs}`);
     },
     get: (id: number) => request<Transaction>(`/transactions/${id}`),
     create: (data: Omit<Transaction, 'id' | 'created_at' | 'ledger_id'>) =>

@@ -92,6 +92,17 @@ export interface TransactionTemplate {
   created_at: string;
 }
 
+export interface TransactionSuggestion {
+  title: string;
+  nature: TxNature;
+  category_id?: number;
+  sub_category_id?: number;
+  payment_method_id?: number;
+  frequency: number;
+  last_used: string;
+}
+
+
 export type CommitmentStatusValue = 'PAID' | 'DUE' | 'INACTIVE';
 
 /** A fixed obligation that recurs every month (EMI, bill, subscription, chit fund). */
