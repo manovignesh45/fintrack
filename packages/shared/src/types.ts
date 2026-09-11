@@ -60,6 +60,14 @@ export interface PaymentMethod {
   created_at: string;
 }
 
+export interface Tag {
+  id: number;
+  ledger_id: number;
+  name: string;
+  color?: string;
+  created_at: string;
+}
+
 export interface Transaction {
   id: number;
   ledger_id: number;
@@ -74,6 +82,9 @@ export interface Transaction {
   principal_amount: number;
   interest_amount: number;
   transaction_date: string;
+  warranty_until?: string;
+  warranty_notes?: string;
+  tags?: Tag[];
   created_at: string;
 }
 
@@ -238,6 +249,9 @@ export interface TransactionFormData {
   principal_amount: string;
   interest_amount: string;
   transaction_date: string;
+  warranty_until?: string;
+  warranty_notes?: string;
+  tag_ids?: number[];
 }
 
 export interface FilterState {
@@ -248,4 +262,5 @@ export interface FilterState {
   date_from: string;
   date_to: string;
   datePreset: string;
+  tag_id?: string;
 }

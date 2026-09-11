@@ -28,6 +28,9 @@ export default function EditTransactionPage() {
           principal_amount: t.principal_amount.toString(),
           interest_amount: t.interest_amount.toString(),
           transaction_date: t.transaction_date,
+          warranty_until: t.warranty_until ?? '',
+          warranty_notes: t.warranty_notes ?? '',
+          tag_ids: t.tags ? t.tags.map((tg) => tg.id) : [],
         });
       })
       .catch(() => navigate('/'))
@@ -48,6 +51,9 @@ export default function EditTransactionPage() {
       principal_amount: parseFloat(form.principal_amount) || 0,
       interest_amount: parseFloat(form.interest_amount) || 0,
       transaction_date: form.transaction_date,
+      warranty_until: form.warranty_until || undefined,
+      warranty_notes: form.warranty_notes || undefined,
+      tag_ids: form.tag_ids || [],
     });
     invalidateCache('transaction');
     navigate('/');

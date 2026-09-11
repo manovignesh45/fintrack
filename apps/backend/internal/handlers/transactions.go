@@ -37,7 +37,7 @@ func (h *TransactionHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	query := `SELECT id, ledger_id, title, amount, nature, source_account_id,
 		target_account_id, sub_category_id, payment_method_id,
-		notes, principal_amount, interest_amount, transaction_date, created_at
+		notes, principal_amount, interest_amount, transaction_date, warranty_until, warranty_notes, created_at
 		FROM transactions WHERE ledger_id = $1`
 	args := []interface{}{ledgerID}
 	argIdx := 2
@@ -72,8 +72,15 @@ func (h *TransactionHandler) List(w http.ResponseWriter, r *http.Request) {
 		args = append(args, v)
 		argIdx++
 	}
+	if v := q.Get("tag_id"); v != "" {
+		if tagID, err := strconv.Atoi(v); err == nil {
+			query += fmt.Sprintf(" AND id IN (SELECT transaction_id FROM transaction_tags WHERE tag_id = $%d)", argIdx)
+			args = append(args, tagID)
+			argIdx++
+		}
+	}
 	if v := q.Get("search"); v != "" {
-		query += fmt.Sprintf(" AND (LOWER(title) LIKE LOWER('%%' || $%d || '%%') OR LOWER(COALESCE(notes, '')) LIKE LOWER('%%' || $%d || '%%'))", argIdx, argIdx)
+		query += fmt.Sprintf(" AND (LOWER(title) LIKE LOWER('%%' || $%d || '%%') OR LOWER(COALESCE(notes, '')) LIKE LOWER('%%' || $%d || '%%') OR LOWER(COALESCE(warranty_notes, '')) LIKE LOWER('%%' || $%d || '%%'))", argIdx, argIdx, argIdx)
 		args = append(args, v)
 		argIdx++
 	}
@@ -112,6 +119,38 @@ func (h *TransactionHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	if transactions == nil {
 		transactions = []models.Transaction{}
+	}
+
+	// Batch load tags for returned transactions
+	if len(transactions) > 0 {
+		txIDs := make([]int, len(transactions))
+		for i, t := range transactions {
+			txIDs[i] = t.ID
+		}
+		tagRows, err := h.db.Query(r.Context(),
+			`SELECT tt.transaction_id, tg.id, tg.ledger_id, tg.name, tg.color, tg.created_at
+			 FROM transaction_tags tt
+			 JOIN tags tg ON tg.id = tt.tag_id
+			 WHERE tt.transaction_id = ANY($1)
+			 ORDER BY tg.name ASC`, txIDs)
+		if err == nil {
+			defer tagRows.Close()
+			txTagsMap := make(map[int][]models.Tag)
+			for tagRows.Next() {
+				var txID int
+				var tag models.Tag
+				if err := tagRows.Scan(&txID, &tag.ID, &tag.LedgerID, &tag.Name, &tag.Color, &tag.CreatedAt); err == nil {
+					txTagsMap[txID] = append(txTagsMap[txID], tag)
+				}
+			}
+			for i := range transactions {
+				if tags, ok := txTagsMap[transactions[i].ID]; ok {
+					transactions[i].Tags = tags
+				} else {
+					transactions[i].Tags = []models.Tag{}
+				}
+			}
+		}
 	}
 
 	writeJSON(w, http.StatusOK, transactions)
@@ -339,13 +378,30 @@ func (h *TransactionHandler) Get(w http.ResponseWriter, r *http.Request) {
 	row := h.db.QueryRow(r.Context(),
 		`SELECT id, ledger_id, title, amount, nature, source_account_id,
 			target_account_id, sub_category_id, payment_method_id,
-			notes, principal_amount, interest_amount, transaction_date, created_at
+			notes, principal_amount, interest_amount, transaction_date, warranty_until, warranty_notes, created_at
 		 FROM transactions WHERE id = $1 AND ledger_id = $2`, id, ledgerID)
 
 	t, err := scanTransactionRow(row)
 	if err != nil {
 		writeError(w, http.StatusNotFound, "Transaction not found")
 		return
+	}
+
+	t.Tags = make([]models.Tag, 0)
+	tagRows, err := h.db.Query(r.Context(),
+		`SELECT tg.id, tg.ledger_id, tg.name, tg.color, tg.created_at
+		 FROM transaction_tags tt
+		 JOIN tags tg ON tg.id = tt.tag_id
+		 WHERE tt.transaction_id = $1
+		 ORDER BY tg.name ASC`, t.ID)
+	if err == nil {
+		defer tagRows.Close()
+		for tagRows.Next() {
+			var tag models.Tag
+			if err := tagRows.Scan(&tag.ID, &tag.LedgerID, &tag.Name, &tag.Color, &tag.CreatedAt); err == nil {
+				t.Tags = append(t.Tags, tag)
+			}
+		}
 	}
 
 	writeJSON(w, http.StatusOK, t)
@@ -574,19 +630,28 @@ func (h *TransactionHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var t models.Transaction
 	row := tx.QueryRow(r.Context(),
 		`INSERT INTO transactions (ledger_id, title, amount, nature, source_account_id, target_account_id,
-			sub_category_id, payment_method_id, notes, principal_amount, interest_amount, transaction_date)
-		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+			sub_category_id, payment_method_id, notes, principal_amount, interest_amount, transaction_date,
+			warranty_until, warranty_notes)
+		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
 		 RETURNING id, ledger_id, title, amount, nature, source_account_id, target_account_id,
 			sub_category_id, payment_method_id, notes, principal_amount, interest_amount,
-			transaction_date, created_at`,
+			transaction_date, warranty_until, warranty_notes, created_at`,
 		ledgerID, req.Title, req.Amount, req.Nature, req.SourceAccountID, req.TargetAccountID,
 		req.SubCategoryID, req.PaymentMethodID, nilIfEmpty(req.Notes),
 		req.PrincipalAmount, req.InterestAmount, req.TransactionDate,
+		req.WarrantyUntil, nilIfEmpty(req.WarrantyNotes),
 	)
 	t, err = scanTransactionRow(row)
 	if err != nil {
 		writeInternalError(w, err, "Failed to create transaction: " + err.Error())
 		return
+	}
+
+	// Insert transaction tags
+	for _, tagID := range req.TagIDs {
+		if tagID > 0 {
+			_, _ = tx.Exec(r.Context(), "INSERT INTO transaction_tags (transaction_id, tag_id) VALUES ($1, $2) ON CONFLICT DO NOTHING", t.ID, tagID)
+		}
 	}
 
 	// Apply balance changes
@@ -598,6 +663,25 @@ func (h *TransactionHandler) Create(w http.ResponseWriter, r *http.Request) {
 	if err := tx.Commit(r.Context()); err != nil {
 		writeInternalError(w, err, "Failed to commit transaction")
 		return
+	}
+
+	// Load tags for response
+	if len(req.TagIDs) > 0 {
+		tagRows, err := h.db.Query(r.Context(),
+			`SELECT tg.id, tg.ledger_id, tg.name, tg.color, tg.created_at
+			 FROM transaction_tags tt
+			 JOIN tags tg ON tg.id = tt.tag_id
+			 WHERE tt.transaction_id = $1
+			 ORDER BY tg.name ASC`, t.ID)
+		if err == nil {
+			defer tagRows.Close()
+			for tagRows.Next() {
+				var tag models.Tag
+				if err := tagRows.Scan(&tag.ID, &tag.LedgerID, &tag.Name, &tag.Color, &tag.CreatedAt); err == nil {
+					t.Tags = append(t.Tags, tag)
+				}
+			}
+		}
 	}
 
 	writeJSON(w, http.StatusCreated, t)
@@ -647,7 +731,7 @@ func (h *TransactionHandler) Update(w http.ResponseWriter, r *http.Request) {
 	row := tx.QueryRow(r.Context(),
 		`SELECT id, ledger_id, title, amount, nature, source_account_id,
 			target_account_id, sub_category_id, payment_method_id,
-			notes, principal_amount, interest_amount, transaction_date, created_at
+			notes, principal_amount, interest_amount, transaction_date, warranty_until, warranty_notes, created_at
 		 FROM transactions WHERE id = $1 AND ledger_id = $2 FOR UPDATE`, id, ledgerID)
 	old, err := scanTransactionRow(row)
 	if err != nil {
@@ -666,19 +750,29 @@ func (h *TransactionHandler) Update(w http.ResponseWriter, r *http.Request) {
 	updateRow := tx.QueryRow(r.Context(),
 		`UPDATE transactions SET title=$1, amount=$2, nature=$3, source_account_id=$4,
 			target_account_id=$5, sub_category_id=$6, payment_method_id=$7,
-			notes=$8, principal_amount=$9, interest_amount=$10, transaction_date=$11
-		 WHERE id=$12 AND ledger_id=$13
+			notes=$8, principal_amount=$9, interest_amount=$10, transaction_date=$11,
+			warranty_until=$12, warranty_notes=$13
+		 WHERE id=$14 AND ledger_id=$15
 		 RETURNING id, ledger_id, title, amount, nature, source_account_id, target_account_id,
 			sub_category_id, payment_method_id, notes, principal_amount, interest_amount,
-			transaction_date, created_at`,
+			transaction_date, warranty_until, warranty_notes, created_at`,
 		req.Title, req.Amount, req.Nature, req.SourceAccountID, req.TargetAccountID,
 		req.SubCategoryID, req.PaymentMethodID, nilIfEmpty(req.Notes),
-		req.PrincipalAmount, req.InterestAmount, req.TransactionDate, id, ledgerID,
+		req.PrincipalAmount, req.InterestAmount, req.TransactionDate,
+		req.WarrantyUntil, nilIfEmpty(req.WarrantyNotes), id, ledgerID,
 	)
 	t, err = scanTransactionRow(updateRow)
 	if err != nil {
 		writeInternalError(w, err, "Failed to update transaction")
 		return
+	}
+
+	// Sync transaction tags
+	_, _ = tx.Exec(r.Context(), "DELETE FROM transaction_tags WHERE transaction_id = $1", t.ID)
+	for _, tagID := range req.TagIDs {
+		if tagID > 0 {
+			_, _ = tx.Exec(r.Context(), "INSERT INTO transaction_tags (transaction_id, tag_id) VALUES ($1, $2) ON CONFLICT DO NOTHING", t.ID, tagID)
+		}
 	}
 
 	// Apply new balance changes
@@ -690,6 +784,25 @@ func (h *TransactionHandler) Update(w http.ResponseWriter, r *http.Request) {
 	if err := tx.Commit(r.Context()); err != nil {
 		writeInternalError(w, err, "Failed to commit transaction")
 		return
+	}
+
+	// Load tags for response
+	if len(req.TagIDs) > 0 {
+		tagRows, err := h.db.Query(r.Context(),
+			`SELECT tg.id, tg.ledger_id, tg.name, tg.color, tg.created_at
+			 FROM transaction_tags tt
+			 JOIN tags tg ON tg.id = tt.tag_id
+			 WHERE tt.transaction_id = $1
+			 ORDER BY tg.name ASC`, t.ID)
+		if err == nil {
+			defer tagRows.Close()
+			for tagRows.Next() {
+				var tag models.Tag
+				if err := tagRows.Scan(&tag.ID, &tag.LedgerID, &tag.Name, &tag.Color, &tag.CreatedAt); err == nil {
+					t.Tags = append(t.Tags, tag)
+				}
+			}
+		}
 	}
 
 	writeJSON(w, http.StatusOK, t)
@@ -719,7 +832,7 @@ func (h *TransactionHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	row := tx.QueryRow(r.Context(),
 		`SELECT id, ledger_id, title, amount, nature, source_account_id,
 			target_account_id, sub_category_id, payment_method_id,
-			notes, principal_amount, interest_amount, transaction_date, created_at
+			notes, principal_amount, interest_amount, transaction_date, warranty_until, warranty_notes, created_at
 		 FROM transactions WHERE id = $1 AND ledger_id = $2 FOR UPDATE`, id, ledgerID)
 	old, err := scanTransactionRow(row)
 	if err != nil {
@@ -875,16 +988,26 @@ func scanTransaction(rows pgx.Rows) (models.Transaction, error) {
 	var t models.Transaction
 	var paymentMethodID *int
 	var notes *string
+	var warrantyUntil *time.Time
+	var warrantyNotes *string
 	var txDate time.Time
 	err := rows.Scan(&t.ID, &t.LedgerID, &t.Title, &t.Amount, &t.Nature, &t.SourceAccountID,
 		&t.TargetAccountID, &t.SubCategoryID, &paymentMethodID,
-		&notes, &t.PrincipalAmount, &t.InterestAmount, &txDate, &t.CreatedAt)
+		&notes, &t.PrincipalAmount, &t.InterestAmount, &txDate, &warrantyUntil, &warrantyNotes, &t.CreatedAt)
 	if paymentMethodID != nil {
 		t.PaymentMethodID = paymentMethodID
 	}
 	if notes != nil {
 		t.Notes = *notes
 	}
+	if warrantyUntil != nil {
+		wu := warrantyUntil.Format("2006-01-02")
+		t.WarrantyUntil = &wu
+	}
+	if warrantyNotes != nil {
+		t.WarrantyNotes = *warrantyNotes
+	}
+	t.Tags = []models.Tag{}
 	t.TransactionDate = txDate.Format("2006-01-02")
 	return t, err
 }
@@ -893,16 +1016,26 @@ func scanTransactionRow(row pgx.Row) (models.Transaction, error) {
 	var t models.Transaction
 	var paymentMethodID *int
 	var notes *string
+	var warrantyUntil *time.Time
+	var warrantyNotes *string
 	var txDate time.Time
 	err := row.Scan(&t.ID, &t.LedgerID, &t.Title, &t.Amount, &t.Nature, &t.SourceAccountID,
 		&t.TargetAccountID, &t.SubCategoryID, &paymentMethodID,
-		&notes, &t.PrincipalAmount, &t.InterestAmount, &txDate, &t.CreatedAt)
+		&notes, &t.PrincipalAmount, &t.InterestAmount, &txDate, &warrantyUntil, &warrantyNotes, &t.CreatedAt)
 	if paymentMethodID != nil {
 		t.PaymentMethodID = paymentMethodID
 	}
 	if notes != nil {
 		t.Notes = *notes
 	}
+	if warrantyUntil != nil {
+		wu := warrantyUntil.Format("2006-01-02")
+		t.WarrantyUntil = &wu
+	}
+	if warrantyNotes != nil {
+		t.WarrantyNotes = *warrantyNotes
+	}
+	t.Tags = []models.Tag{}
 	t.TransactionDate = txDate.Format("2006-01-02")
 	return t, err
 }

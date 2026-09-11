@@ -53,6 +53,14 @@ type PaymentMethod struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+type Tag struct {
+	ID        int       `json:"id"`
+	LedgerID  int       `json:"ledger_id"`
+	Name      string    `json:"name"`
+	Color     *string   `json:"color,omitempty"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
 type Transaction struct {
 	ID              int       `json:"id"`
 	LedgerID        int       `json:"ledger_id"`
@@ -67,6 +75,9 @@ type Transaction struct {
 	PrincipalAmount float64   `json:"principal_amount"`
 	InterestAmount  float64   `json:"interest_amount"`
 	TransactionDate string    `json:"transaction_date"`
+	WarrantyUntil   *string   `json:"warranty_until,omitempty"`
+	WarrantyNotes   string    `json:"warranty_notes,omitempty"`
+	Tags            []Tag     `json:"tags,omitempty"`
 	CreatedAt       time.Time `json:"created_at"`
 }
 
@@ -218,6 +229,11 @@ type UpdatePaymentMethodReq struct {
 	Name string `json:"name"`
 }
 
+type CreateTagReq struct {
+	Name  string  `json:"name"`
+	Color *string `json:"color,omitempty"`
+}
+
 type CreateTransactionReq struct {
 	Title           string   `json:"title"`
 	Amount          float64  `json:"amount"`
@@ -230,6 +246,9 @@ type CreateTransactionReq struct {
 	PrincipalAmount float64  `json:"principal_amount"`
 	InterestAmount  float64  `json:"interest_amount"`
 	TransactionDate string   `json:"transaction_date"`
+	WarrantyUntil   *string  `json:"warranty_until,omitempty"`
+	WarrantyNotes   string   `json:"warranty_notes,omitempty"`
+	TagIDs          []int    `json:"tag_ids,omitempty"`
 }
 
 type UpdateTransactionReq = CreateTransactionReq

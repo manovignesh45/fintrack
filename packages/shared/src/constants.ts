@@ -78,11 +78,12 @@ export const DEFAULT_FILTERS: FilterState = {
   date_from: getPresetDates('thismonth').date_from,
   date_to: getPresetDates('thismonth').date_to,
   datePreset: 'thismonth',
+  tag_id: '',
 };
 
 export function countActiveFilters(f: FilterState): number {
   const dateActive = f.datePreset && (f.datePreset !== 'custom' || f.date_from || f.date_to) ? 1 : 0;
-  return [f.search, f.nature, f.category_id, f.sub_category_id].filter(Boolean).length + dateActive;
+  return [f.search, f.nature, f.category_id, f.sub_category_id, f.tag_id].filter(Boolean).length + dateActive;
 }
 
 export function emptyTransactionForm(): {
@@ -97,6 +98,9 @@ export function emptyTransactionForm(): {
   principal_amount: string;
   interest_amount: string;
   transaction_date: string;
+  warranty_until?: string;
+  warranty_notes?: string;
+  tag_ids?: number[];
 } {
   return {
     title: '',
@@ -110,5 +114,8 @@ export function emptyTransactionForm(): {
     principal_amount: '0',
     interest_amount: '0',
     transaction_date: fmt(new Date()),
+    warranty_until: '',
+    warranty_notes: '',
+    tag_ids: [],
   };
 }

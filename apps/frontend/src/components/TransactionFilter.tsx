@@ -1,17 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { categoriesApi } from '../api/client';
-import type { Category, TxNature } from '../api/types';
+import { categoriesApi, tagsApi } from '../api/client';
+import type { Category, TxNature, Tag, FilterState } from '../api/types';
 
-export interface FilterState {
-  search: string;
-  nature: TxNature | '';
-  category_id: string;
-  sub_category_id: string;
-  date_from: string;
-  date_to: string;
-  datePreset: string;
-}
+export type { FilterState };
 
 export const DEFAULT_FILTERS: FilterState = {
   search: '',
@@ -21,11 +13,12 @@ export const DEFAULT_FILTERS: FilterState = {
   date_from: getPresetDates('thismonth').date_from,
   date_to: getPresetDates('thismonth').date_to,
   datePreset: 'thismonth',
+  tag_id: '',
 };
 
 export function countActiveFilters(f: FilterState): number {
   const dateActive = f.datePreset && (f.datePreset !== 'custom' || f.date_from || f.date_to) ? 1 : 0;
-  return [f.search, f.nature, f.category_id, f.sub_category_id].filter(Boolean).length + dateActive;
+  return [f.search, f.nature, f.category_id, f.sub_category_id, f.tag_id].filter(Boolean).length + dateActive;
 }
 
 export const DATE_PRESET_LABELS: Record<string, string> = {
@@ -114,6 +107,7 @@ interface Props {
 export default function TransactionFilter({ isOpen, filters, onApply, onClose }: Props) {
   const [draft, setDraft] = useState<FilterState>(filters);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [tags, setTags] = useState<Tag[]>([]);
   const [loadingCats, setLoadingCats] = useState(false);
   const loaded = useRef(false);
 
@@ -124,10 +118,12 @@ export default function TransactionFilter({ isOpen, filters, onApply, onClose }:
       if (!loaded.current) {
         loaded.current = true;
         setLoadingCats(true);
-        categoriesApi.list().then((data) => {
-          setCategories(data || []);
-        }).catch(() => {
-          setCategories([]);
+        Promise.all([
+          categoriesApi.list().catch(() => []),
+          tagsApi.list().catch(() => []),
+        ]).then(([cats, tagList]) => {
+          setCategories(cats || []);
+          setTags(tagList || []);
         }).finally(() => setLoadingCats(false));
       }
     }
@@ -295,6 +291,23 @@ export default function TransactionFilter({ isOpen, filters, onApply, onClose }:
               </option>
               {subCategories.map((s) => (
                 <option key={s.id} value={String(s.id)}>{s.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Tag Filter */}
+          <div>
+            <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Tag / Event</label>
+            <select
+              value={draft.tag_id || ''}
+              onChange={(e) => set('tag_id', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white dark:bg-gray-800 dark:text-white"
+            >
+              <option value="">All Tags</option>
+              {tags.map((t) => (
+                <option key={t.id} value={String(t.id)}>
+                  🏷️ {t.name}
+                </option>
               ))}
             </select>
           </div>

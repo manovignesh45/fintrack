@@ -19,6 +19,7 @@ export type {
   TransactionFormData,
   FilterState,
   PaymentMethod,
+  Tag,
   Commitment,
   CommitmentPayment,
   CommitmentStatus,

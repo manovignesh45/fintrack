@@ -49,6 +49,7 @@ func main() {
 	accountH := handlers.NewAccountHandler(pool)
 	categoryH := handlers.NewCategoryHandler(pool)
 	paymentMethodH := handlers.NewPaymentMethodHandler(pool)
+	tagH := handlers.NewTagHandler(pool)
 	transactionH := handlers.NewTransactionHandler(pool)
 	templateH := handlers.NewTemplateHandler(pool)
 	commitmentH := handlers.NewCommitmentHandler(pool)
@@ -135,6 +136,14 @@ func main() {
 					r.Post("/", paymentMethodH.Create)
 					r.Put("/{id}", paymentMethodH.Update)
 					r.Delete("/{id}", paymentMethodH.Delete)
+				})
+
+				// Tags
+				r.Route("/tags", func(r chi.Router) {
+					r.Get("/", tagH.List)
+					r.Get("/suggestions", tagH.GetSuggestions)
+					r.Post("/", tagH.Create)
+					r.Delete("/{id}", tagH.Delete)
 				})
 
 				// Transactions

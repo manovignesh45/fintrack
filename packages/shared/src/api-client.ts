@@ -18,6 +18,7 @@ import type {
   Commitment,
   CommitmentInput,
   PayCommitmentInput,
+  Tag,
 } from './types';
 
 export interface ApiClientConfig {
@@ -187,6 +188,18 @@ export function createApiClient(config: ApiClientConfig) {
       request<void>(`/payment-methods/${id}`, { method: 'DELETE' }),
   };
 
+  const tagsApi = {
+    list: () => request<Tag[]>('/tags'),
+    create: (data: { name: string; color?: string }) =>
+      request<Tag>('/tags', { method: 'POST', body: JSON.stringify(data) }),
+    delete: (id: number) =>
+      request<void>(`/tags/${id}`, { method: 'DELETE' }),
+    suggestions: (q?: string) => {
+      const qs = q ? `?q=${encodeURIComponent(q)}` : '';
+      return request<Tag[]>(`/tags/suggestions${qs}`);
+    },
+  };
+
   const transactionsApi = {
     list: (params?: Record<string, string>) => {
       let qs = '';
@@ -202,9 +215,9 @@ export function createApiClient(config: ApiClientConfig) {
       return request<TransactionSuggestion[]>(`/transactions/suggestions${qs}`);
     },
     get: (id: number) => request<Transaction>(`/transactions/${id}`),
-    create: (data: Omit<Transaction, 'id' | 'created_at' | 'ledger_id'>) =>
+    create: (data: Omit<Transaction, 'id' | 'created_at' | 'ledger_id' | 'tags'> & { tag_ids?: number[] }) =>
       request<Transaction>('/transactions', { method: 'POST', body: JSON.stringify(data) }),
-    update: (id: number, data: Omit<Transaction, 'id' | 'created_at' | 'ledger_id'>) =>
+    update: (id: number, data: Omit<Transaction, 'id' | 'created_at' | 'ledger_id' | 'tags'> & { tag_ids?: number[] }) =>
       request<Transaction>(`/transactions/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: number) =>
       request<void>(`/transactions/${id}`, { method: 'DELETE' }),
@@ -262,6 +275,7 @@ export function createApiClient(config: ApiClientConfig) {
     accountsApi,
     categoriesApi,
     paymentMethodsApi,
+    tagsApi,
     transactionsApi,
     templatesApi,
     commitmentsApi,

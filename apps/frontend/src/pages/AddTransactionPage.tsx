@@ -21,6 +21,9 @@ export default function AddTransactionPage() {
       principal_amount: parseFloat(form.principal_amount) || 0,
       interest_amount: parseFloat(form.interest_amount) || 0,
       transaction_date: form.transaction_date,
+      warranty_until: form.warranty_until || undefined,
+      warranty_notes: form.warranty_notes || undefined,
+      tag_ids: form.tag_ids || [],
     });
     invalidateCache('transaction');
     navigate('/');

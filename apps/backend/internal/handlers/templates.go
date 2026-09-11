@@ -195,7 +195,7 @@ func (h *TemplateHandler) Execute(w http.ResponseWriter, r *http.Request) {
 		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
 		 RETURNING id, ledger_id, title, amount, nature, source_account_id, target_account_id,
 			sub_category_id, payment_method_id, notes, principal_amount, interest_amount,
-			transaction_date, created_at`,
+			transaction_date, warranty_until, warranty_notes, created_at`,
 		ledgerID, req.Title, req.Amount, req.Nature, req.SourceAccountID, req.TargetAccountID,
 		req.SubCategoryID, req.PaymentMethodID, nil,
 		req.PrincipalAmount, req.InterestAmount, req.TransactionDate,

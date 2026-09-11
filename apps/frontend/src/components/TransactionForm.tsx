@@ -1,25 +1,14 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { accountsApi, categoriesApi, paymentMethodsApi, transactionsApi } from '../api/client';
-import type { Account, Category, TxNature, PaymentMethod, TransactionSuggestion } from '../api/types';
+import type { Account, Category, TxNature, PaymentMethod, TransactionSuggestion, TransactionFormData } from '../api/types';
 import { NATURES } from '../api/types';
 import { useAuth } from '../context/AuthContext';
 import { useCachedList } from '../hooks/useCachedList';
 import MerchantAutocomplete from './MerchantAutocomplete';
+import TagInput from './TagInput';
 
-export interface TransactionFormData {
-  title: string;
-  amount: string;
-  nature: TxNature;
-  source_account_id: string;
-  target_account_id: string;
-  sub_category_id: string;
-  payment_method_id: string;
-  notes: string;
-  principal_amount: string;
-  interest_amount: string;
-  transaction_date: string;
-}
+export type { TransactionFormData };
 
 const emptyForm = (): TransactionFormData => ({
   title: '',
@@ -33,6 +22,9 @@ const emptyForm = (): TransactionFormData => ({
   principal_amount: '0',
   interest_amount: '0',
   transaction_date: new Date().toISOString().split('T')[0],
+  warranty_until: '',
+  warranty_notes: '',
+  tag_ids: [],
 });
 
 interface Props {
@@ -53,6 +45,17 @@ export default function TransactionForm({ initial, onSubmit, submitLabel, enable
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [showWarranty, setShowWarranty] = useState(
+    Boolean(initial?.warranty_until || initial?.warranty_notes)
+  );
+
+  const addMonthsToDate = (months: number) => {
+    const base = form.transaction_date ? new Date(form.transaction_date + 'T00:00:00') : new Date();
+    base.setMonth(base.getMonth() + months);
+    const z = base.getTimezoneOffset() * 60 * 1000;
+    const local = new Date(base.getTime() - z);
+    set('warranty_until', local.toISOString().slice(0, 10));
+  };
 
   // Auto-suggestion state tracking
   const autoFillingRef = useRef(false);
@@ -730,6 +733,96 @@ export default function TransactionForm({ initial, onSubmit, submitLabel, enable
           className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none dark:bg-gray-800 dark:text-white"
         />
       </div>
+
+      {/* Warranty & Guarantee Collapsible (Zero friction: collapsed by default) */}
+      {form.nature === 'EXPENSE' && (
+        <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden bg-gray-50/50 dark:bg-gray-800/50 transition-all">
+          <button
+            type="button"
+            onClick={() => setShowWarranty(!showWarranty)}
+            className="w-full px-3.5 py-2.5 flex items-center justify-between text-left text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          >
+            <span className="flex items-center gap-1.5">
+              <span>🛡️</span>
+              <span>Warranty / Guarantee Tracking</span>
+              {form.warranty_until && (
+                <span className="ml-1 text-[10px] bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 px-1.5 py-0.5 rounded font-semibold">
+                  until {form.warranty_until}
+                </span>
+              )}
+            </span>
+            <span className="text-gray-400 text-xs">
+              {showWarranty ? '▲ Collapse' : '+ Add'}
+            </span>
+          </button>
+
+          {showWarranty && (
+            <div className="p-3.5 pt-1 space-y-3 border-t border-gray-200 dark:border-gray-700">
+              <div>
+                <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Quick duration presets</label>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { label: '6 Months', months: 6 },
+                    { label: '1 Year', months: 12 },
+                    { label: '2 Years', months: 24 },
+                    { label: '3 Years', months: 36 },
+                    { label: '5 Years', months: 60 },
+                  ].map((p) => (
+                    <button
+                      key={p.label}
+                      type="button"
+                      onClick={() => addMonthsToDate(p.months)}
+                      className="px-2.5 py-1 text-xs bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:border-blue-300 text-gray-700 dark:text-gray-200 font-medium transition-colors"
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                  {form.warranty_until && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        set('warranty_until', '');
+                        set('warranty_notes', '');
+                      }}
+                      className="px-2.5 py-1 text-xs text-red-500 hover:text-red-700 underline"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Warranty Expiry Date</label>
+                  <input
+                    type="date"
+                    value={form.warranty_until || ''}
+                    onChange={(e) => set('warranty_until', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 outline-none dark:bg-gray-800 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Warranty / Invoice Info</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Serial #, Bill #, 1 yr motor"
+                    value={form.warranty_notes || ''}
+                    onChange={(e) => set('warranty_notes', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-xs focus:ring-2 focus:ring-blue-500 outline-none dark:bg-gray-800 dark:text-white"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Tags / Event Grouping */}
+      <TagInput
+        selectedTagIds={form.tag_ids || []}
+        onChange={(ids) => setForm((f) => ({ ...f, tag_ids: ids }))}
+      />
 
       {/* Notes */}
       <div>
