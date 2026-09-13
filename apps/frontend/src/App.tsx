@@ -12,6 +12,7 @@ import ChartsPage from './pages/ChartsPage';
 import TallyPage from './pages/TallyPage';
 import TemplatesPage from './pages/TemplatesPage';
 import CreateTemplatePage from './pages/CreateTemplatePage';
+import EditTemplatePage from './pages/EditTemplatePage';
 import PaymentMethodsPage from './pages/PaymentMethodsPage';
 import CommitmentsPage from './pages/CommitmentsPage';
 import CommitmentFormPage from './pages/CommitmentFormPage';
@@ -369,6 +370,7 @@ function AppShell() {
                 <Route path="/tally" element={<ProtectedRoute><TallyPage /></ProtectedRoute>} />
                 <Route path="/templates" element={<ProtectedRoute><TemplatesPage /></ProtectedRoute>} />
                 <Route path="/templates/new" element={<ProtectedRoute><CreateTemplatePage /></ProtectedRoute>} />
+                <Route path="/templates/:id/edit" element={<ProtectedRoute><EditTemplatePage /></ProtectedRoute>} />
                 <Route path="/import" element={<ProtectedRoute><ImportPage /></ProtectedRoute>} />
                 <Route path="/payment-methods" element={<ProtectedRoute><PaymentMethodsPage /></ProtectedRoute>} />
                 <Route path="/commitments" element={<ProtectedRoute><CommitmentsPage /></ProtectedRoute>} />

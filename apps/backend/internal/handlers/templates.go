@@ -135,6 +135,101 @@ func (h *TemplateHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// Get returns a single template by ID
+func (h *TemplateHandler) Get(w http.ResponseWriter, r *http.Request) {
+	ledgerID, err := GetLedgerID(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "Invalid template ID")
+		return
+	}
+
+	var t models.TransactionTemplate
+	var pm *int
+	err = h.db.QueryRow(r.Context(),
+		`SELECT id, ledger_id, title, amount, nature, source_account_id, target_account_id,
+			sub_category_id, payment_method_id, principal_amount, interest_amount, created_at
+		 FROM transaction_templates WHERE id = $1 AND ledger_id = $2`, id, ledgerID).Scan(
+		&t.ID, &t.LedgerID, &t.Title, &t.Amount, &t.Nature, &t.SourceAccountID,
+		&t.TargetAccountID, &t.SubCategoryID, &pm,
+		&t.PrincipalAmount, &t.InterestAmount, &t.CreatedAt)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "Template not found")
+		return
+	}
+	if pm != nil {
+		t.PaymentMethodID = pm
+	}
+
+	writeJSON(w, http.StatusOK, t)
+}
+
+// Update modifies an existing template
+func (h *TemplateHandler) Update(w http.ResponseWriter, r *http.Request) {
+	ledgerID, err := GetLedgerID(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "Invalid template ID")
+		return
+	}
+
+	var req models.CreateTemplateReq
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	if req.Title == "" {
+		writeError(w, http.StatusBadRequest, "Title is required")
+		return
+	}
+
+	if req.SourceAccountID == 0 {
+		primaryID, err := getPrimaryAssetAccountID(r.Context(), h.db, ledgerID)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "source_account_id not provided and no primary asset account found")
+			return
+		}
+		req.SourceAccountID = primaryID
+	}
+
+	var t models.TransactionTemplate
+	var updatePM *int
+	err = h.db.QueryRow(r.Context(),
+		`UPDATE transaction_templates SET
+			title = $1, amount = $2, nature = $3, source_account_id = $4,
+			target_account_id = $5, sub_category_id = $6, payment_method_id = $7,
+			principal_amount = $8, interest_amount = $9
+		 WHERE id = $10 AND ledger_id = $11
+		 RETURNING id, ledger_id, title, amount, nature, source_account_id, target_account_id,
+			sub_category_id, payment_method_id, principal_amount, interest_amount, created_at`,
+		req.Title, req.Amount, req.Nature, req.SourceAccountID, req.TargetAccountID,
+		req.SubCategoryID, req.PaymentMethodID, req.PrincipalAmount, req.InterestAmount,
+		id, ledgerID).Scan(
+		&t.ID, &t.LedgerID, &t.Title, &t.Amount, &t.Nature, &t.SourceAccountID,
+		&t.TargetAccountID, &t.SubCategoryID, &updatePM,
+		&t.PrincipalAmount, &t.InterestAmount, &t.CreatedAt)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "Template not found")
+		return
+	}
+	if updatePM != nil {
+		t.PaymentMethodID = updatePM
+	}
+
+	writeJSON(w, http.StatusOK, t)
+}
+
 // Execute creates a transaction from a template
 func (h *TemplateHandler) Execute(w http.ResponseWriter, r *http.Request) {
 	ledgerID, err := GetLedgerID(r)

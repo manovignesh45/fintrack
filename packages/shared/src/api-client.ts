@@ -225,8 +225,11 @@ export function createApiClient(config: ApiClientConfig) {
 
   const templatesApi = {
     list: () => request<TransactionTemplate[]>('/templates'),
+    get: (id: number) => request<TransactionTemplate>(`/templates/${id}`),
     create: (data: Omit<TransactionTemplate, 'id' | 'created_at' | 'ledger_id'>) =>
       request<TransactionTemplate>('/templates', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: number, data: Omit<TransactionTemplate, 'id' | 'created_at' | 'ledger_id'>) =>
+      request<TransactionTemplate>(`/templates/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: number) =>
       request<void>(`/templates/${id}`, { method: 'DELETE' }),
     execute: (id: number) =>

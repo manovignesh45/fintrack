@@ -161,6 +161,8 @@ func main() {
 				r.Route("/templates", func(r chi.Router) {
 					r.Get("/", templateH.List)
 					r.Post("/", templateH.Create)
+					r.Get("/{id}", templateH.Get)
+					r.Put("/{id}", templateH.Update)
 					r.Delete("/{id}", templateH.Delete)
 					r.Post("/{id}/execute", templateH.Execute)
 				})
