@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { accountsApi, categoriesApi, commitmentsApi, paymentMethodsApi } from '../api/client';
+import { accountsApi, categoriesApi, commitmentsApi, paymentMethodsApi, transactionsApi } from '../api/client';
 import type { Account, Category, Commitment, PaymentMethod, TxNature } from '../api/types';
 import { invalidateCache } from '../hooks/useCachedList';
 
@@ -42,14 +42,14 @@ const emptyForm = (): FormState => ({
 
 const toForm = (c: Commitment): FormState => ({
   name: c.name,
-  amount: c.amount.toString(),
+  amount: (c.amount ?? 0).toString(),
   nature: c.nature,
-  due_day: c.due_day.toString(),
+  due_day: (c.due_day ?? 1).toString(),
   target_account_id: c.target_account_id?.toString() ?? '',
   sub_category_id: c.sub_category_id?.toString() ?? '',
   payment_method_id: c.payment_method_id?.toString() ?? '',
-  principal_amount: c.principal_amount.toString(),
-  interest_amount: c.interest_amount.toString(),
+  principal_amount: (c.principal_amount ?? 0).toString(),
+  interest_amount: (c.interest_amount ?? 0).toString(),
   notes: c.notes ?? '',
   is_active: c.is_active,
 });
@@ -77,21 +77,14 @@ export default function CommitmentFormPage() {
     categoriesApi.list({ nature: 'EXPENSE' }).then((d) => setCategories(d || [])).catch(() => setCategories([]));
   }, []);
 
-  // There is no GET /commitments/{id}; the month listing already carries every
-  // commitment for the ledger, so read the one being edited out of it.
   useEffect(() => {
     if (!id) return;
     commitmentsApi
-      .list()
-      .then((res) => {
-        const found = res?.items.find((i) => i.id === Number(id));
-        if (!found) {
-          setError('Commitment not found');
-          return;
-        }
-        setForm(toForm(found));
+      .get(Number(id))
+      .then((c) => {
+        setForm(toForm(c));
       })
-      .catch(() => setError('Failed to load commitment'))
+      .catch(() => setError('Commitment not found'))
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -110,19 +103,156 @@ export default function CommitmentFormPage() {
   );
 
   const isEmi = form.nature === 'EMI_PAYMENT';
-  // Mirrors TransactionForm: an EMI's total is the principal + interest split.
-  const emiTotal = parseFloat(form.principal_amount || '0') + parseFloat(form.interest_amount || '0');
   const selectedLoan = accounts.find((a) => a.id.toString() === form.target_account_id);
   const suggestedInterest =
     selectedLoan && selectedLoan.interest_rate > 0
       ? (selectedLoan.current_balance * selectedLoan.interest_rate) / 100 / 12
       : null;
 
+  const calculateInterest = (loan: Account | undefined) => {
+    if (!loan || loan.interest_rate <= 0) return 0;
+    return parseFloat(((loan.current_balance * loan.interest_rate) / 100 / 12).toFixed(2));
+  };
+
+  const handleLoanAccountChange = async (accountId: string) => {
+    const loan = accounts.find((a) => a.id.toString() === accountId);
+    if (!loan) {
+      setForm((f) => ({ ...f, target_account_id: '' }));
+      return;
+    }
+
+    const calculatedInterest = calculateInterest(loan);
+    const currTotal = parseFloat(form.amount) || 0;
+
+    // If a total amount was already typed (e.g. 2500):
+    if (currTotal > 0) {
+      const p = Math.max(0, parseFloat((currTotal - calculatedInterest).toFixed(2)));
+      setForm((f) => ({
+        ...f,
+        target_account_id: accountId,
+        interest_amount: calculatedInterest.toString(),
+        principal_amount: p.toString(),
+        amount: currTotal.toString(),
+      }));
+      return;
+    }
+
+    // If total amount is not set, try to find the latest EMI transaction for this loan to prefill the recurring EMI amount
+    let pastTotal = 0;
+    try {
+      const pastTx = await transactionsApi.list({ account_id: accountId, per_page: '5' });
+      const lastEmi = pastTx?.find((t) => t.nature === 'EMI_PAYMENT');
+      if (lastEmi && lastEmi.amount > 0) {
+        pastTotal = lastEmi.amount;
+      }
+    } catch {
+      // ignore
+    }
+
+    if (pastTotal > 0) {
+      const p = Math.max(0, parseFloat((pastTotal - calculatedInterest).toFixed(2)));
+      setForm((f) => ({
+        ...f,
+        target_account_id: accountId,
+        interest_amount: calculatedInterest.toString(),
+        principal_amount: p.toString(),
+        amount: pastTotal.toString(),
+      }));
+    } else {
+      // Default: interest filled from formula, principal is 0 (or balance if interest is 0)
+      const p = calculatedInterest === 0 ? loan.current_balance : 0;
+      const total = calculatedInterest > 0 ? calculatedInterest : p;
+      setForm((f) => ({
+        ...f,
+        target_account_id: accountId,
+        interest_amount: calculatedInterest.toString(),
+        principal_amount: p.toString(),
+        amount: total > 0 ? total.toString() : f.amount,
+      }));
+    }
+  };
+
+  const handleTotalEmiChange = (val: string) => {
+    const total = parseFloat(val) || 0;
+    const currentLoan = accounts.find((a) => a.id.toString() === form.target_account_id);
+    const calculatedInterest = calculateInterest(currentLoan);
+    const currentInterest = parseFloat(form.interest_amount) || calculatedInterest || 0;
+
+    if (total > 0 && currentInterest > 0) {
+      const newPrincipal = Math.max(0, parseFloat((total - currentInterest).toFixed(2)));
+      setForm((f) => ({
+        ...f,
+        amount: val,
+        principal_amount: newPrincipal.toString(),
+        interest_amount: currentInterest.toString(),
+      }));
+    } else {
+      setForm((f) => ({
+        ...f,
+        amount: val,
+      }));
+    }
+  };
+
+  const handlePrincipalChange = (val: string) => {
+    const p = parseFloat(val) || 0;
+    const i = parseFloat(form.interest_amount) || 0;
+    const newTotal = parseFloat((p + i).toFixed(2));
+    setForm((f) => ({
+      ...f,
+      principal_amount: val,
+      amount: newTotal > 0 ? newTotal.toString() : f.amount,
+    }));
+  };
+
+  const handleInterestChange = (val: string) => {
+    const i = parseFloat(val) || 0;
+    const total = parseFloat(form.amount) || 0;
+    if (total > 0) {
+      const newPrincipal = Math.max(0, parseFloat((total - i).toFixed(2)));
+      setForm((f) => ({
+        ...f,
+        interest_amount: val,
+        principal_amount: newPrincipal.toString(),
+      }));
+    } else {
+      const p = parseFloat(form.principal_amount) || 0;
+      const newTotal = parseFloat((p + i).toFixed(2));
+      setForm((f) => ({
+        ...f,
+        interest_amount: val,
+        amount: newTotal > 0 ? newTotal.toString() : f.amount,
+      }));
+    }
+  };
+
+  const handleNatureChange = (nature: TxNature) => {
+    setForm((f) => {
+      const next = { ...f, nature };
+      if (nature === 'EMI_PAYMENT' && f.target_account_id) {
+        const loan = accounts.find((a) => a.id.toString() === f.target_account_id);
+        const calculatedInterest = calculateInterest(loan);
+        const currTotal = parseFloat(f.amount) || 0;
+        if (currTotal > 0) {
+          next.interest_amount = calculatedInterest.toString();
+          next.principal_amount = Math.max(0, parseFloat((currTotal - calculatedInterest).toFixed(2))).toString();
+        } else if (calculatedInterest > 0) {
+          next.interest_amount = calculatedInterest.toString();
+          next.principal_amount = '0';
+          next.amount = calculatedInterest.toString();
+        }
+      }
+      return next;
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim()) return;
 
-    const amount = isEmi ? emiTotal : parseFloat(form.amount || '0');
+    const pAmt = parseFloat(form.principal_amount || '0') || 0;
+    const iAmt = parseFloat(form.interest_amount || '0') || 0;
+    const amount = isEmi ? parseFloat((pAmt + iAmt).toFixed(2)) : parseFloat(form.amount || '0');
     if (!(amount > 0)) {
       setError('Amount must be greater than zero');
       return;
@@ -136,14 +266,12 @@ export default function CommitmentFormPage() {
         amount,
         nature: form.nature,
         due_day: parseInt(form.due_day || '1', 10),
-        // Left at 0 so the backend picks the primary asset account, matching
-        // how manually entered transactions behave.
         source_account_id: 0,
         target_account_id: isEmi && form.target_account_id ? Number(form.target_account_id) : null,
         sub_category_id: !isEmi && form.sub_category_id ? Number(form.sub_category_id) : null,
         payment_method_id: form.payment_method_id ? Number(form.payment_method_id) : null,
-        principal_amount: isEmi ? parseFloat(form.principal_amount || '0') : 0,
-        interest_amount: isEmi ? parseFloat(form.interest_amount || '0') : 0,
+        principal_amount: isEmi ? pAmt : 0,
+        interest_amount: isEmi ? iAmt : 0,
         notes: form.notes.trim(),
         is_active: form.is_active,
       };
@@ -189,7 +317,7 @@ export default function CommitmentFormPage() {
               <button
                 key={n}
                 type="button"
-                onClick={() => set('nature', n)}
+                onClick={() => handleNatureChange(n)}
                 className={`py-2 rounded-lg text-sm font-medium ${
                   form.nature === n
                     ? 'bg-blue-600 text-white'
@@ -220,7 +348,7 @@ export default function CommitmentFormPage() {
             <label className={labelClass}>Loan Account *</label>
             <select
               value={form.target_account_id}
-              onChange={(e) => set('target_account_id', e.target.value)}
+              onChange={(e) => handleLoanAccountChange(e.target.value)}
               required
               className={selectClass}
             >
@@ -236,37 +364,67 @@ export default function CommitmentFormPage() {
         )}
 
         {isEmi ? (
-          <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-3 bg-purple-50/50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800/40 rounded-xl p-3.5">
             <div>
-              <label className={labelClass}>Principal (₹)</label>
+              <label className={labelClass}>Total Monthly EMI (₹) *</label>
               <input
                 type="number"
                 step="0.01"
-                min="0"
-                value={form.principal_amount}
-                onChange={(e) => set('principal_amount', e.target.value)}
+                min="0.01"
+                value={form.amount}
+                onChange={(e) => handleTotalEmiChange(e.target.value)}
+                placeholder="e.g. 2500"
+                required
                 className={inputClass}
               />
+              <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">
+                Enter the monthly EMI amount to auto-split into Principal and Interest based on the interest rate.
+              </p>
             </div>
-            <div>
-              <label className={labelClass}>Interest (₹)</label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={form.interest_amount}
-                onChange={(e) => set('interest_amount', e.target.value)}
-                className={inputClass}
-              />
-              {suggestedInterest !== null && (
-                <p className="text-[10px] text-orange-500 mt-0.5">
-                  Suggested ₹{suggestedInterest.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
-                </p>
-              )}
+
+            <div className="grid grid-cols-2 gap-2 pt-1 border-t border-purple-100 dark:border-purple-800/30">
+              <div>
+                <label className={labelClass}>Principal (₹)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={form.principal_amount}
+                  onChange={(e) => handlePrincipalChange(e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>
+                  Interest (₹)
+                  {selectedLoan && selectedLoan.interest_rate > 0 && (
+                    <span className="ml-1 text-orange-500 font-normal">
+                      · {selectedLoan.interest_rate}% p.a.
+                    </span>
+                  )}
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={form.interest_amount}
+                  onChange={(e) => handleInterestChange(e.target.value)}
+                  className={inputClass}
+                />
+                {suggestedInterest !== null && (
+                  <p className="text-[10px] text-orange-600 dark:text-orange-400 mt-0.5">
+                    Calculated ₹{suggestedInterest.toLocaleString('en-IN', { maximumFractionDigits: 2 })} on ₹{selectedLoan!.current_balance.toLocaleString('en-IN')} balance
+                  </p>
+                )}
+              </div>
             </div>
-            <p className="col-span-2 text-xs text-gray-500 dark:text-gray-400">
-              Monthly EMI: ₹{emiTotal.toLocaleString('en-IN')}
-            </p>
+
+            <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 pt-1">
+              <span>Principal + Interest:</span>
+              <span className="font-bold text-gray-800 dark:text-gray-200">
+                ₹{((parseFloat(form.principal_amount || '0') || 0) + (parseFloat(form.interest_amount || '0') || 0)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+            </div>
           </div>
         ) : (
           <div>

@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, NavLink, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import TransactionsPage from './pages/TransactionsPage';
 import AddTransactionPage from './pages/AddTransactionPage';
 import AccountsPage from './pages/AccountsPage';
@@ -23,14 +23,59 @@ import { LedgerProvider, useLedgers } from './context/LedgerContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import SuperAdminShell from './components/SuperAdminShell';
 import { useMediaQuery } from './hooks/useMediaQuery';
+import { useHasCommitments } from './hooks/useHasCommitments';
 
-const navItems = [
-  { to: '/', label: 'Transactions', icon: '📋' },
-  { to: '/templates', label: 'Templates', icon: '📝' },
-  { to: '/accounts', label: 'Loans', icon: '🏦' },
-  { to: '/summary', label: 'Summary', icon: '📊' },
-  { to: '/more', label: 'More', icon: '⋯' },
+export interface NavItemConfig {
+  to: string;
+  label: string;
+  icon: string;
+  component: React.ComponentType;
+}
+
+function MorePage() {
+  const hasCommitments = useHasCommitments();
+
+  return (
+    <div className="space-y-3">
+      <h2 className="text-lg font-semibold text-gray-800 dark:text-white">More</h2>
+      {!hasCommitments && (
+        <NavLink to="/commitments" className="block p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-200">
+          📆 Monthly Commitments
+        </NavLink>
+      )}
+      <NavLink to="/categories" className="block p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-200">
+        📁 Categories & Sub-categories
+      </NavLink>
+      <NavLink to="/payment-methods" className="block p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-200">
+        💳 Payment Methods
+      </NavLink>
+      <NavLink to="/tally" className="block p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-200">
+        ✅ Tally / Reconciliation
+      </NavLink>
+      <NavLink to="/templates" className="block p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-200">
+        📋 Transaction Templates
+      </NavLink>
+      <NavLink to="/import" className="block p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-200">
+        📥 Import CSV
+      </NavLink>
+    </div>
+  );
+}
+
+const baseNavItems: NavItemConfig[] = [
+  { to: '/', label: 'Transactions', icon: '📋', component: TransactionsPage },
+  { to: '/templates', label: 'Templates', icon: '📝', component: TemplatesPage },
+  { to: '/accounts', label: 'Loans', icon: '🏦', component: AccountsPage },
+  { to: '/summary', label: 'Summary', icon: '📊', component: SummaryPage },
+  { to: '/more', label: 'More', icon: '⋯', component: MorePage },
 ];
+
+const commitmentNavItem: NavItemConfig = {
+  to: '/commitments',
+  label: 'Commitments',
+  icon: '📆',
+  component: CommitmentsPage,
+};
 
 // Surfaced only in the desktop sidebar, which has room to show everything
 // the mobile "More" page keeps tucked away. Excludes Templates since that's
@@ -42,8 +87,6 @@ const moreNavItems = [
   { to: '/tally', label: 'Tally / Reconciliation', icon: '✅' },
   { to: '/import', label: 'Import CSV', icon: '📥' },
 ];
-
-const navPaths = navItems.map((item) => item.to);
 
 const sidebarLinkClass = ({ isActive }: { isActive: boolean }) =>
   `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors ${
@@ -105,8 +148,31 @@ function AppShell() {
   const menuRef = useRef<HTMLDivElement>(null);
   const ledgerDropdownRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
-  const isTabRoute = navPaths.includes(location.pathname);
   const isDesktop = useMediaQuery('(min-width: 1024px)');
+
+  const hasCommitments = useHasCommitments();
+
+  const currentNavItems = useMemo<NavItemConfig[]>(() => {
+    if (!hasCommitments) return baseNavItems;
+    return [
+      baseNavItems[0], // Transactions
+      baseNavItems[1], // Templates
+      commitmentNavItem, // Commitments
+      baseNavItems[2], // Loans
+      baseNavItems[3], // Summary
+      baseNavItems[4], // More
+    ];
+  }, [hasCommitments]);
+
+  const currentMoreNavItems = useMemo(() => {
+    if (hasCommitments) {
+      return moreNavItems.filter((i) => i.to !== '/commitments');
+    }
+    return moreNavItems;
+  }, [hasCommitments]);
+
+  const navPaths = useMemo(() => currentNavItems.map((item) => item.to), [currentNavItems]);
+  const isTabRoute = navPaths.includes(location.pathname);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -135,16 +201,16 @@ function AppShell() {
             <h2 className="text-lg font-bold text-gray-800 dark:text-white leading-none">FinTrack</h2>
           </div>
           <nav className="flex-1 overflow-y-auto p-3 space-y-1">
-            {navItems.filter((item) => item.to !== '/more').map((item) => (
+            {currentNavItems.filter((item) => item.to !== '/more').map((item) => (
               <NavLink key={item.to} to={item.to} end={item.to === '/'} className={sidebarLinkClass}>
                 <span className="text-lg leading-none">{item.icon}</span>
-                <span>{item.label}</span>
+                <span>{item.to === '/commitments' ? 'Monthly Commitments' : item.label}</span>
               </NavLink>
             ))}
             <div className="pt-3 mt-3 border-t border-gray-100 dark:border-gray-700 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider px-3 mb-1">
               More
             </div>
-            {moreNavItems.map((item) => (
+            {currentMoreNavItems.map((item) => (
               <NavLink key={item.to} to={item.to} className={sidebarLinkClass}>
                 <span className="text-lg leading-none">{item.icon}</span>
                 <span>{item.label}</span>
@@ -283,9 +349,9 @@ function AppShell() {
         )}
       </header>
 
-      <div className="flex-1 min-h-0">
+      <div className="flex-1 min-h-0 relative">
         {isAuthenticated && isTabRoute && !isDesktop ? (
-          <SwipeableTabs />
+          <SwipeableTabs tabs={currentNavItems} />
         ) : (
           <div className="h-full overflow-y-auto">
             <div className="max-w-lg lg:max-w-3xl mx-auto px-4 py-4">
@@ -318,17 +384,19 @@ function AppShell() {
       {isAuthenticated && (
         <nav className="lg:hidden shrink-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-10 transition-colors">
           <div className="max-w-lg mx-auto flex justify-around">
-            {navItems.map((item) => (
+            {currentNavItems.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
                 end={item.to === '/'}
                 className={({ isActive }) =>
-                  `flex flex-col items-center py-2 px-3 text-xs ${isActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'}`
+                  `flex flex-col items-center py-1.5 px-1 sm:px-2 text-[10px] sm:text-xs font-medium transition-colors ${
+                    isActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'
+                  }`
                 }
               >
-                <span className="text-xl">{item.icon}</span>
-                <span>{item.label}</span>
+                <span className="text-lg leading-tight">{item.icon}</span>
+                <span className="truncate max-w-[64px]">{item.label}</span>
               </NavLink>
             ))}
           </div>
@@ -372,8 +440,8 @@ function AppShell() {
                       await createLedger(newLedgerName.trim());
                       setShowCreateModal(false);
                       setNewLedgerName('');
-                    } catch (err: any) {
-                      alert(err.message);
+                    } catch (err) {
+                      alert(err instanceof Error ? err.message : 'Failed to create ledger');
                     }
                   }
                 }}
@@ -391,30 +459,34 @@ function AppShell() {
   );
 }
 
-const tabPages = [TransactionsPage, TemplatesPage, AccountsPage, SummaryPage, MorePage];
-const SLIDE_PCT = 100 / navPaths.length;
 const SETTLE_TRANSITION = 'transform 280ms cubic-bezier(0.22, 1, 0.36, 1)';
 
-function SwipeableTabs() {
+function SwipeableTabs({ tabs }: { tabs: NavItemConfig[] }) {
   const location = useLocation();
   const navigate = useNavigate();
   const containerRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
+
+  const navPaths = useMemo(() => tabs.map((t) => t.to), [tabs]);
   const activeIndex = navPaths.indexOf(location.pathname);
   const activeIndexRef = useRef(activeIndex);
-  const [mounted, setMounted] = useState<Set<number>>(() => new Set([activeIndex]));
+  const [mounted, setMounted] = useState<Set<number>>(() => new Set([Math.max(0, activeIndex)]));
+  const slidePct = 100 / tabs.length;
 
   // Keep the current tab plus its immediate neighbors mounted so a swipe
   // in either direction has something to drag to without a blank frame.
-  useEffect(() => {
-    activeIndexRef.current = activeIndex;
+  if (activeIndex >= 0 && !mounted.has(activeIndex)) {
     setMounted((prev) => {
       const next = new Set(prev);
       next.add(activeIndex);
       if (activeIndex > 0) next.add(activeIndex - 1);
-      if (activeIndex < navPaths.length - 1) next.add(activeIndex + 1);
+      if (activeIndex < tabs.length - 1) next.add(activeIndex + 1);
       return next;
     });
+  }
+
+  useEffect(() => {
+    activeIndexRef.current = activeIndex;
   }, [activeIndex]);
 
   // Settle the track on the active slide whenever the route changes from
@@ -422,10 +494,10 @@ function SwipeableTabs() {
   // change already sits here, so this just animates external navigation.
   useEffect(() => {
     const track = trackRef.current;
-    if (!track) return;
+    if (!track || activeIndex < 0) return;
     track.style.transition = SETTLE_TRANSITION;
-    track.style.transform = `translateX(-${activeIndex * SLIDE_PCT}%)`;
-  }, [activeIndex]);
+    track.style.transform = `translateX(-${activeIndex * slidePct}%)`;
+  }, [activeIndex, slidePct]);
 
   // Drag the track 1:1 with the finger; release past a distance/velocity
   // threshold moves exactly one tab, otherwise it springs back. Mirrors a
@@ -444,6 +516,7 @@ function SwipeableTabs() {
 
     const onTouchStart = (e: TouchEvent) => {
       if (e.touches.length !== 1) return;
+      if ((e.target as HTMLElement)?.closest('[data-no-swipe]')) return;
       startX = e.touches[0].clientX;
       startY = e.touches[0].clientY;
       startTime = Date.now();
@@ -469,9 +542,9 @@ function SwipeableTabs() {
 
       e.preventDefault();
       const index = activeIndexRef.current;
-      const dragPct = (dx / containerWidth) * SLIDE_PCT;
-      let offsetPct = index * SLIDE_PCT - dragPct;
-      const maxPct = (navPaths.length - 1) * SLIDE_PCT;
+      const dragPct = (dx / containerWidth) * slidePct;
+      let offsetPct = index * slidePct - dragPct;
+      const maxPct = (tabs.length - 1) * slidePct;
       if (offsetPct < 0) offsetPct *= 0.35; // rubber-band past the first tab
       if (offsetPct > maxPct) offsetPct = maxPct + (offsetPct - maxPct) * 0.35; // and the last
       track.style.transform = `translateX(-${offsetPct}%)`;
@@ -489,13 +562,15 @@ function SwipeableTabs() {
 
       let nextIndex = index;
       if (Math.abs(dx) > containerWidth * 0.2 || velocity > 0.5) {
-        if (dx < 0 && index < navPaths.length - 1) nextIndex = index + 1;
+        if (dx < 0 && index < tabs.length - 1) nextIndex = index + 1;
         else if (dx > 0 && index > 0) nextIndex = index - 1;
       }
 
       track.style.transition = SETTLE_TRANSITION;
-      track.style.transform = `translateX(-${nextIndex * SLIDE_PCT}%)`;
-      if (nextIndex !== index) navigate(navPaths[nextIndex]);
+      track.style.transform = `translateX(-${nextIndex * slidePct}%)`;
+      if (nextIndex !== index && nextIndex >= 0 && nextIndex < navPaths.length) {
+        navigate(navPaths[nextIndex]);
+      }
     };
 
     container.addEventListener('touchstart', onTouchStart, { passive: true });
@@ -508,7 +583,7 @@ function SwipeableTabs() {
       container.removeEventListener('touchend', onTouchEnd);
       container.removeEventListener('touchcancel', onTouchEnd);
     };
-  }, [navigate]);
+  }, [navigate, navPaths, slidePct, tabs.length]);
 
   return (
     <ProtectedRoute>
@@ -516,16 +591,12 @@ function SwipeableTabs() {
         <div
           ref={trackRef}
           className="h-full flex"
-          style={{ width: `${navPaths.length * 100}%`, transform: `translateX(-${activeIndex * SLIDE_PCT}%)` }}
+          style={{ width: `${tabs.length * 100}%`, transform: `translateX(-${Math.max(0, activeIndex) * slidePct}%)` }}
         >
-          {navPaths.map((path, index) => {
-            const Page = tabPages[index];
+          {tabs.map((tab, index) => {
+            const Page = tab.component;
             return (
-              <div key={path} className="h-full shrink-0 relative" style={{ width: `${SLIDE_PCT}%` }}>
-                {/* Scrolling happens on this inner div, kept unpositioned so
-                    the outer div (which doesn't scroll) is what a page's
-                    `absolute` FAB anchors to — anchoring to this div instead
-                    would drag the FAB along with the content on scroll. */}
+              <div key={tab.to} className="h-full shrink-0 relative" style={{ width: `${slidePct}%` }}>
                 <div className="h-full overflow-y-auto">
                   {mounted.has(index) && (
                     <div className="max-w-lg mx-auto px-4 py-4">
@@ -539,31 +610,5 @@ function SwipeableTabs() {
         </div>
       </div>
     </ProtectedRoute>
-  );
-}
-
-function MorePage() {
-  return (
-    <div className="space-y-3">
-      <h2 className="text-lg font-semibold text-gray-800 dark:text-white">More</h2>
-      <NavLink to="/commitments" className="block p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-200">
-        📆 Monthly Commitments
-      </NavLink>
-      <NavLink to="/categories" className="block p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-200">
-        📁 Categories & Sub-categories
-      </NavLink>
-      <NavLink to="/payment-methods" className="block p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-200">
-        💳 Payment Methods
-      </NavLink>
-      <NavLink to="/tally" className="block p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-200">
-        ✅ Tally / Reconciliation
-      </NavLink>
-      <NavLink to="/templates" className="block p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-200">
-        📋 Transaction Templates
-      </NavLink>
-      <NavLink to="/import" className="block p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-200">
-        📥 Import CSV
-      </NavLink>
-    </div>
   );
 }

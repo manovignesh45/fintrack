@@ -5,12 +5,25 @@ import { useCallback, useEffect, useState } from 'react';
 // next visit render instantly instead of flashing a loading state.
 const cache = new Map<string, unknown>();
 
+type CacheListener = (prefix: string) => void;
+const cacheListeners = new Set<CacheListener>();
+
+export function subscribeCacheInvalidation(fn: CacheListener) {
+  cacheListeners.add(fn);
+  return () => {
+    cacheListeners.delete(fn);
+  };
+}
+
 // Drop every cached entry whose key starts with `prefix`, so a write on one
 // page (e.g. paying a commitment, which also creates a transaction) doesn't
 // leave another page rendering stale data from its own cache key.
 export function invalidateCache(prefix: string) {
   for (const key of cache.keys()) {
     if (key.startsWith(prefix)) cache.delete(key);
+  }
+  for (const fn of cacheListeners) {
+    fn(prefix);
   }
 }
 

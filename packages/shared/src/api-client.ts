@@ -237,6 +237,8 @@ export function createApiClient(config: ApiClientConfig) {
     /** month is `YYYY-MM`; omit for the current month. */
     list: (month?: string) =>
       request<CommitmentsMonthResponse>(`/commitments${month ? `?month=${month}` : ''}`),
+    get: (id: number) =>
+      request<Commitment>(`/commitments/${id}`),
     create: (data: CommitmentInput) =>
       request<Commitment>('/commitments', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: number, data: CommitmentInput) =>

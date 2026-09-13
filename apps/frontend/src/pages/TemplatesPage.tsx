@@ -3,7 +3,6 @@ import { templatesApi, paymentMethodsApi } from '../api/client';
 import type { TransactionTemplate, PaymentMethod } from '../api/types';
 import { useAuth } from '../context/AuthContext';
 import { useCachedList } from '../hooks/useCachedList';
-import { CommitmentsSection } from '../components/MonthlyCommitments';
 
 const natureLabels: Record<string, string> = {
   INCOME: 'Income', EXPENSE: 'Expense', EMI_PAYMENT: 'EMI', LOAN_DISBURSEMENT: 'Loan',
@@ -60,9 +59,6 @@ export default function TemplatesPage() {
         </div>
       </div>
 
-      {/* This month's recurring commitments — record-only; managed under More. */}
-      <CommitmentsSection />
-
       {loading ? (
         <p className="text-gray-400 text-center py-8">Loading...</p>
       ) : templates.length === 0 ? (
@@ -71,7 +67,6 @@ export default function TemplatesPage() {
         </p>
       ) : (
         <div className="space-y-2">
-          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200 pt-1">Templates</h3>
           {templates.map((t) => (
             <div key={t.id} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
               <div className="flex justify-between items-start">

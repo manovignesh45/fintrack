@@ -169,6 +169,7 @@ func main() {
 				r.Route("/commitments", func(r chi.Router) {
 					r.Get("/", commitmentH.List)
 					r.Post("/", commitmentH.Create)
+					r.Get("/{id}", commitmentH.Get)
 					r.Put("/{id}", commitmentH.Update)
 					r.Delete("/{id}", commitmentH.Delete)
 					r.Post("/{id}/pay", commitmentH.Pay)

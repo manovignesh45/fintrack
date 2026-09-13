@@ -154,6 +154,33 @@ func (h *CommitmentHandler) Create(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, c)
 }
 
+// Get returns a single commitment by ID.
+func (h *CommitmentHandler) Get(w http.ResponseWriter, r *http.Request) {
+	ledgerID, err := GetLedgerID(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "Invalid commitment ID")
+		return
+	}
+
+	row := h.db.QueryRow(r.Context(),
+		`SELECT `+commitmentCols+` FROM commitments c WHERE c.id = $1 AND c.ledger_id = $2`,
+		id, ledgerID)
+
+	c, err := scanCommitmentRow(row)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "Commitment not found")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, c)
+}
+
 func (h *CommitmentHandler) Update(w http.ResponseWriter, r *http.Request) {
 	ledgerID, err := GetLedgerID(r)
 	if err != nil {
