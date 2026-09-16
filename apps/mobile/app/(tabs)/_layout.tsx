@@ -10,6 +10,7 @@ const MaterialTopTabs = withLayoutContext(createMaterialTopTabNavigator().Naviga
 export default function TabLayout() {
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
+
   return (
     <MaterialTopTabs
       tabBarPosition="bottom"
@@ -47,6 +48,13 @@ export default function TabLayout() {
         }}
       />
       <MaterialTopTabs.Screen
+        name="commitments"
+        options={{
+          title: 'Commitments',
+          tabBarIcon: ({ color }: { color: string }) => <Ionicons name="calendar-outline" size={24} color={color} />,
+        }}
+      />
+      <MaterialTopTabs.Screen
         name="accounts"
         options={{
           title: 'Loans',
@@ -58,13 +66,6 @@ export default function TabLayout() {
         options={{
           title: 'Summary',
           tabBarIcon: ({ color }: { color: string }) => <Ionicons name="bar-chart-outline" size={24} color={color} />,
-        }}
-      />
-      <MaterialTopTabs.Screen
-        name="more"
-        options={{
-          title: 'More',
-          tabBarIcon: ({ color }: { color: string }) => <Ionicons name="ellipsis-horizontal" size={24} color={color} />,
         }}
       />
     </MaterialTopTabs>

@@ -5,14 +5,14 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from 'nativewind';
-import type { FilterState, Category, TxNature } from '@fintrack/shared';
+import type { FilterState, Category, TxNature, Tag } from '@fintrack/shared';
 import {
   DATE_PRESET_LABELS,
   getPresetDates,
   DEFAULT_FILTERS,
   countActiveFilters,
 } from '@fintrack/shared';
-import { categoriesApi } from '@/src/api/client';
+import { categoriesApi, tagsApi } from '@/src/api/client';
 
 interface Props {
   filters: FilterState;
@@ -44,6 +44,7 @@ const TransactionFilter = forwardRef<TransactionFilterRef, Props>(({ filters, on
   const pickerColor = isDark ? '#f3f4f6' : '#1f2937';
 
   const [categories, setCategories] = useState<Category[]>([]);
+  const [tags, setTags] = useState<Tag[]>([]);
   const [loadingCats, setLoadingCats] = useState(false);
   const loaded = useRef(false);
 
@@ -55,11 +56,15 @@ const TransactionFilter = forwardRef<TransactionFilterRef, Props>(({ filters, on
     if (!loaded.current) {
       loaded.current = true;
       setLoadingCats(true);
-      categoriesApi.list().then((data) => {
-        setCategories(data || []);
-      }).catch(() => {
-        setCategories([]);
-      }).finally(() => setLoadingCats(false));
+      Promise.all([
+        categoriesApi.list().catch(() => []),
+        tagsApi.list().catch(() => []),
+      ])
+        .then(([cats, tagList]) => {
+          setCategories(cats || []);
+          setTags(tagList || []);
+        })
+        .finally(() => setLoadingCats(false));
     }
     bottomSheetModalRef.current?.present();
   }, [filters]);
@@ -227,6 +232,25 @@ const TransactionFilter = forwardRef<TransactionFilterRef, Props>(({ filters, on
                     <Picker.Item label={!local.category_id ? 'Select a category first' : 'All Sub-categories'} value="" />
                     {subCategories.map((s) => (
                       <Picker.Item key={s.id} label={s.name} value={String(s.id)} />
+                    ))}
+                  </Picker>
+                </View>
+              </View>
+
+              {/* Tag / Event */}
+              <View className="mb-4">
+                <Text className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Tag / Event</Text>
+                <View className="border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 overflow-hidden">
+                  <Picker
+                    mode="dropdown"
+                    selectedValue={local.tag_id || ''}
+                    onValueChange={(v) => set('tag_id', v)}
+                    style={{ height: 50, color: pickerColor, backgroundColor: isDark ? '#1f2937' : '#ffffff' }}
+                    dropdownIconColor={pickerColor}
+                  >
+                    <Picker.Item label="All Tags" value="" />
+                    {tags.map((t) => (
+                      <Picker.Item key={t.id} label={`🏷️ ${t.name}`} value={String(t.id)} />
                     ))}
                   </Picker>
                 </View>

@@ -2,14 +2,17 @@ import { useEffect, useRef, useState, type RefObject } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, Platform, Pressable, Modal, KeyboardAvoidingView } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
-import { accountsApi, categoriesApi, paymentMethodsApi } from '@/src/api/client';
-import type { Account, Category, TransactionFormData, PaymentMethod } from '@fintrack/shared';
+import { accountsApi, categoriesApi, paymentMethodsApi, transactionsApi } from '@/src/api/client';
+import type { Account, Category, TransactionFormData, PaymentMethod, TransactionSuggestion } from '@fintrack/shared';
 import { NATURES, emptyTransactionForm } from '@fintrack/shared';
 import { useColorScheme } from 'nativewind';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/src/context/AuthContext';
 import { useLedgers } from '@/src/context/LedgerContext';
 import { Button } from '@/src/components/ui/Button';
 import { SelectField } from '@/src/components/ui/SelectField';
+import TagInput from './TagInput';
+import MerchantAutocomplete, { type AutoFillNotice } from './MerchantAutocomplete';
 
 interface Props {
   initial?: TransactionFormData;
@@ -17,9 +20,16 @@ interface Props {
   submitLabel: string;
   /** ScrollView ref from the enclosing FormScreen, used to scroll bottom fields into view. */
   scrollRef?: RefObject<ScrollView | null>;
+  enableAutoSuggestions?: boolean;
 }
 
-export default function TransactionForm({ initial, onSubmit, submitLabel, scrollRef }: Props) {
+export default function TransactionForm({
+  initial,
+  onSubmit,
+  submitLabel,
+  scrollRef,
+  enableAutoSuggestions = true,
+}: Props) {
   const { editMode } = useAuth();
   const { activeLedgerId } = useLedgers();
   const amountRef = useRef<TextInput>(null);
@@ -34,6 +44,20 @@ export default function TransactionForm({ initial, onSubmit, submitLabel, scroll
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
+
+  // Auto-suggestions & Warranty State
+  const [suggestions, setSuggestions] = useState<TransactionSuggestion[]>([]);
+  const [autoFillNotice, setAutoFillNotice] = useState<AutoFillNotice | null>(null);
+  const [previousForm, setPreviousForm] = useState<TransactionFormData | null>(null);
+  const [userTouchedCategory, setUserTouchedCategory] = useState(false);
+  const [userTouchedPaymentMethod, setUserTouchedPaymentMethod] = useState(false);
+  const [userTouchedAmount, setUserTouchedAmount] = useState(false);
+  const [userTouchedLoanAccount, setUserTouchedLoanAccount] = useState(false);
+  const [userTouchedEMI, setUserTouchedEMI] = useState(false);
+  const [showWarranty, setShowWarranty] = useState(
+    Boolean(initial?.warranty_until || initial?.warranty_notes)
+  );
+  const [showWarrantyDatePicker, setShowWarrantyDatePicker] = useState(false);
   
   // Custom Modal State
   const [promptConfig, setPromptConfig] = useState<{
@@ -55,6 +79,110 @@ export default function TransactionForm({ initial, onSubmit, submitLabel, scroll
     accountsApi.list({ type: 'LIABILITY' }).then((data) => setAccounts(data || [])).catch(() => setAccounts([]));
     paymentMethodsApi.list().then((data) => setPaymentMethods(data || [])).catch(() => setPaymentMethods([]));
   }, [activeLedgerId]);
+
+  useEffect(() => {
+    if (enableAutoSuggestions) {
+      transactionsApi
+        .suggestions()
+        .then((data) => setSuggestions(data || []))
+        .catch(() => setSuggestions([]));
+    }
+  }, [activeLedgerId, enableAutoSuggestions]);
+
+  const addYearsToDate = (years: number) => {
+    const base = form.transaction_date ? new Date(form.transaction_date + 'T00:00:00') : new Date();
+    base.setFullYear(base.getFullYear() + years);
+    const y = base.getFullYear();
+    const m = String(base.getMonth() + 1).padStart(2, '0');
+    const d = String(base.getDate()).padStart(2, '0');
+    set('warranty_until', `${y}-${m}-${d}`);
+  };
+
+  const handleSelectSuggestion = (s: TransactionSuggestion, isExplicit = false) => {
+    const shouldFillCategory = isExplicit || !userTouchedCategory;
+    const shouldFillPayment = isExplicit || !userTouchedPaymentMethod;
+    const shouldFillLoanAccount = isExplicit || !userTouchedLoanAccount;
+    const shouldFillEMI = isExplicit || !userTouchedEMI;
+    const shouldFillAmount =
+      (isExplicit || !userTouchedAmount || !form.amount || parseFloat(form.amount) === 0) &&
+      ((s.is_template && s.amount !== undefined && s.amount > 0) ||
+        (s.nature === 'EMI_PAYMENT' &&
+          ((s.amount !== undefined && s.amount > 0) ||
+            (s.principal_amount !== undefined && s.principal_amount > 0) ||
+            (s.interest_amount !== undefined && s.interest_amount > 0))));
+
+    if (!shouldFillCategory && !shouldFillPayment && !shouldFillAmount && !shouldFillLoanAccount && !shouldFillEMI && !isExplicit) {
+      return;
+    }
+
+    setPreviousForm({ ...form });
+
+    setForm((current) => {
+      const next = { ...current, title: s.title };
+
+      if (s.nature && current.nature !== s.nature && isExplicit) {
+        next.nature = s.nature;
+      }
+
+      if (shouldFillAmount && s.amount !== undefined && s.amount > 0) {
+        next.amount = s.amount.toString();
+      }
+
+      if (shouldFillPayment && s.payment_method_id) {
+        next.payment_method_id = s.payment_method_id.toString();
+      }
+
+      if (shouldFillCategory && s.category_id) {
+        setSelectedCategoryId(s.category_id.toString());
+        if (s.sub_category_id) {
+          next.sub_category_id = s.sub_category_id.toString();
+        }
+      } else if (shouldFillCategory && s.sub_category_id) {
+        next.sub_category_id = s.sub_category_id.toString();
+      }
+
+      if (s.nature === 'EMI_PAYMENT') {
+        if (shouldFillLoanAccount && s.target_account_id) {
+          next.target_account_id = s.target_account_id.toString();
+        }
+        if (shouldFillEMI) {
+          if (s.principal_amount !== undefined && s.principal_amount > 0) {
+            next.principal_amount = s.principal_amount.toString();
+          }
+          if (s.interest_amount !== undefined && s.interest_amount > 0) {
+            next.interest_amount = s.interest_amount.toString();
+          }
+        }
+      }
+
+      return next;
+    });
+
+    const categoryObj = categories.find((c) => c.id === s.category_id);
+    const subCategoryObj = categoryObj?.sub_categories?.find((sc) => sc.id === s.sub_category_id);
+    const pmObj = paymentMethods.find((p) => p.id === s.payment_method_id);
+    const loanAcc = accounts.find((a) => a.id === s.target_account_id);
+
+    setAutoFillNotice({
+      merchant: s.title,
+      amount: shouldFillAmount ? s.amount : undefined,
+      principalAmount: shouldFillEMI ? s.principal_amount : undefined,
+      interestAmount: shouldFillEMI ? s.interest_amount : undefined,
+      loanAccountName: shouldFillLoanAccount && loanAcc ? loanAcc.name : undefined,
+      isTemplate: s.is_template,
+      categoryName: shouldFillCategory && categoryObj ? categoryObj.name : undefined,
+      subCategoryName: shouldFillCategory && subCategoryObj ? subCategoryObj.name : undefined,
+      paymentMethodName: shouldFillPayment && pmObj ? pmObj.name : undefined,
+    });
+  };
+
+  const handleUndoAutoFill = () => {
+    if (previousForm) {
+      setForm(previousForm);
+      setPreviousForm(null);
+      setAutoFillNotice(null);
+    }
+  };
 
   useEffect(() => {
     categoriesApi.list({  nature: form.nature }).then((data) => setCategories(data || [])).catch(() => setCategories([]));
@@ -206,22 +334,36 @@ export default function TransactionForm({ initial, onSubmit, submitLabel, scroll
         </View>
       </View>
 
-      {/* Title */}
-      <View className="mb-4">
-        <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">Title *</Text>
-        <TextInput
-          placeholder="e.g. Groceries, Salary"
-          placeholderTextColor={placeholderColor}
+      {/* Title with Smart Auto-Suggestions */}
+      {enableAutoSuggestions ? (
+        <MerchantAutocomplete
           value={form.title}
-          onChangeText={(v) => set('title', v)}
-          returnKeyType="next"
-          submitBehavior="submit"
-          onSubmitEditing={() =>
-            (form.nature === 'EMI_PAYMENT' ? principalRef : amountRef).current?.focus()
-          }
-          className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-gray-100"
+          onChange={(v) => set('title', v)}
+          onSelectSuggestion={handleSelectSuggestion}
+          suggestions={suggestions}
+          accounts={accounts}
+          categories={categories}
+          paymentMethods={paymentMethods}
+          autoFillNotice={autoFillNotice}
+          onUndoAutoFill={handleUndoAutoFill}
         />
-      </View>
+      ) : (
+        <View className="mb-4">
+          <Text className="text-xs text-gray-500 dark:text-gray-400 mb-1">Title *</Text>
+          <TextInput
+            placeholder="e.g. Groceries, Salary"
+            placeholderTextColor={placeholderColor}
+            value={form.title}
+            onChangeText={(v) => set('title', v)}
+            returnKeyType="next"
+            submitBehavior="submit"
+            onSubmitEditing={() =>
+              (form.nature === 'EMI_PAYMENT' ? principalRef : amountRef).current?.focus()
+            }
+            className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
+          />
+        </View>
+      )}
 
       {/* Loan Account */}
       {(form.nature === 'EMI_PAYMENT' || form.nature === 'LOAN_DISBURSEMENT') && (
@@ -387,7 +529,7 @@ export default function TransactionForm({ initial, onSubmit, submitLabel, scroll
 
       {/* Notes */}
       <View className="mb-4">
-        <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500 mb-1">Notes</Text>
+        <Text className="text-xs text-gray-500 dark:text-gray-400 mb-1">Notes</Text>
         <TextInput
           ref={notesRef}
           placeholder="Additional notes (optional)"
@@ -400,6 +542,100 @@ export default function TransactionForm({ initial, onSubmit, submitLabel, scroll
           className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
         />
       </View>
+
+      {/* Warranty / Guarantee Section */}
+      <View className="mb-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+        <TouchableOpacity
+          onPress={() => setShowWarranty(!showWarranty)}
+          className="flex-row items-center justify-between"
+        >
+          <View className="flex-row items-center gap-1.5">
+            <Text className="text-base">🛡️</Text>
+            <Text className="text-sm font-medium text-gray-800 dark:text-gray-200">
+              Warranty & Guarantee (Optional)
+            </Text>
+          </View>
+          <Ionicons
+            name={showWarranty ? 'chevron-up' : 'chevron-down'}
+            size={18}
+            color={isDark ? '#9ca3af' : '#6b7280'}
+          />
+        </TouchableOpacity>
+
+        {showWarranty && (
+          <View className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700/60">
+            <View className="mb-3">
+              <View className="flex-row items-center justify-between mb-1">
+                <Text className="text-xs text-gray-500 dark:text-gray-400">Valid Until</Text>
+                {form.warranty_until ? (
+                  <TouchableOpacity onPress={() => set('warranty_until', '')}>
+                    <Text className="text-xs text-red-500">Clear</Text>
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+
+              <TouchableOpacity
+                onPress={() => setShowWarrantyDatePicker(true)}
+                className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900"
+              >
+                <Text className={`text-sm ${form.warranty_until ? 'text-gray-900 dark:text-gray-100' : 'text-gray-400'}`}>
+                  {form.warranty_until || 'Select warranty expiry date'}
+                </Text>
+              </TouchableOpacity>
+
+              {/* Quick Year Add Buttons */}
+              <View className="flex-row gap-2 mt-2">
+                {[1, 2, 3].map((yrs) => (
+                  <TouchableOpacity
+                    key={yrs}
+                    onPress={() => addYearsToDate(yrs)}
+                    className="flex-1 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 items-center"
+                  >
+                    <Text className="text-xs font-semibold text-blue-600 dark:text-blue-400">
+                      +{yrs} {yrs === 1 ? 'Year' : 'Years'}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {showWarrantyDatePicker && (
+                <DateTimePicker
+                  value={form.warranty_until ? new Date(form.warranty_until + 'T00:00:00') : new Date()}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={(_, selectedDate) => {
+                    setShowWarrantyDatePicker(Platform.OS === 'ios');
+                    if (selectedDate) {
+                      const y = selectedDate.getFullYear();
+                      const m = String(selectedDate.getMonth() + 1).padStart(2, '0');
+                      const d = String(selectedDate.getDate()).padStart(2, '0');
+                      set('warranty_until', `${y}-${m}-${d}`);
+                    }
+                  }}
+                />
+              )}
+            </View>
+
+            {/* Warranty Notes / Terms */}
+            <View>
+              <Text className="text-xs text-gray-500 dark:text-gray-400 mb-1">Warranty Details</Text>
+              <TextInput
+                placeholder="Serial number, warranty card reference, or terms"
+                placeholderTextColor={placeholderColor}
+                value={form.warranty_notes || ''}
+                onChangeText={(v) => set('warranty_notes', v)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-900"
+              />
+            </View>
+          </View>
+        )}
+      </View>
+
+      {/* Tags Section */}
+      <TagInput
+        selectedTagIds={form.tag_ids || []}
+        onChange={(tagIds) => setForm((f) => ({ ...f, tag_ids: tagIds }))}
+      />
 
       <Button title={submitting ? 'Saving...' : submitLabel} onPress={handleSubmit} loading={submitting} />
 

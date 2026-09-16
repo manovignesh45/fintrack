@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
+import { useRouter } from 'expo-router';
 import { SelectField } from '@/src/components/ui/SelectField';
 import { summaryApi } from '@/src/api/client';
 import { useLedgers } from '@/src/context/LedgerContext';
@@ -112,6 +113,7 @@ function CompareTable({ rows }: { rows: SummaryResponse[] }) {
 }
 
 export default function SummaryScreen() {
+  const router = useRouter();
   const [rangeFrom, setRangeFrom] = useState(() => addMonths(currentMonth(), -11));
   const [rangeTo, setRangeTo] = useState(currentMonth);
   const [rangeData, setRangeData] = useState<SummaryResponse[] | null>(null);
@@ -183,7 +185,16 @@ export default function SummaryScreen() {
       contentContainerClassName="p-4 pb-8"
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
     >
-      <Text className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-3">Monthly Summary</Text>
+      {/* Header with link to Charts */}
+      <View className="flex-row items-center justify-between mb-3">
+        <Text className="text-lg font-semibold text-gray-800 dark:text-gray-100">Monthly Summary</Text>
+        <TouchableOpacity
+          onPress={() => router.push('/summary/charts' as any)}
+          className="flex-row items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800"
+        >
+          <Text className="text-xs font-semibold text-blue-600 dark:text-blue-400">📊 Charts</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Date range selection */}
       <View className="flex-row gap-2">

@@ -7,6 +7,7 @@ import { useAuth } from '@/src/context/AuthContext';
 import { useTheme } from '@/src/context/ThemeContext';
 import { useAppLock } from '@/src/context/AppLockContext';
 import { useToast } from '@/src/context/ToastContext';
+import { ScreenHeader } from '@/src/components/ui/ScreenHeader';
 import {
   clearPin,
   getBiometricCapability,
@@ -82,21 +83,21 @@ export default function MoreScreen() {
   ];
 
   return (
-    <ScrollView className="flex-1 bg-gray-50 dark:bg-gray-900" contentContainerClassName="p-4 pb-8">
-      <Text className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-4">More</Text>
-
-      {/* User info */}
-      <View className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 mb-4 flex-row items-center gap-3">
-        <View className="w-10 h-10 bg-blue-600 dark:bg-blue-50 dark:bg-blue-900/20 rounded-full items-center justify-center">
-          <Text className="text-white font-bold text-lg">
-            {(user?.username ?? '?')[0].toUpperCase()}
-          </Text>
+    <View className="flex-1 bg-gray-50 dark:bg-gray-900">
+      <ScreenHeader title="More" />
+      <ScrollView contentContainerClassName="p-4 pb-8">
+        {/* User info */}
+        <View className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 mb-4 flex-row items-center gap-3">
+          <View className="w-10 h-10 bg-blue-600 dark:bg-blue-900/20 rounded-full items-center justify-center">
+            <Text className="text-white font-bold text-lg">
+              {(user?.username ?? '?')[0].toUpperCase()}
+            </Text>
+          </View>
+          <View className="flex-1">
+            <Text className="font-medium text-gray-800 dark:text-gray-100">{user?.username ?? 'Unknown'}</Text>
+            <Text className="text-xs text-gray-500 dark:text-gray-400">Logged in</Text>
+          </View>
         </View>
-        <View className="flex-1">
-          <Text className="font-medium text-gray-800 dark:text-gray-100">{user?.username ?? 'Unknown'}</Text>
-          <Text className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-500">Logged in</Text>
-        </View>
-      </View>
 
       {/* Theme */}
       <View className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 mb-4">
@@ -227,5 +228,6 @@ export default function MoreScreen() {
         </Text>
       </View>
     </ScrollView>
+    </View>
   );
 }
