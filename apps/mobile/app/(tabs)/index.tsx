@@ -10,6 +10,8 @@ import { useLedgers } from '@/src/context/LedgerContext';
 import TransactionFilter, { TransactionFilterRef } from '@/src/components/TransactionFilter';
 import { FAB } from '@/src/components/ui/FAB';
 import { GettingStartedCard } from '@/src/components/ui/GettingStartedCard';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useQuickNotes, useQuickNotesSummary } from '@/src/store/quickNotes';
 import type { TxNature, FilterState, Transaction } from '@fintrack/shared';
 import { DEFAULT_FILTERS, countActiveFilters, DATE_PRESET_LABELS } from '@fintrack/shared';
 
@@ -38,6 +40,9 @@ export default function TransactionsScreen() {
   const router = useRouter();
   const { editMode } = useAuth();
   const { activeLedgerId, refreshLedgers } = useLedgers();
+  const insets = useSafeAreaInsets();
+  const refreshQuickNotes = useQuickNotes((s) => s.refresh);
+  const quickNotes = useQuickNotesSummary();
 
   const loadTransactions = useCallback(async (f: FilterState = filters, showSpinner = false) => {
     if (!activeLedgerId) return;
@@ -65,7 +70,9 @@ export default function TransactionsScreen() {
   useFocusEffect(
     useCallback(() => {
       loadTransactions(filters, false);
-    }, [filters, loadTransactions])
+      // Also uploads any quick notes captured while offline.
+      refreshQuickNotes(activeLedgerId);
+    }, [filters, loadTransactions, refreshQuickNotes, activeLedgerId])
   );
 
   const onRefresh = useCallback(async () => {
@@ -154,6 +161,21 @@ export default function TransactionsScreen() {
     <View className="px-4 pt-4 pb-2">
       <GettingStartedCard />
 
+      {quickNotes.count > 0 && (
+        <TouchableOpacity
+          onPress={() => router.push('/quick-notes')}
+          activeOpacity={0.7}
+          className="flex-row items-center gap-2 px-3 py-2.5 mb-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800"
+        >
+          <Ionicons name="flash" size={16} color="#d97706" />
+          <Text className="flex-1 text-sm text-amber-900 dark:text-amber-200">
+            {quickNotes.count} quick note{quickNotes.count === 1 ? '' : 's'} to review ·{' '}
+            <Text className="font-semibold">₹{quickNotes.total.toLocaleString('en-IN')}</Text> not in totals yet
+          </Text>
+          <Ionicons name="chevron-forward" size={16} color="#d97706" />
+        </TouchableOpacity>
+      )}
+
       <View className="flex-row items-center justify-between mb-3">
         <Text className="text-lg font-semibold text-gray-800 dark:text-gray-100">Transactions</Text>
         <TransactionFilter ref={filterRef} filters={filters} onChange={setFilters} />
@@ -222,6 +244,16 @@ export default function TransactionsScreen() {
         />
       )}
 
+      {/* Quick note: jot "name amount" now, classify later. Sits above the main FAB. */}
+      <TouchableOpacity
+        onPress={() => router.push('/quick-notes')}
+        activeOpacity={0.8}
+        accessibilityLabel="Quick note"
+        style={{ bottom: 24 + insets.bottom + 68 }}
+        className="absolute right-7 w-12 h-12 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full shadow-lg items-center justify-center"
+      >
+        <Ionicons name="flash" size={22} color="#d97706" />
+      </TouchableOpacity>
       <FAB onPress={() => router.push('/add')} accessibilityLabel="Add transaction" />
     </View>
     </GestureDetector>

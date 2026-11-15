@@ -103,6 +103,43 @@ export interface TransactionTemplate {
   created_at: string;
 }
 
+/** How the latest income/expense transaction with the same title was classified. */
+export interface QuickNoteSuggestion {
+  nature: TxNature;
+  source_account_id: number;
+  category_id?: number;
+  category_name?: string;
+  sub_category_id?: number;
+  sub_category_name?: string;
+  payment_method_id?: number;
+  payment_method_name?: string;
+}
+
+/**
+ * A rough "name + amount" jotting captured on the spot. Not a transaction: it
+ * affects no balance or report until it is converted into one.
+ */
+export interface QuickNote {
+  id: number;
+  ledger_id: number;
+  title: string;
+  /** 0 means the amount was not noted. */
+  amount: number;
+  /** `YYYY-MM-DD` */
+  note_date: string;
+  client_id?: string;
+  created_at: string;
+  suggestion?: QuickNoteSuggestion;
+}
+
+export interface QuickNoteInput {
+  title: string;
+  amount: number;
+  note_date: string;
+  /** Idempotency key: a note re-sent with the same id is not saved twice. */
+  client_id?: string;
+}
+
 export interface TransactionSuggestion {
   title: string;
   amount?: number;

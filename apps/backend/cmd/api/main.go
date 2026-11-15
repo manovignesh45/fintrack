@@ -54,6 +54,7 @@ func main() {
 	templateH := handlers.NewTemplateHandler(pool)
 	commitmentH := handlers.NewCommitmentHandler(pool)
 	tallyH := handlers.NewTallyHandler(pool)
+	quickNoteH := handlers.NewQuickNoteHandler(pool)
 
 	// Setup router
 	r := chi.NewRouter()
@@ -155,6 +156,13 @@ func main() {
 					r.Get("/{id}", transactionH.Get)
 					r.Put("/{id}", transactionH.Update)
 					r.Delete("/{id}", transactionH.Delete)
+				})
+
+				// Quick notes (jot now, convert to a transaction later)
+				r.Route("/quick-notes", func(r chi.Router) {
+					r.Get("/", quickNoteH.List)
+					r.Post("/", quickNoteH.Create)
+					r.Delete("/{id}", quickNoteH.Delete)
 				})
 
 				// Templates

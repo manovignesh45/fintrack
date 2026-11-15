@@ -19,6 +19,7 @@ import CommitmentFormPage from './pages/CommitmentFormPage';
 import EditTransactionPage from './pages/EditTransactionPage';
 import LoginPage from './pages/LoginPage';
 import ImportPage from './pages/ImportPage';
+import QuickNotesPage from './pages/QuickNotesPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { LedgerProvider, useLedgers } from './context/LedgerContext';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
@@ -44,6 +45,9 @@ function MorePage() {
           📆 Monthly Commitments
         </NavLink>
       )}
+      <NavLink to="/quick-notes" className="block p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-200">
+        ⚡ Quick Notes
+      </NavLink>
       <NavLink to="/categories" className="block p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-200">
         📁 Categories & Sub-categories
       </NavLink>
@@ -82,6 +86,7 @@ const commitmentNavItem: NavItemConfig = {
 // the mobile "More" page keeps tucked away. Excludes Templates since that's
 // already a primary nav item.
 const moreNavItems = [
+  { to: '/quick-notes', label: 'Quick Notes', icon: '⚡' },
   { to: '/commitments', label: 'Monthly Commitments', icon: '📆' },
   { to: '/categories', label: 'Categories & Sub-categories', icon: '📁' },
   { to: '/payment-methods', label: 'Payment Methods', icon: '💳' },
@@ -371,6 +376,7 @@ function AppShell() {
                 <Route path="/templates" element={<ProtectedRoute><TemplatesPage /></ProtectedRoute>} />
                 <Route path="/templates/new" element={<ProtectedRoute><CreateTemplatePage /></ProtectedRoute>} />
                 <Route path="/templates/:id/edit" element={<ProtectedRoute><EditTemplatePage /></ProtectedRoute>} />
+                <Route path="/quick-notes" element={<ProtectedRoute><QuickNotesPage /></ProtectedRoute>} />
                 <Route path="/import" element={<ProtectedRoute><ImportPage /></ProtectedRoute>} />
                 <Route path="/payment-methods" element={<ProtectedRoute><PaymentMethodsPage /></ProtectedRoute>} />
                 <Route path="/commitments" element={<ProtectedRoute><CommitmentsPage /></ProtectedRoute>} />

@@ -61,6 +61,32 @@ type Tag struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+// QuickNote is a rough "name + amount" jotting captured on the spot. It is not a
+// transaction: it affects no balance or report until it is converted into one.
+type QuickNote struct {
+	ID         int                  `json:"id"`
+	LedgerID   int                  `json:"ledger_id"`
+	Title      string               `json:"title"`
+	Amount     float64              `json:"amount"`
+	NoteDate   string               `json:"note_date"`
+	ClientID   *string              `json:"client_id,omitempty"`
+	CreatedAt  time.Time            `json:"created_at"`
+	Suggestion *QuickNoteSuggestion `json:"suggestion,omitempty"`
+}
+
+// QuickNoteSuggestion is how the latest income/expense transaction with the
+// same title was classified.
+type QuickNoteSuggestion struct {
+	Nature            TxNature `json:"nature"`
+	SourceAccountID   int      `json:"source_account_id"`
+	CategoryID        *int     `json:"category_id,omitempty"`
+	CategoryName      *string  `json:"category_name,omitempty"`
+	SubCategoryID     *int     `json:"sub_category_id,omitempty"`
+	SubCategoryName   *string  `json:"sub_category_name,omitempty"`
+	PaymentMethodID   *int     `json:"payment_method_id,omitempty"`
+	PaymentMethodName *string  `json:"payment_method_name,omitempty"`
+}
+
 type Transaction struct {
 	ID              int       `json:"id"`
 	LedgerID        int       `json:"ledger_id"`
@@ -249,6 +275,20 @@ type CreateTransactionReq struct {
 	WarrantyUntil   *string  `json:"warranty_until,omitempty"`
 	WarrantyNotes   string   `json:"warranty_notes,omitempty"`
 	TagIDs          []int    `json:"tag_ids,omitempty"`
+	// QuickNoteID, on create only, is the quick note this transaction was made
+	// from; that note is removed in the same database transaction.
+	QuickNoteID *int `json:"quick_note_id,omitempty"`
+}
+
+type QuickNoteInput struct {
+	Title    string  `json:"title"`
+	Amount   float64 `json:"amount"`
+	NoteDate string  `json:"note_date"`
+	ClientID *string `json:"client_id,omitempty"`
+}
+
+type CreateQuickNotesReq struct {
+	Notes []QuickNoteInput `json:"notes"`
 }
 
 type UpdateTransactionReq = CreateTransactionReq

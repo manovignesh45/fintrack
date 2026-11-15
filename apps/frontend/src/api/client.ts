@@ -33,6 +33,7 @@ export const paymentMethodsApi = client.paymentMethodsApi;
 export const tagsApi = client.tagsApi;
 export const transactionsApi = client.transactionsApi;
 export const templatesApi = client.templatesApi;
+export const quickNotesApi = client.quickNotesApi;
 export const commitmentsApi = client.commitmentsApi;
 export const tallyApi = client.tallyApi;
 export const summaryApi = client.summaryApi;

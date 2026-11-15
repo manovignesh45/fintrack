@@ -27,6 +27,8 @@ export type {
   CommitmentsMonthResponse,
   CommitmentInput,
   PayCommitmentInput,
+  QuickNote,
+  QuickNoteInput,
 } from '@fintrack/shared';
 
 export {

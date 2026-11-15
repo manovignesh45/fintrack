@@ -19,6 +19,8 @@ import type {
   CommitmentInput,
   PayCommitmentInput,
   Tag,
+  QuickNote,
+  QuickNoteInput,
 } from './types';
 
 export interface ApiClientConfig {
@@ -215,12 +217,22 @@ export function createApiClient(config: ApiClientConfig) {
       return request<TransactionSuggestion[]>(`/transactions/suggestions${qs}`);
     },
     get: (id: number) => request<Transaction>(`/transactions/${id}`),
-    create: (data: Omit<Transaction, 'id' | 'created_at' | 'ledger_id' | 'tags'> & { tag_ids?: number[] }) =>
+    /** `quick_note_id` converts that quick note: it is removed when the transaction is saved. */
+    create: (data: Omit<Transaction, 'id' | 'created_at' | 'ledger_id' | 'tags'> & { tag_ids?: number[]; quick_note_id?: number }) =>
       request<Transaction>('/transactions', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: number, data: Omit<Transaction, 'id' | 'created_at' | 'ledger_id' | 'tags'> & { tag_ids?: number[] }) =>
       request<Transaction>(`/transactions/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: number) =>
       request<void>(`/transactions/${id}`, { method: 'DELETE' }),
+  };
+
+  const quickNotesApi = {
+    list: () => request<QuickNote[]>('/quick-notes'),
+    /** Saves one or many notes and returns the ledger's full, refreshed list. */
+    create: (notes: QuickNoteInput[]) =>
+      request<QuickNote[]>('/quick-notes', { method: 'POST', body: JSON.stringify({ notes }) }),
+    delete: (id: number) =>
+      request<void>(`/quick-notes/${id}`, { method: 'DELETE' }),
   };
 
   const templatesApi = {
@@ -282,6 +294,7 @@ export function createApiClient(config: ApiClientConfig) {
     paymentMethodsApi,
     tagsApi,
     transactionsApi,
+    quickNotesApi,
     templatesApi,
     commitmentsApi,
     tallyApi,

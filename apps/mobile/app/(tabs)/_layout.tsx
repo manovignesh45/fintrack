@@ -1,15 +1,18 @@
 import { withLayoutContext } from 'expo-router';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
+import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useThemeColors } from '@/src/theme/colors';
+import { useQuickNotesSummary } from '@/src/store/quickNotes';
 
 const MaterialTopTabs = withLayoutContext(createMaterialTopTabNavigator().Navigator);
 
 export default function TabLayout() {
   const colors = useThemeColors();
   const insets = useSafeAreaInsets();
+  const quickNotes = useQuickNotesSummary();
   return (
     <MaterialTopTabs
       tabBarPosition="bottom"
@@ -36,7 +39,18 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Transactions',
-          tabBarIcon: ({ color }: { color: string }) => <Ionicons name="receipt-outline" size={24} color={color} />,
+          tabBarAccessibilityLabel: quickNotes.count > 0 ? `Transactions, ${quickNotes.count} quick notes to review` : 'Transactions',
+          tabBarIcon: ({ color }: { color: string }) => (
+            <View>
+              <Ionicons name="receipt-outline" size={24} color={color} />
+              {/* Quick notes still waiting to become transactions */}
+              {quickNotes.count > 0 && (
+                <View className="absolute -top-1 -right-2.5 min-w-[16px] h-4 px-1 rounded-full bg-red-500 items-center justify-center">
+                  <Text className="text-[10px] font-bold text-white">{quickNotes.count > 99 ? '99+' : quickNotes.count}</Text>
+                </View>
+              )}
+            </View>
+          ),
         }}
       />
       <MaterialTopTabs.Screen

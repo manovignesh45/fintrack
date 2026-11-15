@@ -660,6 +660,20 @@ func (h *TransactionHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// This transaction was made from a quick note: remove the note atomically
+	// so it cannot be converted twice.
+	if req.QuickNoteID != nil {
+		tag, err := tx.Exec(r.Context(), "DELETE FROM quick_notes WHERE id = $1 AND ledger_id = $2", *req.QuickNoteID, ledgerID)
+		if err != nil {
+			writeInternalError(w, err, "Failed to clear quick note")
+			return
+		}
+		if tag.RowsAffected() == 0 {
+			writeError(w, http.StatusConflict, "This quick note was already converted or deleted")
+			return
+		}
+	}
+
 	if err := tx.Commit(r.Context()); err != nil {
 		writeInternalError(w, err, "Failed to commit transaction")
 		return

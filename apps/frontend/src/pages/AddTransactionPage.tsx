@@ -1,12 +1,18 @@
 import { useNavigate, useLocation } from 'react-router-dom';
+import { quickNoteToForm } from '@fintrack/shared';
 import { transactionsApi } from '../api/client';
+import type { QuickNote } from '../api/types';
 import TransactionForm, { type TransactionFormData } from '../components/TransactionForm';
 import { invalidateCache } from '../hooks/useCachedList';
 
 export default function AddTransactionPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const initialData = location.state?.template as TransactionFormData | undefined;
+  // Opened from a quick note: the form starts from it and saving converts it.
+  const quickNote = location.state?.quickNote as QuickNote | undefined;
+  const initialData = quickNote
+    ? quickNoteToForm(quickNote)
+    : (location.state?.template as TransactionFormData | undefined);
 
   const handleSubmit = async (form: TransactionFormData) => {
     await transactionsApi.create({
@@ -24,14 +30,16 @@ export default function AddTransactionPage() {
       warranty_until: form.warranty_until || undefined,
       warranty_notes: form.warranty_notes || undefined,
       tag_ids: form.tag_ids || [],
+      quick_note_id: quickNote?.id,
     });
     invalidateCache('transaction');
-    navigate('/');
+    if (quickNote) invalidateCache('quick-notes');
+    navigate(quickNote ? '/quick-notes' : '/');
   };
 
   return (
     <div>
-      <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">Add Transaction</h2>
+      <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-4">{quickNote ? 'Add from Quick Note' : 'Add Transaction'}</h2>
       <TransactionForm 
         initial={initialData}
         onSubmit={handleSubmit} 

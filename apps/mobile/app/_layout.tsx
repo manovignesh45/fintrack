@@ -302,6 +302,7 @@ function RootContent() {
             {/* Form/sub screens render their own inline header, so the global
                 Stack header is hidden to avoid the double-header stack. */}
             <Stack.Screen name="add" options={{ headerShown: true }} />
+            <Stack.Screen name="quick-notes" options={{ headerShown: true }} />
             <Stack.Screen name="edit/[id]" options={{ headerShown: true }} />
             <Stack.Screen name="accounts/[id]" options={{ headerShown: true }} />
             <Stack.Screen name="categories/index" options={{ headerShown: true }} />

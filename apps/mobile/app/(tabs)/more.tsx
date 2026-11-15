@@ -76,6 +76,7 @@ export default function MoreScreen() {
   );
 
   const links = [
+    { label: 'Quick Notes', icon: 'flash-outline' as const, href: '/quick-notes' as const },
     { label: 'Categories', icon: 'folder-outline' as const, href: '/categories' as const },
     { label: 'Payment Methods', icon: 'card-outline' as const, href: '/payment-methods' as const },
     { label: 'Loan Reconciliation', icon: 'calculator-outline' as const, href: '/tally' as const },

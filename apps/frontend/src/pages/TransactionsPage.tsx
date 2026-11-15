@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { transactionsApi, paymentMethodsApi, categoriesApi, accountsApi, tagsApi } from '../api/client';
-import type { Transaction, TxNature, PaymentMethod, Category, Account, Tag } from '../api/types';
+import { transactionsApi, paymentMethodsApi, categoriesApi, accountsApi, tagsApi, quickNotesApi } from '../api/client';
+import type { Transaction, TxNature, PaymentMethod, Category, Account, Tag, QuickNote } from '../api/types';
 import { useAuth } from '../context/AuthContext';
 import TransactionFilter, { DEFAULT_FILTERS, countActiveFilters, DATE_PRESET_LABELS } from '../components/TransactionFilter';
 import type { FilterState } from '../components/TransactionFilter';
@@ -91,6 +91,9 @@ export default function TransactionsPage() {
     () => transactionsApi.list(filterParams(filters)),
     []
   );
+  // Jotted spends not yet turned into transactions, so they are missing from the totals below.
+  const { data: quickNotes } = useCachedList<QuickNote[]>('quick-notes', () => quickNotesApi.list(), []);
+  const quickNotesTotal = quickNotes.reduce((sum, n) => sum + n.amount, 0);
   const { data: paymentMethods } = useCachedList<PaymentMethod[]>(
     'payment-methods',
     () => paymentMethodsApi.list(),
@@ -241,6 +244,21 @@ export default function TransactionsPage() {
   return (
     <div className="space-y-4">
       <GettingStartedCard />
+
+      {quickNotes.length > 0 && (
+        <button
+          type="button"
+          onClick={() => navigate('/quick-notes')}
+          className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-left text-sm text-amber-900 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors"
+        >
+          <span aria-hidden="true">⚡</span>
+          <span className="flex-1">
+            {quickNotes.length} quick note{quickNotes.length === 1 ? '' : 's'} to review ·{' '}
+            <span className="font-semibold">₹{quickNotesTotal.toLocaleString('en-IN')}</span> not in totals yet
+          </span>
+          <span aria-hidden="true">›</span>
+        </button>
+      )}
 
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -638,6 +656,16 @@ export default function TransactionsPage() {
           })}
         </div>
       )}
+
+      {/* Quick note: jot "name amount" now, classify later. Sits above the main button. */}
+      <button
+        onClick={() => navigate('/quick-notes')}
+        className="absolute bottom-[5.5rem] right-7 w-12 h-12 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full shadow-lg flex items-center justify-center text-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors z-20"
+        aria-label="Quick note"
+        title="Quick note"
+      >
+        ⚡
+      </button>
 
       {/* Floating Action Button */}
       <button
