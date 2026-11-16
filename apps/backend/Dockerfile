@@ -25,9 +25,6 @@ WORKDIR /root/
 # Copy the binary from the builder
 COPY --from=builder /app/main .
 
-# Copy migrations so they are available at runtime
-COPY --from=builder /app/internal/db/migrations ./internal/db/migrations
-
 # Expose the port (Render uses $PORT environment variable)
 EXPOSE 8080
 

@@ -2,17 +2,26 @@ package db
 
 import (
 	"context"
+	"embed"
 	"fmt"
+	"io/fs"
 	"log"
-	"os"
-	"path/filepath"
+	"path"
 	"sort"
 	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func RunMigrations(ctx context.Context, pool *pgxpool.Pool, migrationsDir string) error {
+// The SQL files are compiled into the binary, so migrations run no matter where
+// the binary is started from or how the image was built. (They used to be read
+// from a path derived from the source file at compile time, which pointed at a
+// folder that does not exist inside the Docker image, so nothing ran.)
+//
+//go:embed migrations/*.sql
+var migrationsFS embed.FS
+
+func RunMigrations(ctx context.Context, pool *pgxpool.Pool) error {
 	// Create migrations tracking table
 	_, err := pool.Exec(ctx, `
 		CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -25,14 +34,19 @@ func RunMigrations(ctx context.Context, pool *pgxpool.Pool, migrationsDir string
 	}
 
 	// Find all .up.sql files
-	files, err := filepath.Glob(filepath.Join(migrationsDir, "*.up.sql"))
+	files, err := fs.Glob(migrationsFS, "migrations/*.up.sql")
 	if err != nil {
 		return fmt.Errorf("glob migrations: %w", err)
 	}
+	if len(files) == 0 {
+		return fmt.Errorf("no migration files embedded in binary")
+	}
 	sort.Strings(files)
 
+	applied := 0
+
 	for _, file := range files {
-		version := strings.TrimSuffix(filepath.Base(file), ".up.sql")
+		version := strings.TrimSuffix(path.Base(file), ".up.sql")
 
 		// Check if already applied
 		var count int
@@ -45,7 +59,7 @@ func RunMigrations(ctx context.Context, pool *pgxpool.Pool, migrationsDir string
 		}
 
 		// Read and execute migration
-		sql, err := os.ReadFile(file)
+		sql, err := fs.ReadFile(migrationsFS, file)
 		if err != nil {
 			return fmt.Errorf("read migration %s: %w", version, err)
 		}
@@ -70,7 +84,9 @@ func RunMigrations(ctx context.Context, pool *pgxpool.Pool, migrationsDir string
 		}
 
 		log.Printf("Applied migration: %s", version)
+		applied++
 	}
 
+	log.Printf("Migrations: %d found, %d newly applied", len(files), applied)
 	return nil
 }

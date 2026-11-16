@@ -6,8 +6,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
-	"runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -40,8 +38,7 @@ func main() {
 	defer pool.Close()
 
 	// Run migrations
-	migrationsDir := getMigrationsDir()
-	if err := db.RunMigrations(ctx, pool, migrationsDir); err != nil {
+	if err := db.RunMigrations(ctx, pool); err != nil {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
 
@@ -231,13 +228,4 @@ func main() {
 	}
 
 	log.Println("Server stopped.")
-}
-
-func getMigrationsDir() string {
-	// Get directory relative to this source file
-	_, filename, _, ok := runtime.Caller(0)
-	if ok {
-		return filepath.Join(filepath.Dir(filename), "..", "..", "internal", "db", "migrations")
-	}
-	return "internal/db/migrations"
 }
