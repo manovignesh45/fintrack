@@ -12,6 +12,6 @@
   },
   "dependencies": {
     "lucide-react": "^1.7.0",
-    "react": "19.1.0"
+    "react": "19.3.0"
   }
 }

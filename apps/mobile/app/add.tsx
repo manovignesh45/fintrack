@@ -1,6 +1,7 @@
 import { useMemo, useRef } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import type { ScrollViewInstance } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { transactionsApi } from '@/src/api/client';
 import { quickNoteToForm, type QuickNote, type TransactionFormData } from '@fintrack/shared';
@@ -30,7 +31,7 @@ function formToPayload(form: TransactionFormData) {
 export default function AddTransactionScreen() {
   const router = useRouter();
   const { showToast } = useToast();
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
   const params = useLocalSearchParams<{ template?: string; note?: string }>();
   const removeNote = useQuickNotes((s) => s.removeNote);
   // Opened from a quick note: the form starts from it and saving converts it.

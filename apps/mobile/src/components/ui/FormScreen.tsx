@@ -1,6 +1,7 @@
 import { forwardRef, useContext, type ReactNode } from 'react';
 import { KeyboardAvoidingView, ScrollView, View, Platform } from 'react-native';
-import { HeaderHeightContext } from '@react-navigation/elements';
+import type { ScrollViewInstance } from 'react-native';
+import { HeaderHeightContext } from 'expo-router/react-navigation';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 /**
@@ -50,7 +51,7 @@ interface FormScreenProps {
  * FormScreen — KeyboardScreen + ScrollView, for form screens. Forwards a ref to
  * the inner ScrollView so callers can `scrollToEnd()` when focusing bottom fields.
  */
-export const FormScreen = forwardRef<ScrollView, FormScreenProps>(function FormScreen(
+export const FormScreen = forwardRef<ScrollViewInstance, FormScreenProps>(function FormScreen(
   { children, header, contentContainerClassName = 'p-4 pb-8', className },
   ref
 ) {

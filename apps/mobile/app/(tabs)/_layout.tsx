@@ -1,13 +1,10 @@
-import { withLayoutContext } from 'expo-router';
-import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
+import { TopTabs as MaterialTopTabs } from 'expo-router/js-top-tabs';
 import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useThemeColors } from '@/src/theme/colors';
 import { useQuickNotesSummary } from '@/src/store/quickNotes';
-
-const MaterialTopTabs = withLayoutContext(createMaterialTopTabNavigator().Navigator);
 
 export default function TabLayout() {
   const colors = useThemeColors();
@@ -40,9 +37,9 @@ export default function TabLayout() {
         options={{
           title: 'Transactions',
           tabBarAccessibilityLabel: quickNotes.count > 0 ? `Transactions, ${quickNotes.count} quick notes to review` : 'Transactions',
-          tabBarIcon: ({ color }: { color: string }) => (
+          tabBarIcon: ({ color }) => (
             <View>
-              <Ionicons name="receipt-outline" size={24} color={color} />
+              <Ionicons name="receipt-outline" size={24} color={color as string} />
               {/* Quick notes still waiting to become transactions */}
               {quickNotes.count > 0 && (
                 <View className="absolute -top-1 -right-2.5 min-w-[16px] h-4 px-1 rounded-full bg-red-500 items-center justify-center">
@@ -57,28 +54,28 @@ export default function TabLayout() {
         name="templates"
         options={{
           title: 'Templates',
-          tabBarIcon: ({ color }: { color: string }) => <Ionicons name="document-text-outline" size={24} color={color} />,
+          tabBarIcon: ({ color }) => <Ionicons name="document-text-outline" size={24} color={color as string} />,
         }}
       />
       <MaterialTopTabs.Screen
         name="accounts"
         options={{
           title: 'Loans',
-          tabBarIcon: ({ color }: { color: string }) => <Ionicons name="business-outline" size={24} color={color} />,
+          tabBarIcon: ({ color }) => <Ionicons name="business-outline" size={24} color={color as string} />,
         }}
       />
       <MaterialTopTabs.Screen
         name="summary"
         options={{
           title: 'Summary',
-          tabBarIcon: ({ color }: { color: string }) => <Ionicons name="bar-chart-outline" size={24} color={color} />,
+          tabBarIcon: ({ color }) => <Ionicons name="bar-chart-outline" size={24} color={color as string} />,
         }}
       />
       <MaterialTopTabs.Screen
         name="more"
         options={{
           title: 'More',
-          tabBarIcon: ({ color }: { color: string }) => <Ionicons name="ellipsis-horizontal" size={24} color={color} />,
+          tabBarIcon: ({ color }) => <Ionicons name="ellipsis-horizontal" size={24} color={color as string} />,
         }}
       />
     </MaterialTopTabs>

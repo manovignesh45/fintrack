@@ -12,6 +12,7 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
 } from 'react-native';
+import type { TextInputInstance } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -54,7 +55,7 @@ export default function QuickNotesScreen() {
   const { notes, pending, loading, error, refresh, add, removePending, removeNote } = useQuickNotes();
   const { count, total } = useQuickNotesSummary();
 
-  const inputRef = useRef<TextInput>(null);
+  const inputRef = useRef<TextInputInstance>(null);
   const [text, setText] = useState('');
   const [inputError, setInputError] = useState('');
   const [date, setDate] = useState(localDateString());
@@ -282,7 +283,7 @@ export default function QuickNotesScreen() {
             <Text className="px-4 pb-1 text-sm text-gray-600 dark:text-gray-300">
               {count} to review · <Text className="font-semibold">{rupees(total)}</Text> not in your totals yet
             </Text>
-          ) : null
+          ) : undefined
         }
         renderSectionHeader={({ section }) => (
           <View className="flex-row justify-between px-4 pt-3 pb-1.5">

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, Platform, Pressable, Modal, KeyboardAvoidingView } from 'react-native';
+import type { TextInputInstance, ScrollViewInstance } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
 import { accountsApi, categoriesApi, paymentMethodsApi } from '@/src/api/client';
@@ -16,16 +17,16 @@ interface Props {
   onSubmit: (data: TransactionFormData) => Promise<void>;
   submitLabel: string;
   /** ScrollView ref from the enclosing FormScreen, used to scroll bottom fields into view. */
-  scrollRef?: RefObject<ScrollView | null>;
+  scrollRef?: RefObject<ScrollViewInstance | null>;
 }
 
 export default function TransactionForm({ initial, onSubmit, submitLabel, scrollRef }: Props) {
   const { editMode } = useAuth();
   const { activeLedgerId } = useLedgers();
-  const amountRef = useRef<TextInput>(null);
-  const principalRef = useRef<TextInput>(null);
-  const interestRef = useRef<TextInput>(null);
-  const notesRef = useRef<TextInput>(null);
+  const amountRef = useRef<TextInputInstance>(null);
+  const principalRef = useRef<TextInputInstance>(null);
+  const interestRef = useRef<TextInputInstance>(null);
+  const notesRef = useRef<TextInputInstance>(null);
   const [form, setForm] = useState<TransactionFormData>(initial ?? emptyTransactionForm());
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);

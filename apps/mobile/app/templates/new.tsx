@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import type { ScrollViewInstance } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { templatesApi } from '@/src/api/client';
@@ -12,7 +13,7 @@ import type { TransactionFormData } from '@fintrack/shared';
 export default function CreateTemplateScreen() {
   const router = useRouter();
   const { showToast } = useToast();
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
 
   const handleSubmit = async (form: TransactionFormData) => {
     await templatesApi.create({

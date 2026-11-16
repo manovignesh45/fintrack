@@ -1,5 +1,6 @@
 import { forwardRef, type ReactNode } from 'react';
 import { View, Text, TextInput, type TextInputProps } from 'react-native';
+import type { TextInputInstance } from 'react-native';
 import { useColorScheme } from 'nativewind';
 
 interface InputProps extends TextInputProps {
@@ -10,7 +11,7 @@ interface InputProps extends TextInputProps {
   containerClassName?: string;
 }
 
-export const Input = forwardRef<TextInput, InputProps>(function Input(
+export const Input = forwardRef<TextInputInstance, InputProps>(function Input(
   { label, action, error, containerClassName, className, ...props },
   ref
 ) {
