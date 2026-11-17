@@ -8,9 +8,11 @@ import { useColorScheme } from 'nativewind';
 interface Props {
   selectedTagIds: number[];
   onChange: (ids: number[]) => void;
+  /** Called when the field (or its suggestion list) needs scrolling into view above the keyboard. */
+  onReveal?: () => void;
 }
 
-export default function TagInput({ selectedTagIds, onChange }: Props) {
+export default function TagInput({ selectedTagIds, onChange, onReveal }: Props) {
   const [allTags, setAllTags] = useState<Tag[]>([]);
   const [query, setQuery] = useState('');
   const [isFocused, setIsFocused] = useState(false);
@@ -37,6 +39,14 @@ export default function TagInput({ selectedTagIds, onChange }: Props) {
   const exactMatch = allTags.some(
     (t) => t.name.toLowerCase() === query.trim().toLowerCase()
   );
+
+  const showDropdown = isFocused && (query.trim().length > 0 || filteredTags.length > 0);
+
+  // The suggestion list renders below the input; keep it visible when it opens.
+  useEffect(() => {
+    if (showDropdown) onReveal?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only react to the list opening
+  }, [showDropdown]);
 
   const handleAddTag = (tag: Tag) => {
     if (!selectedTagIds.includes(tag.id)) {
@@ -92,7 +102,10 @@ export default function TagInput({ selectedTagIds, onChange }: Props) {
         <TextInput
           value={query}
           onChangeText={setQuery}
-          onFocus={() => setIsFocused(true)}
+          onFocus={() => {
+            setIsFocused(true);
+            onReveal?.();
+          }}
           onBlur={() => setTimeout(() => setIsFocused(false), 200)}
           placeholder={selectedTags.length === 0 ? 'Add tags (e.g. goa-trip, diwali)' : '+ tag'}
           placeholderTextColor={placeholderColor}
@@ -109,7 +122,7 @@ export default function TagInput({ selectedTagIds, onChange }: Props) {
       </View>
 
       {/* Autocomplete Dropdown / Suggestions */}
-      {isFocused && (query.trim().length > 0 || filteredTags.length > 0) && (
+      {showDropdown && (
         <View className="mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden p-1 z-30">
           {filteredTags.slice(0, 5).map((tag) => (
             <TouchableOpacity

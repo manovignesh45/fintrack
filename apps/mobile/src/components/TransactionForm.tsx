@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Platform, Pressable, Modal, KeyboardAvoidingView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Platform, Pressable, Modal, KeyboardAvoidingView, Keyboard } from 'react-native';
 import type { TextInputInstance, ScrollViewInstance } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
@@ -236,6 +236,21 @@ export default function TransactionForm({
       setForm((f) => ({ ...f, payment_method_id: '' }));
     }
   }, [form.nature]);
+
+  /**
+   * Scroll a bottom-of-form field above the keyboard. The KeyboardAvoidingView
+   * only adds its padding once the keyboard is up, so scrolling on focus alone
+   * lands short — scroll again after keyboardDidShow, when the layout is final.
+   */
+  const revealBottomField = () => {
+    const scroll = () => scrollRef?.current?.scrollToEnd({ animated: true });
+    setTimeout(scroll, 100);
+    const sub = Keyboard.addListener('keyboardDidShow', () => {
+      sub.remove();
+      setTimeout(scroll, 50);
+    });
+    setTimeout(() => sub.remove(), 1000);
+  };
 
   const set = (field: keyof TransactionFormData, value: string) =>
     setForm((f) => ({ ...f, [field]: value }));
@@ -538,7 +553,7 @@ export default function TransactionForm({
           placeholderTextColor={placeholderColor}
           value={form.notes}
           onChangeText={(v) => set('notes', v)}
-          onFocus={() => setTimeout(() => scrollRef?.current?.scrollToEnd({ animated: true }), 100)}
+          onFocus={revealBottomField}
           multiline
           numberOfLines={2}
           className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800"
@@ -637,6 +652,7 @@ export default function TransactionForm({
       <TagInput
         selectedTagIds={form.tag_ids || []}
         onChange={(tagIds) => setForm((f) => ({ ...f, tag_ids: tagIds }))}
+        onReveal={revealBottomField}
       />
 
       <Button title={submitting ? 'Saving...' : submitLabel} onPress={handleSubmit} loading={submitting} />

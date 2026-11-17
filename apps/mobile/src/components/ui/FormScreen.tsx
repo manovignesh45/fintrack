@@ -63,7 +63,10 @@ export const FormScreen = forwardRef<ScrollViewInstance, FormScreenProps>(functi
         className="flex-1"
         contentContainerClassName={contentContainerClassName}
         keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
+        // Android: keep the keyboard open while scrolling so lower fields stay
+        // reachable (tap outside an input or press Back to dismiss). iOS can
+        // dismiss interactively as the drag crosses the keyboard.
+        keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'none'}
       >
         {/* Constrain form width on tablets / large screens; full-width on phones. */}
         <View className="w-full max-w-xl self-center">{children}</View>
