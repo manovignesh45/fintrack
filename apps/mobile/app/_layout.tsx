@@ -132,6 +132,17 @@ function HeaderRight() {
                       <Text className="text-sm text-gray-700 dark:text-gray-300">Settings</Text>
                       <Ionicons name="chevron-forward" size={16} color="#9ca3af" />
                     </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setMenuVisible(false);
+                        setMenuView('main');
+                        router.push('/more');
+                      }}
+                      className="flex-row justify-between items-center px-4 py-3 border-b border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800"
+                    >
+                      <Text className="text-sm text-gray-700 dark:text-gray-300">More</Text>
+                      <Ionicons name="chevron-forward" size={16} color="#9ca3af" />
+                    </TouchableOpacity>
                     {lockEnabled ? (
                       <>
                         {/* App lock is on: the primary action locks (keeps the
@@ -309,8 +320,14 @@ function RootContent() {
             <Stack.Screen name="categories/new" options={{ headerShown: true }} />
             <Stack.Screen name="categories/[catId]/sub/new" options={{ headerShown: true }} />
             <Stack.Screen name="templates/new" options={{ headerShown: true }} />
+            <Stack.Screen name="templates/[id]/edit" options={{ headerShown: true }} />
             <Stack.Screen name="payment-methods/index" options={{ headerShown: true }} />
             <Stack.Screen name="tally" options={{ headerShown: true }} />
+            <Stack.Screen name="commitments/index" options={{ headerShown: true }} />
+            <Stack.Screen name="commitments/new" options={{ headerShown: true }} />
+            <Stack.Screen name="commitments/[id]/edit" options={{ headerShown: true }} />
+            <Stack.Screen name="summary/charts" options={{ headerShown: true }} />
+            <Stack.Screen name="more" options={{ headerShown: true }} />
           </Stack>
         </AuthGate>
         <StatusBar style={theme === 'system' ? 'auto' : theme} />

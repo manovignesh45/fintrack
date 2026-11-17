@@ -76,3 +76,5 @@ export const tallyApi = client.tallyApi;
 export const summaryApi = client.summaryApi;
 export const ledgersApi = client.ledgersApi;
 export const paymentMethodsApi = client.paymentMethodsApi;
+export const commitmentsApi = client.commitmentsApi;
+export const tagsApi = client.tagsApi;

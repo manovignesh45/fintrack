@@ -106,12 +106,20 @@ export default function TemplatesScreen() {
             <Text className="text-white text-xs font-medium">Use</Text>
           </TouchableOpacity>
           {editMode && (
-            <TouchableOpacity
-              onPress={() => handleDelete(t.id)}
-              className="px-3 py-1.5 bg-red-100 rounded"
-            >
-              <Text className="text-red-600 text-xs font-medium">Del</Text>
-            </TouchableOpacity>
+            <>
+              <TouchableOpacity
+                onPress={() => router.push(`/templates/${t.id}/edit` as any)}
+                className="px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 rounded"
+              >
+                <Text className="text-blue-600 dark:text-blue-400 text-xs font-medium">Edit</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => handleDelete(t.id)}
+                className="px-3 py-1.5 bg-red-100 dark:bg-red-900/30 rounded"
+              >
+                <Text className="text-red-600 dark:text-red-400 text-xs font-medium">Del</Text>
+              </TouchableOpacity>
+            </>
           )}
         </View>
       </View>

@@ -58,6 +58,13 @@ export default function TabLayout() {
         }}
       />
       <MaterialTopTabs.Screen
+        name="commitments"
+        options={{
+          title: 'Commitments',
+          tabBarIcon: ({ color }) => <Ionicons name="calendar-outline" size={24} color={color as string} />,
+        }}
+      />
+      <MaterialTopTabs.Screen
         name="accounts"
         options={{
           title: 'Loans',
@@ -69,13 +76,6 @@ export default function TabLayout() {
         options={{
           title: 'Summary',
           tabBarIcon: ({ color }) => <Ionicons name="bar-chart-outline" size={24} color={color as string} />,
-        }}
-      />
-      <MaterialTopTabs.Screen
-        name="more"
-        options={{
-          title: 'More',
-          tabBarIcon: ({ color }) => <Ionicons name="ellipsis-horizontal" size={24} color={color as string} />,
         }}
       />
     </MaterialTopTabs>
